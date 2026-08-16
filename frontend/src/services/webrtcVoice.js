@@ -432,6 +432,11 @@ class WebRTCVoiceManager {
         } else {
           pc.addTrack(videoTrack, screenStream);
         }
+
+        const audioTrack = screenStream.getAudioTracks()[0];
+        if (audioTrack) {
+          pc.addTrack(audioTrack, screenStream);
+        }
       }
 
       if (socket) {
@@ -737,7 +742,6 @@ class WebRTCVoiceManager {
 
   _setupAudioAnalyser(userId, stream) {
     if (!stream || !stream.getAudioTracks().length) return;
-
     try {
       if (!this.audioContext) {
         this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -746,90 +750,92 @@ class WebRTCVoiceManager {
         this.audioContext.resume().catch(() => {});
       }
 
-      // If an audio analyser loop is already running for this user, do not duplicate
-      if (this.audioAnalysers.has(userId)) {
-        return;
+      if (!this.processedAudioTracks) {
+        this.processedAudioTracks = new Set();
       }
 
-      const source = this.audioContext.createMediaStreamSource(stream);
-      const gainNode = this.audioContext.createGain();
-      
-      const userVol = this.getUserVolume(userId);
-      gainNode.gain.value = userVol / 100;
-      this.userGainNodes.set(userId, gainNode);
+      stream.getAudioTracks().forEach(track => {
+        if (this.processedAudioTracks.has(track.id)) return;
+        this.processedAudioTracks.add(track.id);
 
-      const analyser = this.audioContext.createAnalyser();
-      analyser.fftSize = 512;
-      analyser.smoothingTimeConstant = 0.4;
-      this.audioAnalysers.set(userId, analyser);
+        const singleTrackStream = new MediaStream([track]);
+        const source = this.audioContext.createMediaStreamSource(singleTrackStream);
+        
+        let gainNode = this.userGainNodes.get(userId);
+        let analyser = this.audioAnalysers.get(userId);
 
-      source.connect(gainNode);
-      gainNode.connect(analyser);
+        // First time setting up this user's WebAudio nodes
+        if (!gainNode) {
+          gainNode = this.audioContext.createGain();
+          const userVol = this.getUserVolume(userId);
+          gainNode.gain.value = userVol / 100;
+          this.userGainNodes.set(userId, gainNode);
 
-      if (userId === 'local') {
-        // Connect local mic through a 0-gain node to destination so Chromium executes WebAudio without mic sidetone feedback!
-        const silentGain = this.audioContext.createGain();
-        silentGain.gain.value = 0;
-        analyser.connect(silentGain);
-        silentGain.connect(this.audioContext.destination);
-      } else {
-        // Connect remote stream directly to audio destination so WebRTC voice plays through headphones/speakers
-        analyser.connect(this.audioContext.destination);
-      }
+          analyser = this.audioContext.createAnalyser();
+          analyser.fftSize = 512;
+          analyser.smoothingTimeConstant = 0.4;
+          this.audioAnalysers.set(userId, analyser);
 
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
+          gainNode.connect(analyser);
 
-      let releaseTimeout = null;
+          if (userId === 'local') {
+            const silentGain = this.audioContext.createGain();
+            silentGain.gain.value = 0;
+            analyser.connect(silentGain);
+            silentGain.connect(this.audioContext.destination);
+          } else {
+            analyser.connect(this.audioContext.destination);
+          }
 
-      const checkAudioLevel = () => {
-        if (!this.currentChannelId) return;
+          const bufferLength = analyser.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
 
-        if (this.audioContext && this.audioContext.state === 'suspended') {
-          this.audioContext.resume().catch(() => {});
+          let releaseTimeout = null;
+
+          const checkAudioLevel = () => {
+            if (!this.currentChannelId) return;
+
+            if (this.audioContext && this.audioContext.state === 'suspended') {
+              this.audioContext.resume().catch(() => {});
+            }
+
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < bufferLength; i++) {
+              sum += dataArray[i];
+            }
+            const average = sum / bufferLength;
+
+            if (average > 10) {
+              if (releaseTimeout) {
+                clearTimeout(releaseTimeout);
+                releaseTimeout = null;
+              }
+              if (!this.speakingUsers.has(userId)) {
+                this.speakingUsers.add(userId);
+                this.notify();
+              }
+            } else {
+              if (!releaseTimeout && this.speakingUsers.has(userId)) {
+                releaseTimeout = setTimeout(() => {
+                  this.speakingUsers.delete(userId);
+                  this.notify();
+                  releaseTimeout = null;
+                }, 400);
+              }
+            }
+
+            requestAnimationFrame(checkAudioLevel);
+          };
+
+          checkAudioLevel();
         }
 
-        analyser.getByteFrequencyData(dataArray);
-
-        // Speech frequency range (bins 1 to 32, ~80 Hz - 4000 Hz)
-        let vocalSum = 0;
-        const maxVocalBin = Math.min(32, bufferLength);
-        for (let i = 1; i < maxVocalBin; i++) {
-          vocalSum += dataArray[i];
-        }
-        const vocalAverage = vocalSum / (maxVocalBin - 1);
-
-        const isMutedState = userId === 'local' && (this.isMuted || (this.inputMode === 'ptt' && !this.pttActive));
-
-        // Threshold for VAD active speaker border glow
-        const threshold = Math.max(5, this.vadSensitivity / 3);
-
-        if (vocalAverage > threshold && !isMutedState) {
-          if (releaseTimeout) {
-            clearTimeout(releaseTimeout);
-            releaseTimeout = null;
-          }
-          if (!this.speakingUsers.has(userId)) {
-            this.speakingUsers.add(userId);
-            this.notify();
-          }
-        } else {
-          // Apply 750ms hysteresis hang time before turning off speaking indicator
-          if (this.speakingUsers.has(userId) && !releaseTimeout) {
-            releaseTimeout = setTimeout(() => {
-              this.speakingUsers.delete(userId);
-              releaseTimeout = null;
-              this.notify();
-            }, 750);
-          }
-        }
-
-        requestAnimationFrame(checkAudioLevel);
-      };
-
-      checkAudioLevel();
-    } catch (e) {
-      console.warn("AudioContext active speaker setup warning:", e);
+        // Connect the new track's source to the existing gainNode
+        source.connect(gainNode);
+      });
+    } catch (err) {
+      console.warn("Audio analyser error:", err);
     }
   }
 }
