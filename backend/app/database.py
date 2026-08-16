@@ -1,4 +1,5 @@
 import os
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
@@ -38,6 +39,20 @@ async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 
+async def run_migrations(conn):
+    """Safely add new columns to existing tables without breaking existing data."""
+    migrations = [
+        # Add settings_json column to users table if it doesn't exist
+        "ALTER TABLE users ADD COLUMN IF NOT EXISTS settings_json TEXT",
+    ]
+    for sql in migrations:
+        try:
+            await conn.execute(text(sql))
+        except Exception as e:
+            # Column already exists or other non-fatal error — ignore
+            print(f"Migration skipped (already applied?): {e}")
+
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await run_migrations(conn)
