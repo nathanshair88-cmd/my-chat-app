@@ -184,7 +184,7 @@ export default function VoiceRoom() {
 
 function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
   const videoRef = useRef(null);
-  const isSpeaking = speakingUsers.includes(item.user_id);
+  const isSpeaking = speakingUsers.some(id => String(id) === String(item.user_id));
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [userVol, setUserVol] = useState(item.volume !== undefined ? item.volume : 100);
 

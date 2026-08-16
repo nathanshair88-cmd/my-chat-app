@@ -165,7 +165,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                         <div className="ml-5 my-1 space-y-1 pl-2 border-l border-[#3f4147] animate-fadeIn">
                           {connectedUsers.map((u) => {
                             const uId = u.id || u.user_id;
-                            const isUserSpeaking = speakingUsers.includes(uId) || (uId === 'local' && speakingUsers.includes('local'));
+                            const isUserSpeaking = speakingUsers.some(id => String(id) === String(uId)) || (uId === 'local' && speakingUsers.includes('local'));
                             let displayUsername = u.username;
                             if (!displayUsername || displayUsername === 'You') {
                               displayUsername = localStorage.getItem('discord_username') || 'Member';
