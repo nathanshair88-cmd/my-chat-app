@@ -9,7 +9,7 @@ from app.auth import decode_token
 
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins='*'
+    cors_allowed_origins=[]
 )
 
 # In-memory mappings
