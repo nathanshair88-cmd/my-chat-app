@@ -1,0 +1,10 @@
+{
+  "name": "free-discord-style-app",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "cd frontend && npm install && npm run build",
+    "preview": "npm --prefix frontend run preview"
+  }
+}
