@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useServer } from '../../context/ServerContext';
 import UserWidget from './UserWidget';
-import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, PhoneOff, Radio } from 'lucide-react';
+import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio } from 'lucide-react';
 import { voiceManager } from '../../services/webrtcVoice';
 
 export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) {
@@ -10,7 +10,8 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [showServerMenu, setShowServerMenu] = useState(false);
-  const [voiceState, setVoiceState] = useState({ channel_id: null });
+  const [voiceState, setVoiceState] = useState(voiceManager.getState());
+  const [contextMenu, setContextMenu] = useState(null);
 
 
 
@@ -175,7 +176,18 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                             const avatarUrl = u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${displayUsername}`;
 
                             return (
-                              <div key={uId} className="flex items-center space-x-2 py-1 px-1.5 rounded-md hover:bg-[#35373c]/60 transition group cursor-pointer">
+                              <div 
+                                key={uId} 
+                                className="flex items-center space-x-2 py-1 px-1.5 rounded-md hover:bg-[#35373c]/60 transition group cursor-pointer"
+                                onContextMenu={(e) => {
+                                  e.preventDefault();
+                                  setContextMenu({ x: e.clientX, y: e.clientY, user: u });
+                                }}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setContextMenu({ x: e.clientX, y: e.clientY, user: u });
+                                }}
+                              >
                                 {/* Avatar with Real-time Discord Green Glowing Speaking Ring */}
                                 <div className={`
                                   w-6 h-6 rounded-full overflow-hidden shrink-0 border-2 transition-all duration-300 relative 
@@ -247,6 +259,103 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
       </div>
 
       <UserWidget onOpenSettings={onOpenSettings} />
+
+      {contextMenu && (
+        <UserContextMenu 
+          x={contextMenu.x} 
+          y={contextMenu.y} 
+          user={contextMenu.user} 
+          isLocalUser={String(contextMenu.user.id || contextMenu.user.user_id) === String(localStorage.getItem('discord_user_id'))}
+          onClose={() => setContextMenu(null)} 
+          voiceManager={voiceManager}
+        />
+      )}
+    </div>
+  );
+}
+
+function UserContextMenu({ x, y, user, onClose, isLocalUser, voiceManager }) {
+  const [volume, setVolume] = useState(() => voiceManager.getUserVolume(user.id || user.user_id));
+  const menuRef = useRef(null);
+  const [pos, setPos] = useState({ top: y, left: x });
+
+  useEffect(() => {
+    if (menuRef.current) {
+      const rect = menuRef.current.getBoundingClientRect();
+      let newTop = y;
+      let newLeft = x;
+      if (y + rect.height > window.innerHeight) {
+        newTop = Math.max(0, y - rect.height);
+      }
+      if (x + rect.width > window.innerWidth) {
+        newLeft = Math.max(0, x - rect.width);
+      }
+      setPos({ top: newTop, left: newLeft });
+    }
+  }, [x, y]);
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        onClose();
+      }
+    };
+    window.addEventListener('mousedown', handleClick);
+    return () => window.removeEventListener('mousedown', handleClick);
+  }, [onClose]);
+
+  const handleVolumeChange = (e) => {
+    const v = parseInt(e.target.value);
+    setVolume(v);
+    voiceManager.setUserVolume(user.id || user.user_id, v);
+  };
+
+  return (
+    <div 
+      ref={menuRef}
+      className="fixed z-[9999] bg-[#111214] border border-[#1e1f22] rounded shadow-2xl w-56 flex flex-col p-2 text-[#dbdee1] font-medium text-[13px] animate-in fade-in zoom-in-95 duration-100"
+      style={{ left: pos.left, top: pos.top }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Profile</div>
+      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Mention</div>
+      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Message</div>
+      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Start a Call</div>
+      <div className="h-px bg-[#2b2d31] my-1 mx-1" />
+      <div className="text-[#949ba4] text-[11px] font-bold uppercase px-2 mt-1 mb-0.5 tracking-wide">Add Note</div>
+      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Add Friend Nickname</div>
+      
+      {!isLocalUser && (
+        <>
+          <div className="h-px bg-[#2b2d31] my-1 mx-1" />
+          <div className="px-2 py-1">
+            <div className="flex justify-between items-center mb-1">
+              <span>User Volume</span>
+              <span className="text-xs text-[#949ba4]">{volume}%</span>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="200" 
+              value={volume} 
+              onChange={handleVolumeChange}
+              className="w-full h-1.5 bg-[#4e5058] rounded-lg appearance-none cursor-pointer accent-[#5865f2]"
+            />
+          </div>
+          <div className="h-px bg-[#2b2d31] my-1 mx-1" />
+          <div className="flex items-center justify-between hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors group" onClick={onClose}>
+            <span>Mute</span>
+            <div className="w-4 h-4 border border-[#4e5058] rounded-sm group-hover:border-white"></div>
+          </div>
+          <div className="flex items-center justify-between hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors group" onClick={onClose}>
+            <span>Disable Video</span>
+            <div className="w-4 h-4 border border-[#4e5058] rounded-sm group-hover:border-white"></div>
+          </div>
+        </>
+      )}
+
+      <div className="h-px bg-[#2b2d31] my-1 mx-1" />
+      <div className="hover:bg-[#da373c] hover:text-white text-[#da373c] px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Block</div>
     </div>
   );
 }
