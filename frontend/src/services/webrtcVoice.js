@@ -46,6 +46,18 @@ class WebRTCVoiceManager {
     this.isCameraOn = false;
     this.audioContext = null;
 
+    // PiP Composite Engine
+    this.compositeStream = null;
+    this.animationFrameId = null;
+    this.canvas = document.createElement('canvas');
+    this.ctx = this.canvas.getContext('2d');
+    this.screenVideoEl = document.createElement('video');
+    this.camVideoEl = document.createElement('video');
+    this.screenVideoEl.muted = true;
+    this.screenVideoEl.playsInline = true;
+    this.camVideoEl.muted = true;
+    this.camVideoEl.playsInline = true;
+
     // Advanced Voice Settings
     this.inputMode = localStorage.getItem('discord_input_mode') || 'vad'; // 'vad' | 'ptt'
     this.pttKey = localStorage.getItem('discord_ptt_key') || 'ControlLeft';
@@ -161,7 +173,7 @@ class WebRTCVoiceManager {
         user_id: 'local',
         username: localUsername,
         avatar_url: localAvatar,
-        stream: this.localScreenStream || this.localCameraStream || this.localAudioStream,
+        stream: this.compositeStream && this.isScreenSharing && this.isCameraOn ? this.compositeStream : (this.localScreenStream || this.localCameraStream || this.localAudioStream),
         isScreenShare: !!this.localScreenStream,
         isMuted: this.isMuted || (this.inputMode === 'ptt' && !this.pttActive),
         isSpeaking: this.speakingUsers.has('local') || this.speakingUsers.has(localUserId),
@@ -420,28 +432,20 @@ class WebRTCVoiceManager {
       this.isScreenSharing = true;
 
       const videoTrack = screenStream.getVideoTracks()[0];
-
       videoTrack.onended = () => {
         this.stopScreenShare();
       };
 
-      const socket = getSocket();
+      await this._updateActiveVideoTrack();
 
-      for (const [targetUserId, pc] of this.peerConnections.entries()) {
-        const senders = pc.getSenders();
-        const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-        if (videoSender) {
-          await videoSender.replaceTrack(videoTrack);
-        } else {
-          pc.addTrack(videoTrack, screenStream);
-        }
-
-        const audioTrack = screenStream.getAudioTracks()[0];
-        if (audioTrack) {
+      const audioTrack = screenStream.getAudioTracks()[0];
+      if (audioTrack) {
+        for (const [targetUserId, pc] of this.peerConnections.entries()) {
           pc.addTrack(audioTrack, screenStream);
         }
       }
 
+      const socket = getSocket();
       if (socket) {
         socket.emit('toggle_screen_share', { channel_id: this.currentChannelId, is_sharing: true });
       }
@@ -461,21 +465,10 @@ class WebRTCVoiceManager {
     }
 
     this.isScreenSharing = false;
+    
+    await this._updateActiveVideoTrack();
+
     const socket = getSocket();
-
-    for (const [targetUserId, pc] of this.peerConnections.entries()) {
-      const senders = pc.getSenders();
-      const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-      if (videoSender) {
-        if (this.isCameraOn && this.localCameraStream) {
-          const camTrack = this.localCameraStream.getVideoTracks()[0];
-          videoSender.replaceTrack(camTrack).catch(err => console.warn("Failed to restore camera track:", err));
-        } else {
-          pc.removeTrack(videoSender);
-        }
-      }
-    }
-
     if (socket) {
       socket.emit('toggle_screen_share', { channel_id: this.currentChannelId, is_sharing: false });
     }
@@ -510,20 +503,11 @@ class WebRTCVoiceManager {
       this.isCameraOn = true;
 
       const videoTrack = camStream.getVideoTracks()[0];
+      videoTrack.onended = () => {
+        this.stopCamera();
+      };
 
-      // If screen share is active, we don't replace the screen share track with the camera, 
-      // we just hold it in memory until screen share stops.
-      if (!this.isScreenSharing) {
-        for (const [targetUserId, pc] of this.peerConnections.entries()) {
-          const senders = pc.getSenders();
-          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-          if (videoSender) {
-            await videoSender.replaceTrack(videoTrack);
-          } else {
-            pc.addTrack(videoTrack, camStream);
-          }
-        }
-      }
+      await this._updateActiveVideoTrack();
 
       const socket = getSocket();
       if (socket) {
@@ -546,16 +530,7 @@ class WebRTCVoiceManager {
 
     this.isCameraOn = false;
     
-    // Only remove the track from peers if screen sharing isn't actively overwriting it
-    if (!this.isScreenSharing) {
-      for (const [targetUserId, pc] of this.peerConnections.entries()) {
-        const senders = pc.getSenders();
-        const videoSender = senders.find(s => s.track && s.track.kind === 'video');
-        if (videoSender) {
-          pc.removeTrack(videoSender);
-        }
-      }
-    }
+    await this._updateActiveVideoTrack();
 
     const socket = getSocket();
     if (socket) {
@@ -563,6 +538,112 @@ class WebRTCVoiceManager {
     }
 
     this.notify();
+  }
+
+  // --- PiP Compositor ---
+
+  _startCompositeLoop() {
+    if (this.animationFrameId) return;
+
+    this.screenVideoEl.srcObject = this.localScreenStream;
+    this.camVideoEl.srcObject = this.localCameraStream;
+    
+    this.screenVideoEl.play().catch(()=>{});
+    this.camVideoEl.play().catch(()=>{});
+
+    this.canvas.width = 1920;
+    this.canvas.height = 1080;
+
+    if (!this.compositeStream) {
+      this.compositeStream = this.canvas.captureStream(30);
+    }
+
+    const drawLoop = () => {
+      // Draw screen share background
+      if (this.screenVideoEl.readyState >= 2) {
+        this.ctx.drawImage(this.screenVideoEl, 0, 0, this.canvas.width, this.canvas.height);
+      } else {
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+      }
+
+      // Draw camera PiP in bottom right
+      if (this.camVideoEl.readyState >= 2) {
+        const camW = 480;
+        const camH = 270;
+        const padding = 40;
+        const x = this.canvas.width - camW - padding;
+        const y = this.canvas.height - camH - padding;
+
+        this.ctx.save();
+        this.ctx.beginPath();
+        if (this.ctx.roundRect) {
+          this.ctx.roundRect(x, y, camW, camH, 16);
+          this.ctx.clip();
+        } else {
+          // Fallback for older browsers
+          this.ctx.rect(x, y, camW, camH);
+          this.ctx.clip();
+        }
+        
+        this.ctx.drawImage(this.camVideoEl, x, y, camW, camH);
+        
+        this.ctx.lineWidth = 6;
+        this.ctx.strokeStyle = '#5865f2';
+        this.ctx.stroke();
+        this.ctx.restore();
+      }
+
+      this.animationFrameId = requestAnimationFrame(drawLoop);
+    };
+
+    drawLoop();
+  }
+
+  _stopCompositeLoop() {
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = null;
+    }
+    this.screenVideoEl.srcObject = null;
+    this.camVideoEl.srcObject = null;
+  }
+
+  async _updateActiveVideoTrack() {
+    let activeVideoTrack = null;
+    let baseStream = null;
+
+    if (this.isScreenSharing && this.isCameraOn && this.localScreenStream && this.localCameraStream) {
+      this._startCompositeLoop();
+      activeVideoTrack = this.compositeStream.getVideoTracks()[0];
+      baseStream = this.compositeStream;
+    } else {
+      this._stopCompositeLoop();
+      if (this.isScreenSharing && this.localScreenStream) {
+        activeVideoTrack = this.localScreenStream.getVideoTracks()[0];
+        baseStream = this.localScreenStream;
+      } else if (this.isCameraOn && this.localCameraStream) {
+        activeVideoTrack = this.localCameraStream.getVideoTracks()[0];
+        baseStream = this.localCameraStream;
+      }
+    }
+
+    for (const [targetUserId, pc] of this.peerConnections.entries()) {
+      const senders = pc.getSenders();
+      const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+
+      if (activeVideoTrack) {
+        if (videoSender) {
+          await videoSender.replaceTrack(activeVideoTrack).catch(err => console.warn("Failed to replace video track:", err));
+        } else {
+          pc.addTrack(activeVideoTrack, baseStream);
+        }
+      } else {
+        if (videoSender) {
+          pc.removeTrack(videoSender);
+        }
+      }
+    }
   }
 
   // Private peer mesh handlers
