@@ -535,7 +535,9 @@ class WebRTCVoiceManager {
       for (const u of activeUsers) {
         this.remoteParticipantsMeta.set(String(u.id), { username: u.username, avatar_url: u.avatar_url });
         if (!this.peerConnections.has(u.id)) {
-          await this._createPeerConnection(u.id, true);
+          // Use ID comparison to ensure only ONE peer creates the initial offer (glare prevention)
+          const isInitiator = String(currentUserId) > String(u.id);
+          await this._createPeerConnection(u.id, isInitiator);
         }
       }
 
@@ -559,17 +561,31 @@ class WebRTCVoiceManager {
       if (!pc) {
         pc = await this._createPeerConnection(sender_id, false);
       }
-      await pc.setRemoteDescription(new RTCSessionDescription(offer));
-      await this._flushIceCandidates(sender_id, pc);
+      
+      try {
+        const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discord_user_id'));
+        const isPolite = String(currentUserId) < String(sender_id);
+        const offerCollision = pc.signalingState !== 'stable';
+        
+        if (offerCollision) {
+          if (!isPolite) return; // Ignore offer, we are the dominant peer
+          await pc.setLocalDescription({ type: 'rollback' }); // Rollback our own offer to accept theirs
+        }
 
-      const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
+        await pc.setRemoteDescription(new RTCSessionDescription(offer));
+        await this._flushIceCandidates(sender_id, pc);
 
-      socket.emit('voice_answer', {
-        target_user_id: sender_id,
-        answer,
-        channel_id: this.currentChannelId,
-      });
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        socket.emit('voice_answer', {
+          target_user_id: sender_id,
+          answer,
+          channel_id: this.currentChannelId,
+        });
+      } catch (err) {
+        console.warn("Error handling voice offer:", err);
+      }
     });
 
     socket.on('voice_answer', async (data) => {
@@ -696,10 +712,12 @@ class WebRTCVoiceManager {
     };
 
     // Renegotiate when tracks are added or removed (e.g. Screen Sharing)
+    let makingOffer = false;
     pc.onnegotiationneeded = async () => {
       try {
-        if (pc.signalingState !== 'stable') return;
+        makingOffer = true;
         const offer = await pc.createOffer();
+        if (pc.signalingState !== 'stable') return;
         await pc.setLocalDescription(offer);
         socket.emit('voice_offer', {
           target_user_id: targetUserId,
@@ -708,6 +726,8 @@ class WebRTCVoiceManager {
         });
       } catch (err) {
         console.warn("Renegotiation offer error:", err);
+      } finally {
+        makingOffer = false;
       }
     };
 
