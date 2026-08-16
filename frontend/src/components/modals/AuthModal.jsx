@@ -1,0 +1,156 @@
+import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { MessageSquare, Sparkles, AlertCircle } from 'lucide-react';
+
+export default function AuthModal() {
+  const { login, register } = useAuth();
+  const [isRegister, setIsRegister] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (isRegister) {
+        await register(username, email, password, avatarUrl);
+      } else {
+        await login(email, password);
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const avatarPresets = [
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Cyber',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Neon',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Gamer',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Pixel',
+    'https://api.dicebear.com/7.x/bottts/svg?seed=Phantom',
+  ];
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
+      <div className="bg-[#313338] border border-[#2b2d31] rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-6">
+        {/* Brand Header */}
+        <div className="flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#5865f2] flex items-center justify-center mb-3 shadow-lg shadow-indigo-500/20">
+            <MessageSquare className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-white">
+            {isRegister ? 'Create an Account' : 'Welcome Back!'}
+          </h1>
+          <p className="text-xs text-[#949ba4] mt-1">
+            {isRegister ? "Join the high-performance self-hosted platform" : "We're so excited to see you again!"}
+          </p>
+        </div>
+
+        {error && (
+          <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-lg flex items-center space-x-2 text-rose-400 text-xs font-medium">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {isRegister && (
+            <>
+              <div>
+                <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-1.5">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="CoolGamer123"
+                  className="w-full bg-[#1e1f22] text-white text-sm rounded-lg px-3 py-2.5 border border-[#2b2d31] focus:outline-none focus:border-[#5865f2] transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-1.5">
+                  Avatar Preset
+                </label>
+                <div className="flex items-center space-x-2 mb-2">
+                  {avatarPresets.map((preset, i) => (
+                    <button
+                      type="button"
+                      key={i}
+                      onClick={() => setAvatarUrl(preset)}
+                      className={`w-9 h-9 rounded-full bg-[#1e1f22] p-0.5 border-2 transition-all ${
+                        avatarUrl === preset ? 'border-[#5865f2] scale-110' : 'border-transparent hover:border-[#404249]'
+                      }`}
+                    >
+                      <img src={preset} alt="preset" className="w-full h-full rounded-full" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-1.5">
+              Email
+            </label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="user@example.com"
+              className="w-full bg-[#1e1f22] text-white text-sm rounded-lg px-3 py-2.5 border border-[#2b2d31] focus:outline-none focus:border-[#5865f2] transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-1.5">
+              Password
+            </label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-[#1e1f22] text-white text-sm rounded-lg px-3 py-2.5 border border-[#2b2d31] focus:outline-none focus:border-[#5865f2] transition-colors"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold rounded-lg transition-all transform active:scale-95 shadow-md shadow-indigo-500/20 disabled:opacity-50"
+          >
+            {loading ? 'Processing...' : isRegister ? 'Register' : 'Log In'}
+          </button>
+        </form>
+
+        {/* Toggle Register / Login */}
+        <div className="text-center text-xs text-[#949ba4]">
+          {isRegister ? 'Already have an account?' : 'Need an account?'}{' '}
+          <button
+            onClick={() => {
+              setIsRegister(!isRegister);
+              setError('');
+            }}
+            className="text-[#00a8fc] hover:underline font-semibold ml-1"
+          >
+            {isRegister ? 'Log In' : 'Register'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

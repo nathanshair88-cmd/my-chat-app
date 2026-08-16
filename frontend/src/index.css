@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-[#1e1f22] text-[#dbdee1] antialiased select-none font-sans overflow-hidden;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    width: 100vw;
+  }
+}
+
+/* Custom Discord Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #2b2d31;
+}
+::-webkit-scrollbar-thumb {
+  background: #1a1b1e;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #111214;
+}
+
+/* Active Speaker Pulsing Glow */
+@keyframes speaker-glow {
+  0% {
+    box-shadow: 0 0 0 0px rgba(34, 197, 94, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 0px rgba(34, 197, 94, 0.7);
+  }
+}
+
+.speaker-active {
+  animation: speaker-glow 1.5s infinite ease-in-out;
+  border-color: #22c55e !important;
+}
+
+/* Glassmorphism overlays */
+.glass-panel {
+  background: rgba(30, 31, 34, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
