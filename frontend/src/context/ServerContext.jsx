@@ -354,7 +354,6 @@ export const ServerProvider = ({ children }) => {
       typingUsers,
       unreadChannels,
       unreadDMs,
-      voiceRoomState,
       showVoiceGrid,
       setShowVoiceGrid,
       toggleVoiceGrid,
