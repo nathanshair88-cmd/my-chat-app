@@ -1,3 +1,4 @@
+import json
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -5,7 +6,7 @@ from sqlalchemy import select
 
 from app.database import get_db
 from app.models import User, Server, ServerMember, Channel
-from app.schemas import UserCreate, UserLogin, TokenResponse, UserResponse, UserStatusUpdate, UserProfileUpdate
+from app.schemas import UserCreate, UserLogin, TokenResponse, UserResponse, UserStatusUpdate, UserProfileUpdate, UserSettingsUpdate
 from app.auth import get_password_hash, verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -115,3 +116,25 @@ async def update_profile(
     await db.refresh(current_user)
     return UserResponse.model_validate(current_user)
 
+@router.get("/settings")
+async def get_settings(
+    current_user: User = Depends(get_current_user)
+):
+    """Get saved user preferences from the database."""
+    if current_user.settings_json:
+        try:
+            return json.loads(current_user.settings_json)
+        except Exception:
+            return {}
+    return {}
+
+@router.put("/settings")
+async def save_settings(
+    settings_in: UserSettingsUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Save user preferences to the database."""
+    current_user.settings_json = json.dumps(settings_in.settings)
+    await db.commit()
+    return {"ok": True}

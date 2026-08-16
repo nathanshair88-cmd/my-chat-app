@@ -19,6 +19,8 @@ export const authAPI = {
   getMe: () => API.get('/auth/me'),
   updateStatus: (data) => API.put('/auth/status', data),
   updateProfile: (data) => API.put('/auth/profile', data),
+  getSettings: () => API.get('/auth/settings'),
+  saveSettings: (settings) => API.put('/auth/settings', { settings }),
 };
 
 export const serverAPI = {

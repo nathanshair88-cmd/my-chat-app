@@ -25,6 +25,9 @@ class UserProfileUpdate(BaseModel):
     current_password: Optional[str] = None
     new_password: Optional[str] = None
 
+class UserSettingsUpdate(BaseModel):
+    settings: dict  # Arbitrary JSON settings object
+
 class UserResponse(BaseModel):
     id: int
     username: str
@@ -32,6 +35,7 @@ class UserResponse(BaseModel):
     avatar_url: Optional[str] = None
     status: str
     status_message: Optional[str] = None
+    settings_json: Optional[str] = None
     created_at: datetime
 
     class Config:

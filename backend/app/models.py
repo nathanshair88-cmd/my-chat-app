@@ -14,6 +14,7 @@ class User(Base):
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="online")  # online, idle, dnd, offline
     status_message: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    settings_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON blob of user preferences
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships

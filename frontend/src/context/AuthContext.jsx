@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { authAPI } from '../services/api';
 import { initSocket, disconnectSocket } from '../services/socket';
 import { p2pEngine } from '../services/webrtcP2PFile';
+import { loadSettings } from '../services/settingsService';
 
 const AuthContext = createContext();
 
@@ -21,6 +22,7 @@ export const AuthProvider = ({ children }) => {
           if (res.data.avatar_url) localStorage.setItem('discord_avatar_url', res.data.avatar_url);
           const socket = initSocket(token);
           p2pEngine.initSocketListeners();
+          loadSettings(); // Restore saved preferences from server
         } catch (err) {
           console.error("Token verification failed:", err);
           localStorage.removeItem('discord_token');
@@ -44,6 +46,7 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     initSocket(access_token);
     p2pEngine.initSocketListeners();
+    loadSettings(); // Restore saved preferences from server
     return userData;
   };
 
@@ -57,6 +60,7 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     initSocket(access_token);
     p2pEngine.initSocketListeners();
+    loadSettings(); // Restore saved preferences from server
     return userData;
   };
 

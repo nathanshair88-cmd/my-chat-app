@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useServer } from '../../context/ServerContext';
 import { notificationService } from '../../services/NotificationService';
 import { voiceManager } from '../../services/webrtcVoice';
+import { scheduleSave } from '../../services/settingsService';
 import { 
   X, Mic, Volume2, Camera, User, Settings, VolumeX, 
   Check, Play, Radio, Shield, Palette, Bell, LogOut, Lock, Key, 
@@ -171,6 +172,7 @@ export default function UserSettingsModal({ onClose }) {
   const handleSelectInputDevice = (id) => {
     setSelectedInputDevice(id);
     localStorage.setItem('discord_audio_input', id);
+    scheduleSave();
     if (isTestingMic) {
       stopMicTest();
       setTimeout(startMicTest, 100);
@@ -180,11 +182,13 @@ export default function UserSettingsModal({ onClose }) {
   const handleSelectOutputDevice = (id) => {
     setSelectedOutputDevice(id);
     localStorage.setItem('discord_audio_output', id);
+    scheduleSave();
   };
 
   const handleSelectVideoDevice = (id) => {
     setSelectedVideoDevice(id);
     localStorage.setItem('discord_video_input', id);
+    scheduleSave();
     if (isPreviewingCamera) {
       stopCameraPreview();
       setTimeout(startCameraPreview, 100);
@@ -194,6 +198,7 @@ export default function UserSettingsModal({ onClose }) {
   const handleInputVolumeChange = (v) => {
     setInputVolume(v);
     localStorage.setItem('discord_input_volume', v);
+    scheduleSave();
     if (micGainNodeRef.current) {
       micGainNodeRef.current.gain.value = v / 100;
     }
@@ -202,6 +207,7 @@ export default function UserSettingsModal({ onClose }) {
   const handleOutputVolumeChange = (v) => {
     setOutputVolume(v);
     localStorage.setItem('discord_output_volume', v);
+    scheduleSave();
   };
 
   // Mic test logic using Web Audio API
@@ -310,6 +316,7 @@ export default function UserSettingsModal({ onClose }) {
   const handleInputModeChange = (mode) => {
     setInputModeState(mode);
     voiceManager.setInputMode(mode);
+    scheduleSave();
   };
 
   const handlePttKeyRecord = (e) => {
@@ -318,34 +325,40 @@ export default function UserSettingsModal({ onClose }) {
     setPttKeyState(keyName);
     voiceManager.setPttKey(keyName);
     setIsRecordingKey(false);
+    scheduleSave();
   };
 
   const handleToggleEchoCancellation = () => {
     const next = !echoCancellation;
     setEchoCancellation(next);
     voiceManager.setAudioProcessing({ echoCancellation: next });
+    scheduleSave();
   };
 
   const handleToggleNoiseSuppression = () => {
     const next = !noiseSuppression;
     setNoiseSuppression(next);
     voiceManager.setAudioProcessing({ noiseSuppression: next });
+    scheduleSave();
   };
 
   const handleToggleAutoGainControl = () => {
     const next = !autoGainControl;
     setAutoGainControl(next);
     voiceManager.setAudioProcessing({ autoGainControl: next });
+    scheduleSave();
   };
 
   const handleVadSensitivityChange = (val) => {
     setVadSensitivityState(val);
     voiceManager.setAudioProcessing({ vadSensitivity: val });
+    scheduleSave();
   };
 
   const handleBitrateChange = (val) => {
     setAudioBitrate(val);
     localStorage.setItem('discord_audio_bitrate', val);
+    scheduleSave();
   };
 
   const startCameraPreview = async () => {
