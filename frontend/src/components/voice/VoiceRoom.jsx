@@ -225,8 +225,8 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
         />
       ) : (
         <div className="flex flex-col items-center justify-center p-6">
-          <div className={`w-20 h-20 rounded-full bg-[#2b2d31] border-4 flex items-center justify-center transition-all ${
-            isSpeaking ? 'border-emerald-500 scale-105 shadow-lg shadow-emerald-500/20' : 'border-[#3f4147]'
+          <div className={`w-20 h-20 rounded-full bg-[#2b2d31] border-4 flex items-center justify-center transition-all duration-300 ${
+            isSpeaking ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-[#3f4147]'
           }`}>
             <span className="text-2xl font-bold text-white">{item.username.substring(0, 2).toUpperCase()}</span>
           </div>
