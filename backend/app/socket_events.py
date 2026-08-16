@@ -110,14 +110,14 @@ async def join_channel(sid, data):
     channel_id = data.get("channel_id")
     if channel_id:
         room_name = f"channel_{channel_id}"
-        sio.enter_room(sid, room_name)
+        await sio.enter_room(sid, room_name)
 
 @sio.event
 async def leave_channel(sid, data):
     channel_id = data.get("channel_id")
     if channel_id:
         room_name = f"channel_{channel_id}"
-        sio.leave_room(sid, room_name)
+        await sio.leave_room(sid, room_name)
 
 @sio.event
 async def send_message(sid, data):
@@ -285,7 +285,7 @@ async def join_voice(sid, data):
         return
 
     room_name = f"voice_{channel_id}"
-    sio.enter_room(sid, room_name)
+    await sio.enter_room(sid, room_name)
 
     if channel_id not in voice_room_users or len(voice_room_users[channel_id]) == 0:
         voice_room_users[channel_id] = {}
@@ -312,7 +312,7 @@ async def leave_voice(sid, data):
     channel_id = data.get("channel_id")
     if user_data and channel_id:
         room_name = f"voice_{channel_id}"
-        sio.leave_room(sid, room_name)
+        await sio.leave_room(sid, room_name)
         if channel_id in voice_room_users and user_data["id"] in voice_room_users[channel_id]:
             del voice_room_users[channel_id][user_data["id"]]
             if len(voice_room_users[channel_id]) == 0:
@@ -459,13 +459,13 @@ async def p2p_file_ice(sid, data):
 async def join_dm(sid, data):
     conversation_id = data.get("conversation_id")
     if conversation_id:
-        sio.enter_room(sid, f"dm_{conversation_id}")
+        await sio.enter_room(sid, f"dm_{conversation_id}")
 
 @sio.event
 async def leave_dm(sid, data):
     conversation_id = data.get("conversation_id")
     if conversation_id:
-        sio.leave_room(sid, f"dm_{conversation_id}")
+        await sio.leave_room(sid, f"dm_{conversation_id}")
 
 @sio.event
 async def send_dm_message(sid, data):
