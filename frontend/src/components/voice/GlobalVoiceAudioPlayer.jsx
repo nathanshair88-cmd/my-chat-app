@@ -46,6 +46,7 @@ function RemoteAudioTrack({ item }) {
       ref={audioRef}
       autoPlay
       playsInline
+      muted={true}
     />
   );
 }

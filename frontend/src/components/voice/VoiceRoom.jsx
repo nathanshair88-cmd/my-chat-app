@@ -186,7 +186,7 @@ export default function VoiceRoom() {
               }}
               autoPlay
               playsInline
-              muted={fullscreenItem.user_id === 'local'}
+              muted={true}
               className="w-full h-full object-contain bg-black"
             />
           </div>
@@ -234,7 +234,7 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
           ref={videoRef}
           autoPlay
           playsInline
-          muted={item.user_id === 'local'}
+          muted={true}
           className="w-full h-full object-contain bg-black cursor-pointer"
           onClick={handleToggleFullscreen}
         />
