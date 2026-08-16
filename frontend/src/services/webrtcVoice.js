@@ -802,13 +802,13 @@ class WebRTCVoiceManager {
             this.notify();
           }
         } else {
-          // Apply 350ms hysteresis hang time before turning off speaking indicator
+          // Apply 750ms hysteresis hang time before turning off speaking indicator
           if (this.speakingUsers.has(userId) && !releaseTimeout) {
             releaseTimeout = setTimeout(() => {
               this.speakingUsers.delete(userId);
               releaseTimeout = null;
               this.notify();
-            }, 350);
+            }, 750);
           }
         }
 

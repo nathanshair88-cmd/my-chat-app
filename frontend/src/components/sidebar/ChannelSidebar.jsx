@@ -175,11 +175,12 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                             return (
                               <div key={uId} className="flex items-center space-x-2 py-1 px-1.5 rounded-md hover:bg-[#35373c]/60 transition group cursor-pointer">
                                 {/* Avatar with Real-time Discord Green Glowing Speaking Ring */}
-                                <div className={`relative flex-shrink-0 w-6 h-6 rounded-full transition-all duration-150 ${
-                                  isUserSpeaking
-                                    ? 'ring-2 ring-emerald-500 shadow-[0_0_10px_rgba(34,197,94,0.8)] scale-105'
-                                    : 'ring-1 ring-transparent'
-                                }`}>
+                                <div className={`
+                                  w-6 h-6 rounded-full overflow-hidden shrink-0 border-2 transition-all duration-300 relative 
+                                  ${isUserSpeaking 
+                                    ? 'border-[#23a559] ring-2 ring-[#23a559]/50 shadow-[0_0_8px_rgba(35,165,89,0.6)]' 
+                                    : 'border-transparent'
+                                  }`}>
                                   <img src={avatarUrl} alt={displayUsername} className="w-full h-full rounded-full object-cover" />
                                 </div>
 
