@@ -11,8 +11,7 @@ export const initSocket = (token) => {
 
   socket = io(socketUrl, {
     auth: { token },
-    query: { token },
-    transports: ['websocket', 'polling'],
+    query: { token }
   });
 
   return socket;
