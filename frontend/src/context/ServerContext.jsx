@@ -20,6 +20,15 @@ export const ServerProvider = ({ children }) => {
   const [currentChannel, setCurrentChannel] = useState(null);
   const [voiceState, setVoiceState] = useState({ channel_id: null });
 
+  // Refs to avoid stale closures in socket event handlers
+  const currentChannelRef = React.useRef(currentChannel);
+  const currentDMRef = React.useRef(null);
+  const viewModeRef = React.useRef('server');
+
+  // Keep refs in sync with state
+  useEffect(() => { currentChannelRef.current = currentChannel; }, [currentChannel]);
+  useEffect(() => { viewModeRef.current = viewMode; }, [viewMode]);
+
   // Subscribe to WebRTC Voice state
   useEffect(() => {
     return voiceManager.subscribe(setVoiceState);
@@ -29,6 +38,7 @@ export const ServerProvider = ({ children }) => {
   // DM state
   const [conversations, setConversations] = useState([]);
   const [currentDM, setCurrentDM] = useState(null);
+  useEffect(() => { currentDMRef.current = currentDM; }, [currentDM]);
 
   // Unified chat state & unread state
   const [messages, setMessages] = useState([]);
@@ -85,7 +95,7 @@ export const ServerProvider = ({ children }) => {
     setCurrentServer(server);
     if (server && server.channels && server.channels.length > 0) {
       const defaultChannel = server.channels.find(c => c.type === 'text') || server.channels[0];
-      selectChannel(defaultChannel);
+      selectChannelInternal(defaultChannel);
     } else {
       setCurrentChannel(null);
       setMessages([]);
@@ -98,7 +108,7 @@ export const ServerProvider = ({ children }) => {
     setShowVoiceGrid(prev => !prev);
   };
 
-  const selectChannel = async (channel) => {
+  const selectChannel = async (channel, userInitiated = true) => {
     setViewMode('server');
     setCurrentDM(null);
     if (!channel) return;
@@ -109,8 +119,8 @@ export const ServerProvider = ({ children }) => {
       socket.emit('leave_channel', { channel_id: currentChannel.id });
     }
 
-    // Connect WebRTC audio if it's a voice/media channel
-    if (channel.type === 'voice' || channel.type === 'media') {
+    // Connect WebRTC audio if it's a voice/media channel and user explicitly clicked it
+    if ((channel.type === 'voice' || channel.type === 'media') && userInitiated) {
       if (voiceState.channel_id !== channel.id) {
         voiceManager.joinVoiceChannel(channel.id, user);
       }
@@ -134,6 +144,10 @@ export const ServerProvider = ({ children }) => {
       console.error("Error fetching channel messages:", err);
     }
   };
+
+  // Internal: select channel without auto-joining voice (used on server load)
+  const selectChannelInternal = (channel) => selectChannel(channel, false);
+
 
 
 
@@ -191,7 +205,7 @@ export const ServerProvider = ({ children }) => {
     if (!socket) return;
 
     const handleNewMessage = (msg) => {
-      if (viewMode === 'server' && currentChannel && msg.channel_id === currentChannel.id) {
+      if (viewModeRef.current === 'server' && currentChannelRef.current && msg.channel_id === currentChannelRef.current.id) {
         setMessages(prev => [...prev, msg]);
       } else {
         // Increment unread count & play chime
@@ -206,7 +220,7 @@ export const ServerProvider = ({ children }) => {
     };
 
     const handleNewDMMessage = (msg) => {
-      if (viewMode === 'dm' && currentDM && msg.conversation_id === currentDM.id) {
+      if (viewModeRef.current === 'dm' && currentDMRef.current && msg.conversation_id === currentDMRef.current.id) {
         setMessages(prev => [...prev, msg]);
       } else {
         setUnreadDMs(prev => ({
@@ -237,7 +251,7 @@ export const ServerProvider = ({ children }) => {
     };
 
     const handleUserTyping = (data) => {
-      if (viewMode === 'server' && currentChannel && data.channel_id === currentChannel.id) {
+      if (viewModeRef.current === 'server' && currentChannelRef.current && data.channel_id === currentChannelRef.current.id) {
         setTypingUsers(prev => {
           const next = new Map(prev);
           if (data.is_typing) {
@@ -272,10 +286,10 @@ export const ServerProvider = ({ children }) => {
 
 
     const handleConnect = () => {
-      if (viewMode === 'server' && currentChannel) {
-        socket.emit('join_channel', { channel_id: currentChannel.id });
-      } else if (viewMode === 'dm' && currentDM) {
-        socket.emit('join_dm', { conversation_id: currentDM.id });
+      if (viewModeRef.current === 'server' && currentChannelRef.current) {
+        socket.emit('join_channel', { channel_id: currentChannelRef.current.id });
+      } else if (viewModeRef.current === 'dm' && currentDMRef.current) {
+        socket.emit('join_dm', { conversation_id: currentDMRef.current.id });
       }
     };
 
@@ -297,7 +311,7 @@ export const ServerProvider = ({ children }) => {
       socket.off('voice_room_update', handleVoiceRoomUpdate);
     };
 
-  }, [viewMode, currentChannel, currentDM, user, fetchConversations]);
+  }, [user, fetchConversations]);
 
   const addServer = async (name, icon_url) => {
     const res = await serverAPI.createServer({ name, icon_url });
