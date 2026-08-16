@@ -152,6 +152,7 @@ class WebRTCVoiceManager {
     if (this.localAudioStream || this.localScreenStream) {
       const localUsername = this.currentUser?.username || localStorage.getItem('discord_username') || 'You';
       const localAvatar = this.currentUser?.avatar_url || localStorage.getItem('discord_avatar_url') || null;
+      const localUserId = this.currentUser?.id || Number(localStorage.getItem('discord_user_id')) || 'local';
 
       streamsList.push({
         user_id: 'local',
@@ -160,7 +161,7 @@ class WebRTCVoiceManager {
         stream: this.localScreenStream || this.localAudioStream,
         isScreenShare: !!this.localScreenStream,
         isMuted: this.isMuted || (this.inputMode === 'ptt' && !this.pttActive),
-        isSpeaking: this.speakingUsers.has('local'),
+        isSpeaking: this.speakingUsers.has('local') || this.speakingUsers.has(localUserId),
         volume: 100
       });
     }
@@ -193,7 +194,7 @@ class WebRTCVoiceManager {
       autoGainControl: this.autoGainControl,
       vadSensitivity: this.vadSensitivity,
       streams: streamsList,
-      speakingUsers: Array.from(this.speakingUsers)
+      speakingUsers: Array.from(this.speakingUsers).map(id => String(id))
     };
   }
 
