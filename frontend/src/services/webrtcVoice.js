@@ -167,7 +167,7 @@ class WebRTCVoiceManager {
 
     // Remote streams
     for (const [userId, stream] of this.remoteStreams.entries()) {
-      const participantInfo = this.remoteParticipantsMeta?.get(userId) || {};
+      const participantInfo = this.remoteParticipantsMeta?.get(String(userId)) || {};
       streamsList.push({
         user_id: userId,
         username: participantInfo.username || `User ${userId}`,
@@ -514,7 +514,7 @@ class WebRTCVoiceManager {
       const activeUsers = data.users.filter(u => Number(u.id) !== Number(currentUserId));
 
       for (const u of activeUsers) {
-        this.remoteParticipantsMeta.set(u.id, { username: u.username, avatar_url: u.avatar_url });
+        this.remoteParticipantsMeta.set(String(u.id), { username: u.username, avatar_url: u.avatar_url });
         if (!this.peerConnections.has(u.id)) {
           await this._createPeerConnection(u.id, true);
         }
@@ -526,7 +526,7 @@ class WebRTCVoiceManager {
           this.peerConnections.delete(userId);
           this.remoteStreams.delete(userId);
           this.userGainNodes.delete(userId);
-          this.remoteParticipantsMeta.delete(userId);
+          this.remoteParticipantsMeta.delete(String(userId));
         }
       }
       this.notify();
@@ -586,7 +586,7 @@ class WebRTCVoiceManager {
       const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discord_user_id'));
       if (Number(user_id) === Number(currentUserId)) return;
 
-      this.remoteParticipantsMeta.set(user_id, { username, avatar_url });
+      this.remoteParticipantsMeta.set(String(user_id), { username, avatar_url });
 
       try {
         if (!this.audioContext) {
