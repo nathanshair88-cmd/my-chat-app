@@ -199,116 +199,137 @@ export const ServerProvider = ({ children }) => {
     }
   };
 
-  // Socket event listeners for messages, reactions, typing, and DMs
+  // Socket event listeners for messages, reactions, typing, voice, and DMs
+  // We use a stable effect that registers on both the live socket AND the connect event
+  // so listeners are never missed even if the socket isn't ready yet.
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket) return;
+    // Poll for socket up to ~2 seconds in case initSocket hasn't fired yet
+    let attempts = 0;
+    let registered = false;
+    let cleanupFns = [];
 
-    const handleNewMessage = (msg) => {
-      if (viewModeRef.current === 'server' && currentChannelRef.current && msg.channel_id === currentChannelRef.current.id) {
-        setMessages(prev => [...prev, msg]);
-      } else {
-        // Increment unread count & play chime
-        setUnreadChannels(prev => ({
-          ...prev,
-          [msg.channel_id]: (prev[msg.channel_id] || 0) + 1
-        }));
-        if (msg.user_id !== user?.id) {
-          notificationService.playNotificationChime();
+    const setupListeners = () => {
+      const socket = getSocket();
+      if (!socket) return false;
+
+      const handleNewMessage = (msg) => {
+        if (viewModeRef.current === 'server' && currentChannelRef.current && msg.channel_id === currentChannelRef.current.id) {
+          setMessages(prev => [...prev, msg]);
+        } else {
+          setUnreadChannels(prev => ({
+            ...prev,
+            [msg.channel_id]: (prev[msg.channel_id] || 0) + 1
+          }));
+          if (msg.user_id !== user?.id) {
+            notificationService.playNotificationChime();
+          }
         }
-      }
-    };
+      };
 
-    const handleNewDMMessage = (msg) => {
-      if (viewModeRef.current === 'dm' && currentDMRef.current && msg.conversation_id === currentDMRef.current.id) {
-        setMessages(prev => [...prev, msg]);
-      } else {
-        setUnreadDMs(prev => ({
-          ...prev,
-          [msg.conversation_id]: (prev[msg.conversation_id] || 0) + 1
-        }));
+      const handleNewDMMessage = (msg) => {
+        if (viewModeRef.current === 'dm' && currentDMRef.current && msg.conversation_id === currentDMRef.current.id) {
+          setMessages(prev => [...prev, msg]);
+        } else {
+          setUnreadDMs(prev => ({
+            ...prev,
+            [msg.conversation_id]: (prev[msg.conversation_id] || 0) + 1
+          }));
+          if (msg.sender_id !== user?.id) {
+            notificationService.playNotificationChime();
+          }
+        }
+      };
+
+      const handleNewDMNotification = (msg) => {
+        fetchConversations();
         if (msg.sender_id !== user?.id) {
           notificationService.playNotificationChime();
         }
-      }
-    };
+      };
 
-    const handleNewDMNotification = (msg) => {
-      fetchConversations();
-      if (msg.sender_id !== user?.id) {
-        notificationService.playNotificationChime();
-      }
-    };
+      const handleReactionUpdated = (data) => {
+        const { message_id, reactions } = data;
+        setMessages(prev => prev.map(m => m.id === message_id ? { ...m, reactions } : m));
+      };
 
-    const handleReactionUpdated = (data) => {
-      const { message_id, reactions } = data;
-      setMessages(prev => prev.map(m => {
-        if (m.id === message_id) {
-          return { ...m, reactions };
+      const handleUserTyping = (data) => {
+        if (viewModeRef.current === 'server' && currentChannelRef.current && data.channel_id === currentChannelRef.current.id) {
+          setTypingUsers(prev => {
+            const next = new Map(prev);
+            if (data.is_typing) {
+              next.set(data.user_id, data.username);
+            } else {
+              next.delete(data.user_id);
+            }
+            return next;
+          });
         }
-        return m;
-      }));
+      };
+
+      const handleVoiceRoomUpdate = (data) => {
+        if (data && data.channel_id) {
+          setVoiceRoomState(prev => {
+            const prevList = prev[data.channel_id] || [];
+            const newList = data.users || [];
+            if (newList.length > prevList.length && prevList.length > 0) {
+              notificationService.playVoiceConnectChime();
+            } else if (newList.length < prevList.length) {
+              notificationService.playVoiceDisconnectChime();
+            }
+            return { ...prev, [data.channel_id]: newList };
+          });
+        }
+      };
+
+      const handleConnect = () => {
+        if (viewModeRef.current === 'server' && currentChannelRef.current) {
+          socket.emit('join_channel', { channel_id: currentChannelRef.current.id });
+        } else if (viewModeRef.current === 'dm' && currentDMRef.current) {
+          socket.emit('join_dm', { conversation_id: currentDMRef.current.id });
+        }
+      };
+
+      socket.on('connect', handleConnect);
+      socket.on('new_message', handleNewMessage);
+      socket.on('new_dm_message', handleNewDMMessage);
+      socket.on('new_dm_notification', handleNewDMNotification);
+      socket.on('reaction_updated', handleReactionUpdated);
+      socket.on('user_typing', handleUserTyping);
+      socket.on('voice_room_update', handleVoiceRoomUpdate);
+
+      cleanupFns.push(() => {
+        socket.off('connect', handleConnect);
+        socket.off('new_message', handleNewMessage);
+        socket.off('new_dm_message', handleNewDMMessage);
+        socket.off('new_dm_notification', handleNewDMNotification);
+        socket.off('reaction_updated', handleReactionUpdated);
+        socket.off('user_typing', handleUserTyping);
+        socket.off('voice_room_update', handleVoiceRoomUpdate);
+      });
+
+      return true;
     };
 
-    const handleUserTyping = (data) => {
-      if (viewModeRef.current === 'server' && currentChannelRef.current && data.channel_id === currentChannelRef.current.id) {
-        setTypingUsers(prev => {
-          const next = new Map(prev);
-          if (data.is_typing) {
-            next.set(data.user_id, data.username);
-          } else {
-            next.delete(data.user_id);
-          }
-          return next;
-        });
-      }
-    };
+    // Try immediately - works if socket is already available
+    registered = setupListeners();
 
-    const handleVoiceRoomUpdate = (data) => {
-      if (data && data.channel_id) {
-        setVoiceRoomState(prev => {
-          const prevList = prev[data.channel_id] || [];
-          const newList = data.users || [];
-
-          if (newList.length > prevList.length && prevList.length > 0) {
-            notificationService.playVoiceConnectChime();
-          } else if (newList.length < prevList.length) {
-            notificationService.playVoiceDisconnectChime();
-          }
-
-          return {
-            ...prev,
-            [data.channel_id]: newList
-          };
-        });
-      }
-    };
-
-
-    const handleConnect = () => {
-      if (viewModeRef.current === 'server' && currentChannelRef.current) {
-        socket.emit('join_channel', { channel_id: currentChannelRef.current.id });
-      } else if (viewModeRef.current === 'dm' && currentDMRef.current) {
-        socket.emit('join_dm', { conversation_id: currentDMRef.current.id });
-      }
-    };
-
-    socket.on('connect', handleConnect);
-    socket.on('new_message', handleNewMessage);
-    socket.on('new_dm_message', handleNewDMMessage);
-    socket.on('new_dm_notification', handleNewDMNotification);
-    socket.on('reaction_updated', handleReactionUpdated);
-    socket.on('user_typing', handleUserTyping);
-    socket.on('voice_room_update', handleVoiceRoomUpdate);
+    // If socket wasn't ready, poll every 100ms until it is (up to 20 attempts = 2s)
+    let intervalId = null;
+    if (!registered) {
+      intervalId = setInterval(() => {
+        attempts++;
+        if (setupListeners()) {
+          registered = true;
+          clearInterval(intervalId);
+        } else if (attempts >= 20) {
+          clearInterval(intervalId);
+        }
+      }, 100);
+    }
 
     return () => {
-      socket.off('connect', handleConnect);
-      socket.off('new_message', handleNewMessage);
-      socket.off('new_dm_message', handleNewDMMessage);
-      socket.off('new_dm_notification', handleNewDMNotification);
-      socket.off('reaction_updated', handleReactionUpdated);
-      socket.off('user_typing', handleUserTyping);
-      socket.off('voice_room_update', handleVoiceRoomUpdate);
+      if (intervalId) clearInterval(intervalId);
+      cleanupFns.forEach(fn => fn());
     };
 
   }, [user, fetchConversations]);
