@@ -7,7 +7,11 @@ export const initSocket = (token) => {
     socket.disconnect();
   }
 
-  const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+  const defaultSocketUrl = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
+    ? 'https://my-chat-backend-suva.onrender.com'
+    : window.location.origin;
+
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || defaultSocketUrl;
 
   socket = io(socketUrl, {
     auth: { token },
