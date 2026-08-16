@@ -178,17 +178,7 @@ export default function VoiceRoom() {
 
           {/* High-Resolution Enlarged Video Viewport */}
           <div className="flex-1 flex items-center justify-center w-full h-full relative">
-            <video
-              ref={(el) => {
-                if (el && fullscreenItem.stream) {
-                  el.srcObject = fullscreenItem.stream;
-                }
-              }}
-              autoPlay
-              playsInline
-              muted={true}
-              className="w-full h-full object-contain bg-black"
-            />
+            <FullscreenVideoNode stream={fullscreenItem.stream} />
           </div>
         </div>
       )}
@@ -311,4 +301,22 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
   );
 }
 
+function FullscreenVideoNode({ stream }) {
+  const videoRef = useRef(null);
 
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      muted={true}
+      className="w-full h-full object-contain bg-black"
+    />
+  );
+}
