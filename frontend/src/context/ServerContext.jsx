@@ -271,6 +271,15 @@ export const ServerProvider = ({ children }) => {
     };
 
 
+    const handleConnect = () => {
+      if (viewMode === 'server' && currentChannel) {
+        socket.emit('join_channel', { channel_id: currentChannel.id });
+      } else if (viewMode === 'dm' && currentDM) {
+        socket.emit('join_dm', { conversation_id: currentDM.id });
+      }
+    };
+
+    socket.on('connect', handleConnect);
     socket.on('new_message', handleNewMessage);
     socket.on('new_dm_message', handleNewDMMessage);
     socket.on('new_dm_notification', handleNewDMNotification);
@@ -279,6 +288,7 @@ export const ServerProvider = ({ children }) => {
     socket.on('voice_room_update', handleVoiceRoomUpdate);
 
     return () => {
+      socket.off('connect', handleConnect);
       socket.off('new_message', handleNewMessage);
       socket.off('new_dm_message', handleNewDMMessage);
       socket.off('new_dm_notification', handleNewDMNotification);
