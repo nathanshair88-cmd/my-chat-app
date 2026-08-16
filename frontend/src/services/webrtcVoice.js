@@ -432,21 +432,6 @@ class WebRTCVoiceManager {
         } else {
           pc.addTrack(videoTrack, screenStream);
         }
-
-        // Generate and send new SDP offer to force remote peer video track activation
-        try {
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          if (socket) {
-            socket.emit('voice_offer', {
-              target_user_id: targetUserId,
-              offer,
-              channel_id: this.currentChannelId,
-            });
-          }
-        } catch (err) {
-          console.warn("Screen share offer renegotiation error:", err);
-        }
       }
 
       if (socket) {
@@ -475,20 +460,6 @@ class WebRTCVoiceManager {
       const videoSender = senders.find(s => s.track && s.track.kind === 'video');
       if (videoSender) {
         pc.removeTrack(videoSender);
-      }
-
-      try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        if (socket) {
-          socket.emit('voice_offer', {
-            target_user_id: targetUserId,
-            offer,
-            channel_id: this.currentChannelId,
-          });
-        }
-      } catch (err) {
-        console.warn("Stop screen share renegotiation error:", err);
       }
     }
 

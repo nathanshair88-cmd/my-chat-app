@@ -11,6 +11,8 @@ import AuthModal from './components/modals/AuthModal';
 import CreateServerModal from './components/modals/CreateServerModal';
 import CreateChannelModal from './components/modals/CreateChannelModal';
 import P2PTransferModal from './components/p2p/P2PTransferModal';
+import { p2pEngine } from './services/webrtcP2PFile';
+import { notificationService } from './services/NotificationService';
 import UserSettingsModal from './components/modals/UserSettingsModal';
 
 function MainDashboard() {
@@ -21,6 +23,25 @@ function MainDashboard() {
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [showP2PModal, setShowP2PModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+
+  // Automatically open P2P modal on incoming transfers
+  useEffect(() => {
+    const seenIncoming = new Set();
+    return p2pEngine.subscribe((transfers) => {
+      const incoming = transfers.filter(t => t.role === 'receiver' && t.status === 'pending');
+      let shouldOpen = false;
+      incoming.forEach(t => {
+        if (!seenIncoming.has(t.transfer_id)) {
+          seenIncoming.add(t.transfer_id);
+          shouldOpen = true;
+          notificationService.playNotificationChime();
+        }
+      });
+      if (shouldOpen) {
+        setShowP2PModal(true);
+      }
+    });
+  }, []);
 
   if (loading) {
     return (
