@@ -10,7 +10,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [showServerMenu, setShowServerMenu] = useState(false);
-  const [voiceState, setVoiceState] = useState(voiceManager.getState());
+  const [voiceState, setVoiceState] = useState(voiceManager.getCurrentState());
   const [contextMenu, setContextMenu] = useState(null);
 
 
