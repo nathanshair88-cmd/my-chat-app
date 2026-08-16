@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { voiceManager } from '../../services/webrtcVoice';
 import { useServer } from '../../context/ServerContext';
 import { useAuth } from '../../context/AuthContext';
-import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, PhoneOff, Radio, ShieldAlert, Maximize, Minimize, X } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, ShieldAlert, Maximize, Minimize, X } from 'lucide-react';
 
 export default function VoiceRoom() {
   const { currentChannel } = useServer();
@@ -121,6 +121,17 @@ export default function VoiceRoom() {
           {voiceState.isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
         </button>
 
+        {/* Camera (Webcam) Button */}
+        <button
+          onClick={() => voiceManager.toggleCamera()}
+          className={`p-3.5 rounded-full transition-all transform active:scale-95 ${
+            voiceState.isCameraOn ? 'bg-[#23a55a] text-white shadow-emerald-500/30' : 'bg-[#2b2d31] hover:bg-[#35373c] text-white'
+          }`}
+          title={voiceState.isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
+        >
+          {voiceState.isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+        </button>
+
         {/* Disconnect Voice */}
         <button
           onClick={() => voiceManager.leaveVoiceChannel()}
@@ -133,8 +144,17 @@ export default function VoiceRoom() {
 
       {/* Fullscreen React Theater Overlay */}
       {fullscreenItem && (
-        <div className="fixed inset-0 z-50 bg-[#0b0c0e]/95 backdrop-blur-md flex flex-col justify-between p-6 animate-fadeIn">
-          <div className="flex items-center justify-between z-10">
+        <div 
+          ref={(el) => {
+            if (el && !document.fullscreenElement) {
+              el.requestFullscreen().catch(err => {
+                console.warn("Native fullscreen refused:", err);
+              });
+            }
+          }}
+          className="fixed inset-0 z-50 bg-[#0b0c0e] flex flex-col justify-between p-6 animate-fadeIn"
+        >
+          <div className="flex items-center justify-between z-10 absolute top-6 left-6 right-6">
             <div className="flex items-center space-x-3 bg-[#1e1f22]/90 border border-[#2b2d31] px-4 py-2 rounded-xl">
               <span className="font-bold text-white text-sm">{fullscreenItem.username}'s Stream</span>
               {fullscreenItem.isScreenSharing && (
@@ -143,8 +163,13 @@ export default function VoiceRoom() {
             </div>
 
             <button
-              onClick={() => setFullscreenItem(null)}
-              className="p-2.5 bg-[#1e1f22] hover:bg-[#35373c] text-white rounded-full border border-[#3f4147] transition shadow-lg"
+              onClick={() => {
+                if (document.fullscreenElement) {
+                  document.exitFullscreen().catch(() => {});
+                }
+                setFullscreenItem(null);
+              }}
+              className="p-2.5 bg-[#1e1f22] hover:bg-[#35373c] text-white rounded-full border border-[#3f4147] transition shadow-lg opacity-50 hover:opacity-100"
               title="Exit Fullscreen View (ESC)"
             >
               <X className="w-6 h-6" />
@@ -152,7 +177,7 @@ export default function VoiceRoom() {
           </div>
 
           {/* High-Resolution Enlarged Video Viewport */}
-          <div className="flex-1 my-4 flex items-center justify-center relative min-h-0 overflow-hidden">
+          <div className="flex-1 flex items-center justify-center w-full h-full relative">
             <video
               ref={(el) => {
                 if (el && fullscreenItem.stream) {
@@ -162,18 +187,8 @@ export default function VoiceRoom() {
               autoPlay
               playsInline
               muted={fullscreenItem.user_id === 'local'}
-              className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl border border-[#2b2d31] bg-black"
+              className="w-full h-full object-contain bg-black"
             />
-          </div>
-
-          <div className="flex items-center justify-center space-x-4 z-10">
-            <button
-              onClick={() => setFullscreenItem(null)}
-              className="px-6 py-2.5 bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center space-x-2"
-            >
-              <Minimize className="w-4 h-4" />
-              <span>Exit Fullscreen</span>
-            </button>
           </div>
         </div>
       )}

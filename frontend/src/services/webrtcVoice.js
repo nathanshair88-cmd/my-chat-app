@@ -43,6 +43,7 @@ class WebRTCVoiceManager {
     this.isMuted = false;
     this.isDeafened = false;
     this.isScreenSharing = false;
+    this.isCameraOn = false;
     this.audioContext = null;
 
     // Advanced Voice Settings
@@ -151,7 +152,7 @@ class WebRTCVoiceManager {
     const streamsList = [];
 
     // Local stream representation
-    if (this.localAudioStream || this.localScreenStream) {
+    if (this.localAudioStream || this.localScreenStream || this.localCameraStream) {
       const localUsername = this.currentUser?.username || localStorage.getItem('discord_username') || 'You';
       const localAvatar = this.currentUser?.avatar_url || localStorage.getItem('discord_avatar_url') || null;
       const localUserId = this.currentUser?.id || Number(localStorage.getItem('discord_user_id')) || 'local';
@@ -160,7 +161,7 @@ class WebRTCVoiceManager {
         user_id: 'local',
         username: localUsername,
         avatar_url: localAvatar,
-        stream: this.localScreenStream || this.localAudioStream,
+        stream: this.localScreenStream || this.localCameraStream || this.localAudioStream,
         isScreenShare: !!this.localScreenStream,
         isMuted: this.isMuted || (this.inputMode === 'ptt' && !this.pttActive),
         isSpeaking: this.speakingUsers.has('local') || this.speakingUsers.has(localUserId),
@@ -188,6 +189,7 @@ class WebRTCVoiceManager {
       isMuted: this.isMuted,
       isDeafened: this.isDeafened,
       isScreenSharing: this.isScreenSharing,
+      isCameraOn: this.isCameraOn,
       inputMode: this.inputMode,
       pttKey: this.pttKey,
       pttActive: this.pttActive,
@@ -380,6 +382,7 @@ class WebRTCVoiceManager {
     this.speakingUsers.clear();
     this.currentChannelId = null;
     this.isScreenSharing = false;
+    this.isCameraOn = false;
 
     this.notify();
   }
@@ -464,7 +467,12 @@ class WebRTCVoiceManager {
       const senders = pc.getSenders();
       const videoSender = senders.find(s => s.track && s.track.kind === 'video');
       if (videoSender) {
-        pc.removeTrack(videoSender);
+        if (this.isCameraOn && this.localCameraStream) {
+          const camTrack = this.localCameraStream.getVideoTracks()[0];
+          videoSender.replaceTrack(camTrack).catch(err => console.warn("Failed to restore camera track:", err));
+        } else {
+          pc.removeTrack(videoSender);
+        }
       }
     }
 
@@ -475,6 +483,87 @@ class WebRTCVoiceManager {
     this.notify();
   }
 
+
+  // --- WebRTC Camera (Webcam) ---
+
+  async toggleCamera() {
+    if (this.isCameraOn) {
+      this.stopCamera();
+    } else {
+      this.startCamera();
+    }
+  }
+
+  async startCamera() {
+    if (this.isCameraOn || !this.currentChannelId) return;
+
+    try {
+      const camStream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 },
+          frameRate: { ideal: 30, max: 60 },
+        },
+      });
+
+      this.localCameraStream = camStream;
+      this.isCameraOn = true;
+
+      const videoTrack = camStream.getVideoTracks()[0];
+
+      // If screen share is active, we don't replace the screen share track with the camera, 
+      // we just hold it in memory until screen share stops.
+      if (!this.isScreenSharing) {
+        for (const [targetUserId, pc] of this.peerConnections.entries()) {
+          const senders = pc.getSenders();
+          const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+          if (videoSender) {
+            await videoSender.replaceTrack(videoTrack);
+          } else {
+            pc.addTrack(videoTrack, camStream);
+          }
+        }
+      }
+
+      const socket = getSocket();
+      if (socket) {
+        socket.emit('toggle_camera', { channel_id: this.currentChannelId, is_on: true });
+      }
+
+      this.notify();
+    } catch (err) {
+      console.error("Camera start error:", err);
+    }
+  }
+
+  async stopCamera() {
+    if (!this.isCameraOn) return;
+
+    if (this.localCameraStream) {
+      this.localCameraStream.getTracks().forEach(t => t.stop());
+      this.localCameraStream = null;
+    }
+
+    this.isCameraOn = false;
+    
+    // Only remove the track from peers if screen sharing isn't actively overwriting it
+    if (!this.isScreenSharing) {
+      for (const [targetUserId, pc] of this.peerConnections.entries()) {
+        const senders = pc.getSenders();
+        const videoSender = senders.find(s => s.track && s.track.kind === 'video');
+        if (videoSender) {
+          pc.removeTrack(videoSender);
+        }
+      }
+    }
+
+    const socket = getSocket();
+    if (socket) {
+      socket.emit('toggle_camera', { channel_id: this.currentChannelId, is_on: false });
+    }
+
+    this.notify();
+  }
 
   // Private peer mesh handlers
 
