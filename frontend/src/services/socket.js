@@ -7,7 +7,7 @@ export const initSocket = (token) => {
     socket.disconnect();
   }
 
-  const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
+  const socketUrl = window.location.origin;
 
   socket = io(socketUrl, {
     auth: { token },
