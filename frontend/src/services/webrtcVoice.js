@@ -36,6 +36,8 @@ class WebRTCVoiceManager {
     this.userVolumes = new Map(); // user_id -> volume level (0 to 200)
     this.pendingIceCandidates = new Map(); // target_user_id -> candidate array
     this.remoteParticipantsMeta = new Map(); // user_id -> { username, avatar_url }
+    this.allVoiceRooms = new Map(); // channel_id -> [user, ...] — tracks ALL channels for sidebar display
+    this._voiceRoomUpdateHandler = null; // Named ref so we only remove our own listener
 
 
     this.isMuted = false;
@@ -194,7 +196,8 @@ class WebRTCVoiceManager {
       autoGainControl: this.autoGainControl,
       vadSensitivity: this.vadSensitivity,
       streams: streamsList,
-      speakingUsers: Array.from(this.speakingUsers).map(id => String(id))
+      speakingUsers: Array.from(this.speakingUsers).map(id => String(id)),
+      allVoiceRooms: Object.fromEntries(this.allVoiceRooms)
     };
   }
 
@@ -503,12 +506,27 @@ class WebRTCVoiceManager {
     const socket = getSocket();
     if (!socket) return;
 
-    socket.off('voice_room_update');
+    // Remove only OUR own handlers — use named refs so we don't nuke other listeners
+    if (this._voiceRoomUpdateHandler) {
+      socket.off('voice_room_update', this._voiceRoomUpdateHandler);
+    }
     socket.off('voice_offer');
     socket.off('voice_answer');
     socket.off('voice_ice_candidate');
 
-    socket.on('voice_room_update', async (data) => {
+    // Build and store named handler for voice_room_update
+    this._voiceRoomUpdateHandler = async (data) => {
+      // Always update allVoiceRooms for ALL channels (sidebar display)
+      if (data && data.channel_id) {
+        if (data.users && data.users.length > 0) {
+          this.allVoiceRooms.set(String(data.channel_id), data.users);
+        } else {
+          this.allVoiceRooms.delete(String(data.channel_id));
+        }
+        this.notify();
+      }
+
+      // Only do WebRTC peer mesh management for the channel we're currently in
       if (data.channel_id !== this.currentChannelId) return;
 
       const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discord_user_id'));
@@ -531,7 +549,9 @@ class WebRTCVoiceManager {
         }
       }
       this.notify();
-    });
+    };
+
+    socket.on('voice_room_update', this._voiceRoomUpdateHandler);
 
     socket.on('voice_offer', async (data) => {
       const { sender_id, offer } = data;

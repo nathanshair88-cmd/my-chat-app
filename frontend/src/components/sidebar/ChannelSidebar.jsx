@@ -5,7 +5,7 @@ import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, PhoneOff, Radio }
 import { voiceManager } from '../../services/webrtcVoice';
 
 export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) {
-  const { currentServer, currentChannel, selectChannel, unreadChannels, voiceRoomState, showVoiceGrid, toggleVoiceGrid } = useServer();
+  const { currentServer, currentChannel, selectChannel, unreadChannels, showVoiceGrid, toggleVoiceGrid } = useServer();
 
 
   const [copiedInvite, setCopiedInvite] = useState(false);
@@ -121,8 +121,8 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                   const unreadCount = unreadChannels[channel.id] || 0;
                   const isVoiceChannel = channel.type === 'voice' || channel.type === 'media';
 
-                  // Connected members in this voice channel
-                  const rawConnected = voiceRoomState[channel.id] || [];
+                  // Connected members in this voice channel — read from voiceManager's allVoiceRooms
+                  const rawConnected = (voiceState.allVoiceRooms || {})[String(channel.id)] || [];
                   const uniqueUsersMap = new Map();
                   rawConnected.forEach(u => {
                     const uid = u.id || u.user_id;

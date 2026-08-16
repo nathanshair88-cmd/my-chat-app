@@ -45,7 +45,6 @@ export const ServerProvider = ({ children }) => {
   const [typingUsers, setTypingUsers] = useState(new Map());
   const [unreadChannels, setUnreadChannels] = useState({});
   const [unreadDMs, setUnreadDMs] = useState({});
-  const [voiceRoomState, setVoiceRoomState] = useState({});
 
   // Sound preference
   const [soundEnabled, setSoundEnabledState] = useState(true);
@@ -266,21 +265,6 @@ export const ServerProvider = ({ children }) => {
         }
       };
 
-      const handleVoiceRoomUpdate = (data) => {
-        if (data && data.channel_id) {
-          setVoiceRoomState(prev => {
-            const prevList = prev[data.channel_id] || [];
-            const newList = data.users || [];
-            if (newList.length > prevList.length && prevList.length > 0) {
-              notificationService.playVoiceConnectChime();
-            } else if (newList.length < prevList.length) {
-              notificationService.playVoiceDisconnectChime();
-            }
-            return { ...prev, [data.channel_id]: newList };
-          });
-        }
-      };
-
       const handleConnect = () => {
         if (viewModeRef.current === 'server' && currentChannelRef.current) {
           socket.emit('join_channel', { channel_id: currentChannelRef.current.id });
@@ -295,7 +279,6 @@ export const ServerProvider = ({ children }) => {
       socket.on('new_dm_notification', handleNewDMNotification);
       socket.on('reaction_updated', handleReactionUpdated);
       socket.on('user_typing', handleUserTyping);
-      socket.on('voice_room_update', handleVoiceRoomUpdate);
 
       cleanupFns.push(() => {
         socket.off('connect', handleConnect);
@@ -304,7 +287,6 @@ export const ServerProvider = ({ children }) => {
         socket.off('new_dm_notification', handleNewDMNotification);
         socket.off('reaction_updated', handleReactionUpdated);
         socket.off('user_typing', handleUserTyping);
-        socket.off('voice_room_update', handleVoiceRoomUpdate);
       });
 
       return true;
