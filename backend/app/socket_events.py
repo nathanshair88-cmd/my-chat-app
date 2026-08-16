@@ -452,6 +452,17 @@ async def p2p_file_ice(sid, data):
                 "candidate": data.get("candidate")
             }, to=tsid)
 
+@sio.event
+async def p2p_file_cancel(sid, data):
+    user_data = sid_to_user.get(sid)
+    target_user_id = data.get("target_user_id")
+    if user_data and target_user_id:
+        target_sids = get_target_sids(target_user_id)
+        for tsid in target_sids:
+            await sio.emit("p2p_file_cancel", {
+                "transfer_id": data.get("transfer_id")
+            }, to=tsid)
+
 
 # --- Direct Messaging Socket Events ---
 

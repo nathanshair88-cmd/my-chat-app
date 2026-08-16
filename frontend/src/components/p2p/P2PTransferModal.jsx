@@ -81,6 +81,7 @@ export default function P2PTransferModal({ onClose }) {
               <div>
                 <label className="block text-xs font-semibold text-[#dbdee1] mb-1">Select File (Any GBs+)</label>
                 <input
+                  key={selectedFile ? selectedFile.name : 'empty'}
                   type="file"
                   onChange={(e) => setSelectedFile(e.target.files[0])}
                   className="w-full bg-[#1e1f22] text-white text-xs rounded-lg p-2 border border-[#3f4147] focus:outline-none file:mr-2 file:py-1 file:px-2 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-[#5865f2] file:text-white hover:file:bg-[#4752c4]"

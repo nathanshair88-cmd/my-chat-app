@@ -57,6 +57,7 @@ class P2PFileTransferEngine {
     socket.off('p2p_file_offer');
     socket.off('p2p_file_answer');
     socket.off('p2p_file_ice');
+    socket.off('p2p_file_cancel');
 
     // Incoming file offer from remote peer
     socket.on('p2p_file_offer', async (data) => {
@@ -121,6 +122,18 @@ class P2PFileTransferEngine {
           }
           transfer.pendingIceCandidates.push(candidate);
         }
+      }
+    });
+
+    // Received cancellation from remote peer
+    socket.on('p2p_file_cancel', (data) => {
+      const { transfer_id } = data;
+      const transfer = this.transfers.get(transfer_id);
+      if (transfer && transfer.status !== 'cancelled') {
+        transfer.status = 'cancelled';
+        if (transfer.dataChannel) transfer.dataChannel.close();
+        if (transfer.pc) transfer.pc.close();
+        this.notify();
       }
     });
   }
@@ -376,6 +389,15 @@ class P2PFileTransferEngine {
       transfer.status = 'cancelled';
       if (transfer.dataChannel) transfer.dataChannel.close();
       if (transfer.pc) transfer.pc.close();
+      
+      const socket = getSocket();
+      if (socket) {
+        socket.emit('p2p_file_cancel', {
+          target_user_id: transfer.peer_id,
+          transfer_id
+        });
+      }
+
       this.notify();
     }
   }
