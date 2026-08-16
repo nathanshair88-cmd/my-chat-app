@@ -1,12 +1,23 @@
+import os
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = "sqlite+aiosqlite:///./discord_clone.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./discord_clone.db")
+
+# Fix Render Postgres URLs if they use the old postgres:// scheme
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
+elif DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+connect_args = {}
+if "sqlite" in DATABASE_URL:
+    connect_args["check_same_thread"] = False
 
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    connect_args={"check_same_thread": False}
+    connect_args=connect_args
 )
 
 AsyncSessionLocal = async_sessionmaker(
