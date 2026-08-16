@@ -1,11 +1,7 @@
 import axios from 'axios';
 
-const defaultBackendURL = typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1'
-  ? 'https://my-chat-backend-suva.onrender.com/api'
-  : '/api';
-
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || defaultBackendURL,
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
 // Interceptor to add JWT token
