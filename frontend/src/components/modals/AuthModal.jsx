@@ -24,7 +24,17 @@ export default function AuthModal() {
         await login(email, password);
       }
     } catch (err) {
-      setError(err.response?.data?.detail || 'Authentication failed');
+      if (!err.response) {
+        setError('Cannot connect to backend server. Please verify backend deployment and network connection.');
+      } else if (typeof err.response.data?.detail === 'string') {
+        setError(err.response.data.detail);
+      } else if (err.response.status === 404) {
+        setError('Backend API endpoint not found (404). Check backend deployment status or VITE_API_URL.');
+      } else if (err.response.status === 401) {
+        setError('Invalid email or password. If you do not have an account yet, click Register below.');
+      } else {
+        setError('Authentication failed. Please check your credentials or register a new account.');
+      }
     } finally {
       setLoading(false);
     }

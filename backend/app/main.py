@@ -28,15 +28,18 @@ fastapi_app.add_middleware(
     allow_headers=["*"],
 )
 
+@fastapi_app.get("/")
+async def root():
+    return {"status": "online", "message": "Discord Clone API Backend is running"}
+
 # Include Routers
 fastapi_app.include_router(auth.router)
 fastapi_app.include_router(servers.router)
 fastapi_app.include_router(channels.router)
 fastapi_app.include_router(dms.router)
 
+# Mount Socket.IO ASGI app on /socket.io route
+sio_app = socketio.ASGIApp(sio, socketio_path="")
+fastapi_app.mount("/socket.io", sio_app)
 
-# Mount Socket.IO as ASGI app on top of FastAPI
-app = socketio.ASGIApp(
-    socketio_server=sio,
-    other_asgi_app=fastapi_app
-)
+app = fastapi_app
