@@ -30,6 +30,23 @@ class P2PFileTransferEngine {
 
   subscribe(listener) {
     this.listeners.add(listener);
+    
+    // Immediately provide the current state upon subscription
+    const stateList = Array.from(this.transfers.values()).map(t => ({
+      transfer_id: t.transfer_id,
+      file_name: t.file_name,
+      file_size: t.file_size,
+      file_type: t.file_type,
+      peer_name: t.peer_name,
+      role: t.role,
+      status: t.status,
+      progress: t.progress,
+      bytesTransferred: t.bytesTransferred,
+      speedMBps: t.speedMBps,
+      etaSeconds: t.etaSeconds,
+    }));
+    listener(stateList);
+
     return () => this.listeners.delete(listener);
   }
 
