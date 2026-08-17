@@ -4,8 +4,10 @@ import { Plus, Compass, LogOut, MessageSquare } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ServerSidebar({ onOpenCreateServer, onOpenJoinServer }) {
-  const { servers, currentServer, selectServer, viewMode, setViewMode } = useServer();
+  const { servers, currentServer, selectServer, viewMode, setViewMode, unreadDMs } = useServer();
   const { logout } = useAuth();
+
+  const totalUnreadDMs = Object.values(unreadDMs || {}).reduce((sum, count) => sum + count, 0);
 
   return (
     <div className="w-[72px] bg-surface-panel/40 backdrop-blur-md flex flex-col items-center py-3 space-y-2 select-none z-20 border-r border-surface-border/50">
@@ -15,11 +17,18 @@ export default function ServerSidebar({ onOpenCreateServer, onOpenJoinServer }) 
         className="relative group flex items-center justify-center"
       >
         <div className={`absolute left-0 w-1 bg-accent-primary rounded-r-full transition-all duration-200 ${viewMode === 'dm' ? 'h-10' : 'h-0 group-hover:h-5'}`} />
-        <div className={`w-12 h-12 rounded-[24px] group-hover:rounded-[16px] flex items-center justify-center transition-all duration-200 shadow-md ${
+        <div className={`w-12 h-12 rounded-[24px] group-hover:rounded-[16px] flex items-center justify-center transition-all duration-200 shadow-md overflow-hidden ${
           viewMode === 'dm' ? 'rounded-[16px] bg-accent-primary text-text-primary' : 'bg-surface-hover text-text-primary hover:bg-accent-primary hover:text-text-primary'
         }`}>
-          <MessageSquare className="w-6 h-6" />
+          <img src="/disco_alto_logo.jpg" alt="Disco Alto" className="w-full h-full object-cover" />
         </div>
+
+        {totalUnreadDMs > 0 && (
+          <div className="absolute -bottom-1 -right-1 bg-danger text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-[3px] border-surface-base shadow-sm z-10">
+            {totalUnreadDMs > 99 ? '99+' : totalUnreadDMs}
+          </div>
+        )}
+
         <div className="absolute left-[78px] bg-surface-active text-text-primary border border-surface-border text-xs font-semibold px-2.5 py-1.5 rounded-md shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
           Direct Messages
         </div>
