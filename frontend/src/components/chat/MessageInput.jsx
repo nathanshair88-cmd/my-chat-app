@@ -1,13 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getSocket } from '../../services/socket';
 import { useServer } from '../../context/ServerContext';
-import { Send, Bold, Code, Italic, Paperclip, Share2, X, Image as ImageIcon, FileText } from 'lucide-react';
+import { Send, Bold, Code, Italic, Paperclip, Share2, X, Image as ImageIcon, FileText, PlaySquare } from 'lucide-react';
+import GifPicker from './GifPicker';
 
 export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parentId = null }) {
   const { viewMode, currentChannel, currentDM } = useServer();
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingRef = useRef(false);
@@ -141,6 +143,32 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
     setReplyingTo(null);
   };
 
+  const handleSendGif = (gifUrl) => {
+    if (!socket) return;
+    const gifAttachment = [{
+      name: "gif",
+      type: "image/gif",
+      url: gifUrl,
+      size: 0
+    }];
+    const attachments_json = JSON.stringify(gifAttachment);
+
+    if (viewMode === 'dm' && currentDM) {
+      socket.emit('send_dm_message', {
+        conversation_id: currentDM.id,
+        content: '',
+        attachments_json
+      });
+    } else if (viewMode === 'server' && currentChannel) {
+      socket.emit('send_message', {
+        channel_id: currentChannel.id,
+        content: '',
+        attachments_json,
+        parent_id: parentId
+      });
+    }
+  };
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -222,6 +250,23 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
               <Code className="w-4 h-4" />
             </button>
             
+            {/* GIF Button */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowGifPicker(!showGifPicker)} 
+                className="p-1 hover:text-text-primary hover:bg-surface-hover rounded transition-colors"
+                title="Send a GIF"
+              >
+                <PlaySquare className="w-4 h-4" />
+              </button>
+              {showGifPicker && (
+                <GifPicker 
+                  onSelectGif={handleSendGif} 
+                  onClose={() => setShowGifPicker(false)} 
+                />
+              )}
+            </div>
+
             {/* File Attachment Button */}
             <button
               onClick={() => fileInputRef.current?.click()}
