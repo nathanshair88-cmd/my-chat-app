@@ -22,6 +22,9 @@ user_to_sids: Dict[int, set] = {}
 voice_room_users: Dict[int, Dict[int, dict]] = {}
 # voice_channel_id -> ISO timestamp string when call started
 voice_room_started_at: Dict[int, str] = {}
+# voice_channel_id -> watch together session state
+# { video_id, is_playing, current_time, last_updated, title }
+watch_room_state: Dict[int, dict] = {}
 
 @sio.event
 async def connect(sid, environ, auth=None):
@@ -74,6 +77,15 @@ async def connect(sid, environ, auth=None):
                 "channel_id": ch_id,
                 "users": list(users_dict.values()),
                 "started_at": voice_room_started_at.get(ch_id)
+            }, to=sid)
+
+    # Send any active watch together session state to connecting user
+    for ch_id, watch_state in watch_room_state.items():
+        if watch_state.get("video_id"):
+            await sio.emit("watch_sync", {
+                "channel_id": ch_id,
+                "type": "state_sync",
+                **watch_state
             }, to=sid)
 
     return True
@@ -544,4 +556,129 @@ async def send_dm_message(sid, data):
     target_sids = user_to_sids.get(target_user_id, set())
     for tsid in target_sids:
         await sio.emit("new_dm_notification", dm_dict, to=tsid)
+
+
+# --- Watch Together Activity ---
+
+@sio.event
+async def watch_set_video(sid, data):
+    """Set (or change) the YouTube video for a voice room's watch session."""
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+    channel_id = data.get("channel_id")
+    video_id = data.get("video_id", "").strip()
+    title = data.get("title", "")
+    if not channel_id or not video_id:
+        return
+
+    watch_room_state[channel_id] = {
+        "video_id": video_id,
+        "title": title,
+        "is_playing": False,
+        "current_time": 0.0,
+        "last_updated": datetime.datetime.utcnow().isoformat(),
+        "set_by": user_data["username"]
+    }
+
+    await sio.emit("watch_sync", {
+        "channel_id": channel_id,
+        "type": "set_video",
+        "video_id": video_id,
+        "title": title,
+        "is_playing": False,
+        "current_time": 0.0,
+        "set_by": user_data["username"]
+    }, room=f"voice_{channel_id}")
+
+
+@sio.event
+async def watch_play(sid, data):
+    """Relay a play event to all users in the voice room."""
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+    channel_id = data.get("channel_id")
+    current_time = data.get("current_time", 0.0)
+    if not channel_id:
+        return
+
+    if channel_id in watch_room_state:
+        watch_room_state[channel_id]["is_playing"] = True
+        watch_room_state[channel_id]["current_time"] = current_time
+        watch_room_state[channel_id]["last_updated"] = datetime.datetime.utcnow().isoformat()
+
+    await sio.emit("watch_sync", {
+        "channel_id": channel_id,
+        "type": "play",
+        "current_time": current_time,
+        "by": user_data["username"]
+    }, room=f"voice_{channel_id}", skip_sid=sid)
+
+
+@sio.event
+async def watch_pause(sid, data):
+    """Relay a pause event to all users in the voice room."""
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+    channel_id = data.get("channel_id")
+    current_time = data.get("current_time", 0.0)
+    if not channel_id:
+        return
+
+    if channel_id in watch_room_state:
+        watch_room_state[channel_id]["is_playing"] = False
+        watch_room_state[channel_id]["current_time"] = current_time
+        watch_room_state[channel_id]["last_updated"] = datetime.datetime.utcnow().isoformat()
+
+    await sio.emit("watch_sync", {
+        "channel_id": channel_id,
+        "type": "pause",
+        "current_time": current_time,
+        "by": user_data["username"]
+    }, room=f"voice_{channel_id}", skip_sid=sid)
+
+
+@sio.event
+async def watch_seek(sid, data):
+    """Relay a seek event to all users in the voice room."""
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+    channel_id = data.get("channel_id")
+    current_time = data.get("current_time", 0.0)
+    if not channel_id:
+        return
+
+    if channel_id in watch_room_state:
+        watch_room_state[channel_id]["current_time"] = current_time
+        watch_room_state[channel_id]["last_updated"] = datetime.datetime.utcnow().isoformat()
+
+    await sio.emit("watch_sync", {
+        "channel_id": channel_id,
+        "type": "seek",
+        "current_time": current_time,
+        "by": user_data["username"]
+    }, room=f"voice_{channel_id}", skip_sid=sid)
+
+
+@sio.event
+async def watch_close(sid, data):
+    """Close / clear the watch together session for a voice room."""
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+    channel_id = data.get("channel_id")
+    if not channel_id:
+        return
+
+    if channel_id in watch_room_state:
+        del watch_room_state[channel_id]
+
+    await sio.emit("watch_sync", {
+        "channel_id": channel_id,
+        "type": "close",
+        "by": user_data["username"]
+    }, room=f"voice_{channel_id}")
 

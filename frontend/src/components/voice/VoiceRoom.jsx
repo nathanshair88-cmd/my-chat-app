@@ -2,12 +2,16 @@ import React, { useState, useEffect, useRef } from 'react';
 import { voiceManager } from '../../services/webrtcVoice';
 import { useServer } from '../../context/ServerContext';
 import { useAuth } from '../../context/AuthContext';
-import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, ShieldAlert, Maximize, Minimize, X } from 'lucide-react';
+import { watchTogetherService } from '../../services/watchTogetherService';
+import WatchTogetherPlayer from './WatchTogetherPlayer';
+import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, ShieldAlert, Maximize, Minimize, X, Tv2 } from 'lucide-react';
 
 export default function VoiceRoom() {
   const { currentChannel } = useServer();
   const { user } = useAuth();
   const [fullscreenItem, setFullscreenItem] = useState(null);
+  const [showWatchTogether, setShowWatchTogether] = useState(false);
+  const [watchState, setWatchState] = useState(watchTogetherService.getCurrentState());
 
   const [voiceState, setVoiceState] = useState({
     channel_id: null,
@@ -21,6 +25,31 @@ export default function VoiceRoom() {
   useEffect(() => {
     return voiceManager.subscribe(setVoiceState);
   }, []);
+
+  // Subscribe to watch together state for the activity indicator
+  useEffect(() => {
+    return watchTogetherService.subscribe(setWatchState);
+  }, []);
+
+  // Attach/detach socket listener when voice channel changes
+  useEffect(() => {
+    if (voiceState.channel_id) {
+      watchTogetherService.attachSocketListener(voiceState.channel_id);
+      // If the channel already has an active watch session, show the player
+      if (watchState.isActive) setShowWatchTogether(true);
+    } else {
+      watchTogetherService.detachSocketListener();
+      setShowWatchTogether(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceState.channel_id]);
+
+  // Auto-show player when a remote user sets a video
+  useEffect(() => {
+    if (watchState.isActive && voiceState.channel_id) {
+      setShowWatchTogether(true);
+    }
+  }, [watchState.isActive, voiceState.channel_id]);
 
   const isConnected = voiceState.channel_id && currentChannel && voiceState.channel_id === currentChannel.id;
 
@@ -68,20 +97,47 @@ export default function VoiceRoom() {
         )}
       </div>
 
-      {/* Multi-Stream Video Tile Grid */}
-      <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto no-scrollbar p-1">
-        {voiceState.streams.map((item) => (
-          <StreamTile 
-            key={item.user_id} 
-            item={item} 
-            speakingUsers={voiceState.speakingUsers} 
-            onOpenFullscreen={(streamItem) => setFullscreenItem(streamItem)}
-          />
-        ))}
+      {/* Multi-Stream Video Tile Grid + Watch Together Theater Mode */}
+      <div className="flex-1 flex min-h-0 gap-3 overflow-hidden">
+        {/* Watch Together Player — takes 70% when active */}
+        {showWatchTogether && (
+          <div className="flex-1 min-w-0 min-h-0">
+            <WatchTogetherPlayer
+              channelId={voiceState.channel_id || currentChannel?.id}
+              onClose={() => setShowWatchTogether(false)}
+            />
+          </div>
+        )}
+
+        {/* Voice tiles — full width normally, 30% sidebar in theater mode */}
+        <div className={`${showWatchTogether ? 'w-64 flex-shrink-0' : 'flex-1'} grid ${showWatchTogether ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'} gap-3 overflow-y-auto no-scrollbar p-1 auto-rows-max`}>
+          {voiceState.streams.map((item) => (
+            <StreamTile 
+              key={item.user_id} 
+              item={item} 
+              speakingUsers={voiceState.speakingUsers} 
+              onOpenFullscreen={(streamItem) => setFullscreenItem(streamItem)}
+            />
+          ))}
+        </div>
       </div>
 
       {/* Control Action Toolbar */}
       <div className="flex items-center justify-center space-x-4 bg-surface-active/80 backdrop-blur-md py-3 px-6 rounded-md border border-surface-border mt-4 self-center shadow-2xl z-10">
+        {/* Watch Together / Activities Button */}
+        <button
+          onClick={() => setShowWatchTogether(v => !v)}
+          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm relative ${
+            showWatchTogether ? 'bg-red-600 text-white shadow-red-600/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
+          }`}
+          title={showWatchTogether ? 'Hide Watch Together' : 'Watch Together (YouTube Sync)'}
+        >
+          <Tv2 className="w-5 h-5" />
+          {watchState.isActive && !showWatchTogether && (
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-surface-base animate-pulse" />
+          )}
+        </button>
+
         {/* Mute Mic */}
         <button
           onClick={() => voiceManager.toggleMute()}
