@@ -155,3 +155,80 @@ async def create_channel(
     await db.commit()
     await db.refresh(new_channel)
     return ChannelResponse.model_validate(new_channel)
+
+@router.put("/{server_id}", response_model=ServerResponse)
+async def update_server(
+    server_id: int,
+    server_in: ServerCreate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(Server)
+        .options(
+            selectinload(Server.channels),
+            selectinload(Server.members).selectinload(ServerMember.user)
+        )
+        .where(Server.id == server_id)
+    )
+    server = res.scalar_one_or_none()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    if server.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the owner can modify the server")
+
+    server.name = server_in.name
+    if server_in.icon_url:
+        server.icon_url = server_in.icon_url
+
+    await db.commit()
+    return ServerResponse.model_validate(server)
+
+@router.delete("/{server_id}")
+async def delete_server(
+    server_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(Server).where(Server.id == server_id))
+    server = res.scalar_one_or_none()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    if server.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the owner can delete the server")
+
+    await db.delete(server)
+    await db.commit()
+    return {"status": "ok"}
+
+@router.delete("/{server_id}/members/{user_id}")
+async def remove_member(
+    server_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(select(Server).where(Server.id == server_id))
+    server = res.scalar_one_or_none()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    if server.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the owner can remove members")
+    
+    if user_id == server.owner_id:
+        raise HTTPException(status_code=400, detail="Cannot remove the owner")
+
+    res_member = await db.execute(
+        select(ServerMember).where(ServerMember.server_id == server_id, ServerMember.user_id == user_id)
+    )
+    member = res_member.scalar_one_or_none()
+    
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    await db.delete(member)
+    await db.commit()
+    return {"status": "ok"}

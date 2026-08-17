@@ -681,6 +681,7 @@ class WebRTCVoiceManager {
     socket.off('voice_offer');
     socket.off('voice_answer');
     socket.off('voice_ice_candidate');
+    socket.off('kicked_from_voice');
 
     // Build and store named handler for voice_room_update
     this._voiceRoomUpdateHandler = async (data) => {
@@ -722,6 +723,13 @@ class WebRTCVoiceManager {
     };
 
     socket.on('voice_room_update', this._voiceRoomUpdateHandler);
+
+    socket.on('kicked_from_voice', (data) => {
+      if (data.channel_id === this.currentChannelId) {
+        this.leaveVoiceChannel();
+        // Optional: show a notification to the user
+      }
+    });
 
     socket.on('voice_offer', async (data) => {
       const { sender_id, offer } = data;

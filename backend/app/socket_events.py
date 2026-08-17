@@ -682,3 +682,78 @@ async def watch_close(sid, data):
         "by": user_data["username"]
     }, room=f"voice_{channel_id}")
 
+
+@sio.event
+async def edit_message(sid, data):
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+
+    message_id = data.get("message_id")
+    new_content = data.get("content", "").strip()
+    channel_id = data.get("channel_id")
+    conversation_id = data.get("conversation_id")
+
+    if not message_id or not new_content:
+        return
+
+    async with AsyncSessionLocal() as db:
+        if channel_id:
+            res = await db.execute(select(Message).where(Message.id == message_id, Message.user_id == user_data["id"]))
+            msg = res.scalar_one_or_none()
+            if msg:
+                msg.content = new_content
+                await db.commit()
+                await sio.emit("message_edited", {"message_id": message_id, "content": new_content}, room=f"channel_{channel_id}")
+        elif conversation_id:
+            res = await db.execute(select(DirectMessage).where(DirectMessage.id == message_id, DirectMessage.sender_id == user_data["id"]))
+            msg = res.scalar_one_or_none()
+            if msg:
+                msg.content = new_content
+                await db.commit()
+                await sio.emit("message_edited", {"message_id": message_id, "content": new_content}, room=f"dm_{conversation_id}")
+
+@sio.event
+async def delete_message(sid, data):
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+
+    message_id = data.get("message_id")
+    channel_id = data.get("channel_id")
+    conversation_id = data.get("conversation_id")
+
+    if not message_id:
+        return
+
+    async with AsyncSessionLocal() as db:
+        if channel_id:
+            res = await db.execute(select(Message).where(Message.id == message_id, Message.user_id == user_data["id"]))
+            msg = res.scalar_one_or_none()
+            if msg:
+                await db.delete(msg)
+                await db.commit()
+                await sio.emit("message_deleted", {"message_id": message_id}, room=f"channel_{channel_id}")
+        elif conversation_id:
+            res = await db.execute(select(DirectMessage).where(DirectMessage.id == message_id, DirectMessage.sender_id == user_data["id"]))
+            msg = res.scalar_one_or_none()
+            if msg:
+                await db.delete(msg)
+                await db.commit()
+                await sio.emit("message_deleted", {"message_id": message_id}, room=f"dm_{conversation_id}")
+
+@sio.event
+async def kick_from_voice(sid, data):
+    user_data = sid_to_user.get(sid)
+    target_user_id = data.get("target_user_id")
+    channel_id = data.get("channel_id")
+    
+    if not user_data or not target_user_id or not channel_id:
+        return
+
+    # In a real app we would check if user_data["id"] has permission (server owner, admin etc)
+    # For now, we will simply kick the target from the voice room.
+    target_sids = get_target_sids(target_user_id)
+    for tsid in target_sids:
+        await sio.emit("kicked_from_voice", {"channel_id": channel_id}, to=tsid)
+

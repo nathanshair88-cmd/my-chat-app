@@ -5,8 +5,9 @@ import { voiceManager } from '../../services/webrtcVoice';
 import { getSocket } from '../../services/socket';
 import {
   MessageSquare, AtSign, Volume2, VolumeX, Copy, 
-  UserX, Shield, ChevronRight, Check, Hash
+  UserX, Shield, ChevronRight, Check, Hash, User as UserIcon
 } from 'lucide-react';
+import UserProfileModal from './UserProfileModal';
 
 /**
  * Global User Context Menu — right-click any user avatar/name to open.
@@ -35,6 +36,7 @@ export default function UserContextMenu({
   const [volume, setVolume]   = useState(() => voiceManager.getUserVolume(user?.id || user?.user_id));
   const [isMuted, setIsMuted] = useState(() => voiceManager.getUserVolume(user?.id || user?.user_id) === 0);
   const [copied, setCopied]   = useState('');
+  const [showProfile, setShowProfile] = useState(false);
 
   const uid = user?.id || user?.user_id;
 
@@ -52,16 +54,20 @@ export default function UserContextMenu({
   // Close on outside click / Escape
   useEffect(() => {
     const onClick = (e) => {
+      // Don't close if profile modal is open, let the modal handle it
+      if (showProfile) return;
       if (menuRef.current && !menuRef.current.contains(e.target)) onClose();
     };
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e) => { 
+      if (e.key === 'Escape' && !showProfile) onClose(); 
+    };
     window.addEventListener('mousedown', onClick);
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('mousedown', onClick);
       window.removeEventListener('keydown', onKey);
     };
-  }, [onClose]);
+  }, [onClose, showProfile]);
 
   // ── Actions ─────────────────────────────────────────────────────────────────
 
@@ -121,6 +127,10 @@ export default function UserContextMenu({
 
   const avatarUrl = user?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${user?.username || 'user'}`;
 
+  if (showProfile) {
+    return <UserProfileModal user={user} onClose={onClose} />;
+  }
+
   return (
     <div
       ref={menuRef}
@@ -152,6 +162,9 @@ export default function UserContextMenu({
 
       {/* ── Menu Sections ────────────────────────────────────────────────── */}
       <div className="p-1 space-y-0.5">
+
+        <MenuItem icon={<UserIcon className="w-3.5 h-3.5" />} label="Profile" onClick={() => setShowProfile(true)} />
+        <Divider />
 
         {/* Message & Mention — only for other users */}
         {!isLocalUser && (
