@@ -1,6 +1,8 @@
 import datetime
+import logging
 import os
 import socketio
+import traceback
 from typing import Dict, Any, Optional
 from sqlalchemy import select, delete, or_
 from sqlalchemy.orm import selectinload
@@ -10,6 +12,7 @@ from app.auth import decode_token
 from app.permissions import can_signal_user, to_int, user_channel, user_dm_conversation
 
 DEFAULT_CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,https://disco-alto.vercel.app"
+logger = logging.getLogger("discoalto.socket")
 
 sio = socketio.AsyncServer(
     async_mode='asgi',
@@ -27,6 +30,27 @@ sio = socketio.AsyncServer(
 
 MAX_MESSAGE_LENGTH = 4000
 MAX_ATTACHMENTS_JSON_LENGTH = 8_000_000
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _socket_error(message: str, exc: Optional[Exception] = None) -> dict:
+    response = {"ok": False, "error": message}
+    if exc is not None:
+        logger.exception(message)
+        if _env_flag("DEBUG_EXCEPTIONS", True):
+            response.update({
+                "debug": True,
+                "exception_type": type(exc).__name__,
+                "exception": str(exc),
+                "traceback": "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
+            })
+    return response
 
 # In-memory mappings
 # sid -> user dict
@@ -267,51 +291,63 @@ async def leave_channel(sid, data):
 async def send_message(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
-        return
+        return _socket_error("Not authenticated")
 
-    channel_id = to_int(data.get("channel_id"))
-    attachments_json = _valid_attachments_json(data.get("attachments_json"))
-    content = _clean_content(data.get("content"), attachments_json)
-    parent_id = to_int(data.get("parent_id"))
+    try:
+        if not isinstance(data, dict):
+            return _socket_error("Invalid message payload")
 
-    if not channel_id or not content:
-        return
+        channel_id = to_int(data.get("channel_id"))
+        attachments_json = _valid_attachments_json(data.get("attachments_json"))
+        content = _clean_content(data.get("content"), attachments_json)
+        parent_id = to_int(data.get("parent_id"))
 
-    async with AsyncSessionLocal() as db:
-        if not await user_channel(db, user_data["id"], channel_id):
-            return
+        if channel_id is None or not content:
+            return _socket_error("Missing channel or message content")
 
-        if parent_id is not None:
-            parent_res = await db.execute(
-                select(Message.id).where(Message.id == parent_id, Message.channel_id == channel_id)
-            )
-            if parent_res.scalar_one_or_none() is None:
-                return
+        async with AsyncSessionLocal() as db:
+            try:
+                if not await user_channel(db, user_data["id"], channel_id):
+                    return _socket_error("You do not have access to this channel")
 
-        new_msg = Message(
-            channel_id=channel_id,
-            user_id=user_data["id"],
-            content=content,
-            attachments_json=attachments_json,
-            parent_id=parent_id
-        )
-        db.add(new_msg)
-        await db.commit()
+                if parent_id is not None:
+                    parent_res = await db.execute(
+                        select(Message.id).where(Message.id == parent_id, Message.channel_id == channel_id)
+                    )
+                    if parent_res.scalar_one_or_none() is None:
+                        return _socket_error("Reply target no longer exists")
 
-        # Fetch message with relationships
-        res = await db.execute(
-            select(Message)
-            .options(
-                selectinload(Message.author),
-                selectinload(Message.reactions)
-            )
-            .where(Message.id == new_msg.id)
-        )
-        full_msg = res.scalar_one()
+                new_msg = Message(
+                    channel_id=channel_id,
+                    user_id=user_data["id"],
+                    content=content,
+                    attachments_json=attachments_json,
+                    parent_id=parent_id
+                )
+                db.add(new_msg)
+                await db.commit()
 
-        msg_dict = _message_dict(full_msg)
+                # Fetch message with relationships
+                res = await db.execute(
+                    select(Message)
+                    .options(
+                        selectinload(Message.author),
+                        selectinload(Message.reactions)
+                    )
+                    .where(Message.id == new_msg.id)
+                )
+                full_msg = res.scalar_one()
 
-    await sio.emit("new_message", msg_dict, room=f"channel_{channel_id}")
+                msg_dict = _message_dict(full_msg)
+            except Exception:
+                await db.rollback()
+                raise
+
+        await sio.enter_room(sid, f"channel_{channel_id}")
+        await sio.emit("new_message", msg_dict, room=f"channel_{channel_id}")
+        return {"ok": True, "message": msg_dict}
+    except Exception as exc:
+        return _socket_error("Message failed to send", exc)
 
 @sio.event
 async def add_reaction(sid, data):
@@ -690,45 +726,58 @@ async def leave_dm(sid, data):
 async def send_dm_message(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
-        return
+        return _socket_error("Not authenticated")
 
-    conversation_id = to_int(data.get("conversation_id"))
-    attachments_json = _valid_attachments_json(data.get("attachments_json"))
-    content = _clean_content(data.get("content"), attachments_json)
+    try:
+        if not isinstance(data, dict):
+            return _socket_error("Invalid message payload")
 
-    if not conversation_id or not content:
-        return
+        conversation_id = to_int(data.get("conversation_id"))
+        attachments_json = _valid_attachments_json(data.get("attachments_json"))
+        content = _clean_content(data.get("content"), attachments_json)
 
-    async with AsyncSessionLocal() as db:
-        conv = await user_dm_conversation(db, user_data["id"], conversation_id)
-        if not conv:
-            return
+        if conversation_id is None or not content:
+            return _socket_error("Missing conversation or message content")
 
-        target_user_id = conv.user2_id if conv.user1_id == user_data["id"] else conv.user1_id
+        async with AsyncSessionLocal() as db:
+            try:
+                conv = await user_dm_conversation(db, user_data["id"], conversation_id)
+                if not conv:
+                    return _socket_error("You do not have access to this conversation")
 
-        new_dm = DirectMessage(
-            conversation_id=conversation_id,
-            sender_id=user_data["id"],
-            content=content,
-            attachments_json=attachments_json
-        )
-        db.add(new_dm)
-        await db.commit()
+                target_user_id = conv.user2_id if conv.user1_id == user_data["id"] else conv.user1_id
 
-        res = await db.execute(
-            select(DirectMessage)
-            .options(selectinload(DirectMessage.sender))
-            .where(DirectMessage.id == new_dm.id)
-        )
-        full_dm = res.scalar_one()
+                new_dm = DirectMessage(
+                    conversation_id=conversation_id,
+                    sender_id=user_data["id"],
+                    content=content,
+                    attachments_json=attachments_json
+                )
+                db.add(new_dm)
+                await db.commit()
 
-        dm_dict = _dm_dict(full_dm)
+                res = await db.execute(
+                    select(DirectMessage)
+                    .options(selectinload(DirectMessage.sender))
+                    .where(DirectMessage.id == new_dm.id)
+                )
+                full_dm = res.scalar_one()
 
-    await sio.emit("new_dm_message", dm_dict, room=f"dm_{conversation_id}")
+                dm_dict = _dm_dict(full_dm)
+            except Exception:
+                await db.rollback()
+                raise
 
-    target_sids = user_to_sids.get(target_user_id, set())
-    for tsid in target_sids:
-        await sio.emit("new_dm_notification", dm_dict, to=tsid)
+        await sio.enter_room(sid, f"dm_{conversation_id}")
+        await sio.emit("new_dm_message", dm_dict, room=f"dm_{conversation_id}")
+
+        target_sids = user_to_sids.get(target_user_id, set())
+        for tsid in target_sids:
+            await sio.emit("new_dm_notification", dm_dict, to=tsid)
+
+        return {"ok": True, "message": dm_dict}
+    except Exception as exc:
+        return _socket_error("Direct message failed to send", exc)
 
 @sio.event
 async def mark_dms_read(sid, data):

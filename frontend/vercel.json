@@ -9,6 +9,10 @@
       "destination": "https://my-chat-backend-suva.onrender.com/socket.io"
     },
     {
+      "source": "/socket.io/",
+      "destination": "https://my-chat-backend-suva.onrender.com/socket.io/"
+    },
+    {
       "source": "/socket.io/:path*",
       "destination": "https://my-chat-backend-suva.onrender.com/socket.io/:path*"
     },

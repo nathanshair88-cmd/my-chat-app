@@ -7,13 +7,15 @@ const shouldUseVercelProxy = () =>
   window.location.hostname.endsWith('.vercel.app') &&
   import.meta.env.VITE_FORCE_DIRECT_BACKEND !== 'true';
 
+const DEFAULT_RENDER_SOCKET_URL = 'https://my-chat-backend-suva.onrender.com';
+
 export const initSocket = (token) => {
   if (socket) {
     socket.disconnect();
   }
 
   const socketUrl = shouldUseVercelProxy()
-    ? window.location.origin
+    ? DEFAULT_RENDER_SOCKET_URL
     : (import.meta.env.VITE_SOCKET_URL || window.location.origin);
 
   socket = io(socketUrl, {

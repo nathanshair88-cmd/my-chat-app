@@ -11,13 +11,52 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const [isSending, setIsSending] = useState(false);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingRef = useRef(false);
 
-  const socket = getSocket();
-
   const inputRef = useRef(null);
+
+  const clearComposer = () => {
+    setContent('');
+    setAttachments([]);
+    setReplyingTo(null);
+    setEditingMessage(null);
+    setSendError('');
+  };
+
+  const formatSendError = (response, fallback) => (
+    response?.exception ||
+    response?.error ||
+    fallback
+  );
+
+  const emitWithAck = (eventName, payload, onSuccess) => {
+    const activeSocket = getSocket();
+    if (!activeSocket?.connected) {
+      setSendError('Realtime connection is disconnected. Please wait a moment and try again.');
+      return;
+    }
+
+    setIsSending(true);
+    setSendError('');
+    activeSocket.timeout(7000).emit(eventName, payload, (err, response) => {
+      setIsSending(false);
+      if (err) {
+        setSendError('Message send timed out. Please try again.');
+        console.error(`${eventName} timed out`, err);
+        return;
+      }
+      if (!response?.ok) {
+        setSendError(formatSendError(response, 'Message failed to send.'));
+        console.error(`${eventName} failed`, response);
+        return;
+      }
+      onSuccess?.(activeSocket, response);
+    });
+  };
 
   // Append dropped files if passed from parent ChatArea drag-and-drop
   useEffect(() => {
@@ -101,11 +140,12 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
     const val = e.target.value;
     setContent(val);
 
-    if (!socket || viewMode !== 'server' || !currentChannel) return;
+    const activeSocket = getSocket();
+    if (!activeSocket || viewMode !== 'server' || !currentChannel) return;
 
     if (!isTypingRef.current) {
       isTypingRef.current = true;
-      socket.emit('typing_start', { channel_id: currentChannel.id });
+      activeSocket.emit('typing_start', { channel_id: currentChannel.id });
     }
 
     if (typingTimeoutRef.current) {
@@ -114,27 +154,29 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
 
     typingTimeoutRef.current = setTimeout(() => {
       isTypingRef.current = false;
-      socket.emit('typing_stop', { channel_id: currentChannel.id });
+      activeSocket.emit('typing_stop', { channel_id: currentChannel.id });
     }, 2000);
   };
 
   const handleSendMessage = () => {
     const trimmed = content.trim();
-    if ((!trimmed && attachments.length === 0) || !socket) return;
+    if ((!trimmed && attachments.length === 0) || isSending) return;
 
     let finalContent = trimmed;
     if (editingMessage) {
       if (!finalContent) return;
-      socket.emit('edit_message', {
+      const activeSocket = getSocket();
+      if (!activeSocket?.connected) {
+        setSendError('Realtime connection is disconnected. Please wait a moment and try again.');
+        return;
+      }
+      activeSocket.emit('edit_message', {
         message_id: editingMessage.id,
         content: finalContent,
         channel_id: editingMessage.channel_id,
         conversation_id: editingMessage.conversation_id
       });
-      setContent('');
-      setAttachments([]);
-      setReplyingTo(null);
-      setEditingMessage(null);
+      clearComposer();
       return;
     }
 
@@ -147,32 +189,29 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
     const attachments_json = attachments.length > 0 ? JSON.stringify(attachments) : null;
 
     if (viewMode === 'dm' && currentDM) {
-      socket.emit('send_dm_message', {
+      emitWithAck('send_dm_message', {
         conversation_id: currentDM.id,
         content: finalContent || (attachments.length > 0 ? '[Attachment]' : ''),
         attachments_json
-      });
+      }, clearComposer);
     } else if (viewMode === 'server' && currentChannel) {
-      socket.emit('send_message', {
+      emitWithAck('send_message', {
         channel_id: currentChannel.id,
         content: finalContent || (attachments.length > 0 ? '[Attachment]' : ''),
         attachments_json,
         parent_id: parentId
+      }, (activeSocket) => {
+        if (isTypingRef.current) {
+          isTypingRef.current = false;
+          activeSocket.emit('typing_stop', { channel_id: currentChannel.id });
+        }
+        clearComposer();
       });
-
-      if (isTypingRef.current) {
-        isTypingRef.current = false;
-        socket.emit('typing_stop', { channel_id: currentChannel.id });
-      }
     }
-
-    setContent('');
-    setAttachments([]);
-    setReplyingTo(null);
   };
 
   const handleSendGif = (gifUrl) => {
-    if (!socket) return;
+    if (isSending) return;
     const gifAttachment = [{
       name: "gif",
       type: "image/gif",
@@ -182,17 +221,23 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
     const attachments_json = JSON.stringify(gifAttachment);
 
     if (viewMode === 'dm' && currentDM) {
-      socket.emit('send_dm_message', {
+      emitWithAck('send_dm_message', {
         conversation_id: currentDM.id,
         content: '[GIF]',
         attachments_json
+      }, () => {
+        setShowGifPicker(false);
+        setSendError('');
       });
     } else if (viewMode === 'server' && currentChannel) {
-      socket.emit('send_message', {
+      emitWithAck('send_message', {
         channel_id: currentChannel.id,
         content: '[GIF]',
         attachments_json,
         parent_id: parentId
+      }, () => {
+        setShowGifPicker(false);
+        setSendError('');
       });
     }
   };
@@ -262,6 +307,12 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {sendError && (
+          <div className="px-3 py-2 text-xs font-semibold text-danger bg-danger/10 border border-danger/40 rounded-sm">
+            {sendError}
           </div>
         )}
 
@@ -351,9 +402,9 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
 
           <button
             onClick={handleSendMessage}
-            disabled={!content.trim() && attachments.length === 0}
+            disabled={isSending || (!content.trim() && attachments.length === 0)}
             className={`p-2 rounded-sm transition-colors flex-shrink-0 shadow-sm ${
-              content.trim() || attachments.length > 0 ? 'bg-accent-primary text-text-primary hover:bg-accent-hover' : 'bg-surface-active text-text-muted cursor-not-allowed border border-surface-border'
+              !isSending && (content.trim() || attachments.length > 0) ? 'bg-accent-primary text-text-primary hover:bg-accent-hover' : 'bg-surface-active text-text-muted cursor-not-allowed border border-surface-border'
             }`}
           >
             <Send className="w-4 h-4" />
