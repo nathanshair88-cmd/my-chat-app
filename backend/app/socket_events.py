@@ -15,7 +15,7 @@ sio = socketio.AsyncServer(
         origin.strip()
         for origin in os.getenv(
             "SOCKET_CORS_ORIGINS",
-            os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"),
+            os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://disco-alto.vercel.app"),
         ).split(",")
         if origin.strip()
     ],
