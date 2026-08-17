@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useServer } from '../../context/ServerContext';
 import UserWidget from './UserWidget';
 import UserContextMenu from '../modals/UserContextMenu';
-import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio, PhoneOff } from 'lucide-react';
+import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio, PhoneOff, Settings } from 'lucide-react';
 import { voiceManager } from '../../services/webrtcVoice';
+import ServerSettingsModal from '../modals/ServerSettingsModal';
 
 export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) {
   const { currentServer, currentChannel, selectChannel, unreadChannels, showVoiceGrid, toggleVoiceGrid } = useServer();
@@ -11,6 +12,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
   const [copiedInvite, setCopiedInvite] = useState(false);
   const [showServerMenu, setShowServerMenu] = useState(false);
+  const [showServerSettings, setShowServerSettings] = useState(false);
   const [voiceState, setVoiceState] = useState(voiceManager.getCurrentState());
   const [contextMenu, setContextMenu] = useState(null);
 
@@ -86,6 +88,22 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
               </div>
 
               <div className="h-[1px] bg-surface-border my-1" />
+
+              {String(currentServer.owner_id) === String(localStorage.getItem('discoalto_user_id')) && (
+                <>
+                  <button 
+                    onClick={() => {
+                      setShowServerSettings(true);
+                      setShowServerMenu(false);
+                    }}
+                    className="w-full flex items-center justify-between px-2 py-2 rounded text-xs font-semibold text-text-primary hover:bg-surface-hover transition-colors"
+                  >
+                    <span>Server Settings</span>
+                    <Settings className="w-4 h-4" />
+                  </button>
+                  <div className="h-[1px] bg-surface-border my-1" />
+                </>
+              )}
 
               <button 
                 onClick={() => {
@@ -284,6 +302,20 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
           contextType="voice"
           isLocalUser={String(contextMenu.user.id || contextMenu.user.user_id) === String(localStorage.getItem('discoalto_user_id'))}
           onClose={() => setContextMenu(null)} 
+        />
+      )}
+
+      {showServerSettings && (
+        <ServerSettingsModal 
+          server={currentServer} 
+          onClose={() => setShowServerSettings(false)}
+          onServerUpdated={(updated) => {
+            // Can reload or just let context know via window.location.reload() for a hard refresh, or ideally update state via context
+            window.location.reload(); 
+          }}
+          onServerDeleted={(id) => {
+            window.location.reload();
+          }}
         />
       )}
     </div>
