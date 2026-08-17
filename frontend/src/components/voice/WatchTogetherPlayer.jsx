@@ -443,17 +443,40 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
   // ── Fullscreen handling ───────────────────────────────────────────────────
 
   const handleToggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      watchPanelRef.current?.requestFullscreen().catch(() => {});
+    if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.mozFullScreenElement && !document.msFullscreenElement) {
+      const el = watchPanelRef.current;
+      if (!el) return;
+      if (el.requestFullscreen) {
+        el.requestFullscreen().catch(() => {});
+      } else if (el.webkitRequestFullscreen) {
+        el.webkitRequestFullscreen();
+      } else if (el.mozRequestFullScreen) {
+        el.mozRequestFullScreen();
+      } else if (el.msRequestFullscreen) {
+        el.msRequestFullscreen();
+      }
     } else {
-      document.exitFullscreen().catch(() => {});
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      } else if (document.mozCancelFullScreen) {
+        document.mozCancelFullScreen();
+      } else if (document.msExitFullscreen) {
+        document.msExitFullscreen();
+      }
     }
   }, []);
 
   // Listen for native fullscreen changes (ESC key exits too)
   useEffect(() => {
     const onFSChange = () => {
-      const entering = !!document.fullscreenElement;
+      const entering = !!(
+        document.fullscreenElement ||
+        document.webkitFullscreenElement ||
+        document.mozFullScreenElement ||
+        document.msFullscreenElement
+      );
       setIsFullscreen(entering);
       if (entering) {
         setShowControlsInFullscreen(true);
@@ -463,7 +486,16 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
       }
     };
     document.addEventListener('fullscreenchange', onFSChange);
-    return () => document.removeEventListener('fullscreenchange', onFSChange);
+    document.addEventListener('webkitfullscreenchange', onFSChange);
+    document.addEventListener('mozfullscreenchange', onFSChange);
+    document.addEventListener('MSFullscreenChange', onFSChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', onFSChange);
+      document.removeEventListener('webkitfullscreenchange', onFSChange);
+      document.removeEventListener('mozfullscreenchange', onFSChange);
+      document.removeEventListener('MSFullscreenChange', onFSChange);
+    };
   }, []);
 
   // Auto-hide controls after 3s idle in fullscreen; mouse movement resets timer

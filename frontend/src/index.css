@@ -146,7 +146,9 @@
 
 /* Watch Together fullscreen styles */
 .watch-together-panel:fullscreen,
-.watch-together-panel:-webkit-full-screen {
+.watch-together-panel:-webkit-full-screen,
+.watch-together-panel:-moz-full-screen,
+.watch-together-panel:-ms-fullscreen {
   background: #000 !important;
   border: none !important;
   border-radius: 0 !important;
@@ -158,7 +160,9 @@
 
 /* Keep header visible in fullscreen */
 .watch-together-panel:fullscreen > div:first-child,
-.watch-together-panel:-webkit-full-screen > div:first-child {
+.watch-together-panel:-webkit-full-screen > div:first-child,
+.watch-together-panel:-moz-full-screen > div:first-child,
+.watch-together-panel:-ms-fullscreen > div:first-child {
   position: absolute;
   top: 0;
   left: 0;
