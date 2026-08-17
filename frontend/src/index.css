@@ -157,18 +157,3 @@
   display: flex;
   flex-direction: column;
 }
-
-/* Keep header visible in fullscreen */
-.watch-together-panel:fullscreen > div:first-child,
-.watch-together-panel:-webkit-full-screen > div:first-child,
-.watch-together-panel:-moz-full-screen > div:first-child,
-.watch-together-panel:-ms-fullscreen > div:first-child {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 30;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
-  border-bottom: none !important;
-  transition: opacity 0.3s, transform 0.3s;
-}

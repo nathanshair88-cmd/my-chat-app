@@ -584,7 +584,11 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
       </div>
 
       {/* ── Header bar ─────────────────────────────────────────────────── */}
-      <div className={`relative z-10 flex items-center justify-between px-4 py-3 border-b border-surface-border bg-surface-active/50 backdrop-blur-md shrink-0 transition-all duration-300 ${
+      <div className={`z-30 flex items-center justify-between px-4 py-3 shrink-0 transition-all duration-300 ${
+        isFullscreen 
+          ? 'absolute top-0 left-0 right-0 border-none bg-gradient-to-b from-black/80 to-transparent pt-6' 
+          : 'relative border-b border-surface-border bg-surface-active/50 backdrop-blur-md'
+      } ${
         isFullscreen && !showControlsInFullscreen ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'
       }`}>
         <div className="flex items-center space-x-2.5">
