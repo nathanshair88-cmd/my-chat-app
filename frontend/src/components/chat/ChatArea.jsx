@@ -98,7 +98,7 @@ export default function ChatArea({ onOpenP2PModal }) {
     >
       {/* Drag & Drop Visual Overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-40 bg-accent-primary/90 flex flex-col items-center justify-center text-text-primary backdrop-blur-sm pointer-events-none animate-fadeIn rounded-2xl">
+        <div className="absolute inset-0 z-40 bg-accent-primary/90 flex flex-col items-center justify-center text-text-primary backdrop-blur-sm pointer-events-none animate-fadeIn rounded-md">
           <UploadCloud className="w-20 h-20 mb-3 animate-bounce" />
           <h2 className="text-2xl font-bold">Upload to {isDM ? `@${otherUser?.username}` : `#${currentChannel?.name}`}</h2>
           <p className="text-sm text-text-primary/80 mt-1">Drop files anywhere to attach to your message</p>
@@ -204,7 +204,7 @@ export default function ChatArea({ onOpenP2PModal }) {
 
         {/* Search Results Notice */}
         {searchQuery.trim() && (
-          <div className="bg-surface-panel p-2.5 rounded-lg border border-accent-primary text-xs text-text-primary flex items-center justify-between mb-4 shadow-sm backdrop-blur-sm">
+          <div className="bg-surface-panel p-2.5 rounded-sm border border-accent-primary text-xs text-text-primary flex items-center justify-between mb-4 shadow-sm backdrop-blur-sm">
             <span>
               Showing {filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'} matching "<strong className="text-accent-primary">{searchQuery}</strong>"
             </span>

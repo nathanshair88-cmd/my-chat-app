@@ -65,7 +65,7 @@ function MainDashboard() {
       <GlobalVoiceAudioPlayer />
 
       {/* Main Glass App Container */}
-      <div className="flex w-full h-full glass-panel sm:rounded-2xl overflow-hidden shadow-2xl relative border border-surface-border transition-all duration-300">
+      <div className="flex w-full h-full glass-panel sm:rounded-none overflow-hidden shadow-2xl relative border border-surface-border transition-all duration-300">
         
         {/* 1. Leftmost Server Rail */}
         <ServerSidebar

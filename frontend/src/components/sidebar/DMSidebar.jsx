@@ -136,7 +136,7 @@ export default function DMSidebar({ onOpenSettings }) {
 
       {showSearchModal && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-surface-base w-full max-w-md rounded-lg p-5 shadow-2xl border border-surface-border">
+          <div className="bg-surface-base w-full max-w-md rounded-sm p-5 shadow-2xl border border-surface-border">
             <h3 className="text-lg font-bold text-text-primary mb-3 flex items-center justify-between">
               <span>Start a Direct Message</span>
               <button

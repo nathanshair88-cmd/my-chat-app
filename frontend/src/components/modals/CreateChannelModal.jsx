@@ -31,7 +31,7 @@ export default function CreateChannelModal({ onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
-      <div className="bg-surface-base border border-surface-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div className="bg-surface-base border border-surface-border rounded-md w-full max-w-md shadow-2xl overflow-hidden">
         <div className="p-6 flex items-center justify-between border-b border-surface-border">
           <h2 className="text-xl font-bold text-text-primary">Create Channel</h2>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary">
@@ -53,7 +53,7 @@ export default function CreateChannelModal({ onClose }) {
                   <div
                     key={t.id}
                     onClick={() => setChannelType(t.id)}
-                    className={`flex items-center space-x-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                    className={`flex items-center space-x-3 p-3 rounded-md border cursor-pointer transition-colors ${
                       isSelected ? 'bg-surface-hover border-accent-primary' : 'bg-surface-panel border-transparent hover:bg-surface-hover'
                     }`}
                   >
@@ -78,7 +78,7 @@ export default function CreateChannelModal({ onClose }) {
               value={channelName}
               onChange={(e) => setChannelName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
               placeholder="new-channel"
-              className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
+              className="w-full bg-surface-active text-text-primary text-sm rounded-sm px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
             />
           </div>
 
@@ -91,7 +91,7 @@ export default function CreateChannelModal({ onClose }) {
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="Text Channels"
-              className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
+              className="w-full bg-surface-active text-text-primary text-sm rounded-sm px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
             />
           </div>
 
@@ -102,7 +102,7 @@ export default function CreateChannelModal({ onClose }) {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-lg transition-colors"
+              className="px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-sm transition-colors"
             >
               {loading ? 'Creating...' : 'Create Channel'}
             </button>

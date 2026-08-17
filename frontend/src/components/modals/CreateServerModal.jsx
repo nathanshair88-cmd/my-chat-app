@@ -33,13 +33,13 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
-      <div className="bg-surface-base border border-surface-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div className="bg-surface-base border border-surface-border rounded-md w-full max-w-md shadow-2xl overflow-hidden">
         <div className="p-6 text-center space-y-2 relative">
           <button onClick={onClose} className="absolute right-4 top-4 text-text-muted hover:text-text-primary">
             <X className="w-5 h-5" />
           </button>
           
-          <div className="w-12 h-12 rounded-2xl bg-accent-primary flex items-center justify-center mx-auto mb-2">
+          <div className="w-12 h-12 rounded-md bg-accent-primary flex items-center justify-center mx-auto mb-2">
             {mode === 'create' ? <Plus className="w-6 h-6 text-text-primary" /> : <Compass className="w-6 h-6 text-text-primary" />}
           </div>
 
@@ -70,7 +70,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
                   value={serverName}
                   onChange={(e) => setServerName(e.target.value)}
                   placeholder="My Gaming Hangout"
-                  className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
+                  className="w-full bg-surface-active text-text-primary text-sm rounded-sm px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
                 />
               </div>
 
@@ -83,7 +83,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
                   value={iconUrl}
                   onChange={(e) => setIconUrl(e.target.value)}
                   placeholder="https://example.com/icon.png"
-                  className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
+                  className="w-full bg-surface-active text-text-primary text-sm rounded-sm px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
                 />
               </div>
             </>
@@ -98,7 +98,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 placeholder="e.g. h8K2pL9q"
-                className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
+                className="w-full bg-surface-active text-text-primary text-sm rounded-sm px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
               />
             </div>
           )}
@@ -114,7 +114,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-lg transition-colors"
+              className="px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-sm transition-colors"
             >
               {loading ? 'Working...' : mode === 'create' ? 'Create Server' : 'Join Server'}
             </button>

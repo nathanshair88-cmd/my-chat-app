@@ -50,10 +50,10 @@ export default function AuthModal() {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
-      <div className="bg-surface-base border border-surface-border rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-6">
+      <div className="bg-surface-base border border-surface-border rounded-md w-full max-w-md shadow-2xl p-6 space-y-6">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-2xl bg-accent-primary flex items-center justify-center mb-3 shadow-lg shadow-indigo-500/20">
+          <div className="w-14 h-14 rounded-md bg-accent-primary flex items-center justify-center mb-3 shadow-lg shadow-indigo-500/20">
             <MessageSquare className="w-8 h-8 text-text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-text-primary">
@@ -65,7 +65,7 @@ export default function AuthModal() {
         </div>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-lg flex items-center space-x-2 text-rose-400 text-xs font-medium">
+          <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-sm flex items-center space-x-2 text-rose-400 text-xs font-medium">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
@@ -84,7 +84,7 @@ export default function AuthModal() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="CoolGamer123"
-                  className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary transition-colors"
+                  className="w-full bg-surface-active text-text-primary text-sm rounded-sm px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary transition-colors"
                 />
               </div>
 
@@ -120,7 +120,7 @@ export default function AuthModal() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
-              className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary transition-colors"
+              className="w-full bg-surface-active text-text-primary text-sm rounded-sm px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary transition-colors"
             />
           </div>
 
@@ -134,14 +134,14 @@ export default function AuthModal() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary transition-colors"
+              className="w-full bg-surface-active text-text-primary text-sm rounded-sm px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold rounded-lg transition-all transform active:scale-95 shadow-md shadow-indigo-500/20 disabled:opacity-50"
+            className="w-full py-3 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold rounded-sm transition-all transform active:scale-95 shadow-md shadow-indigo-500/20 disabled:opacity-50"
           >
             {loading ? 'Processing...' : isRegister ? 'Register' : 'Log In'}
           </button>

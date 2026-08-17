@@ -87,7 +87,7 @@ export default function UserWidget({ onOpenSettings }) {
 
       {/* Status Picker Menu Overlay */}
       {showStatusMenu && (
-        <div className="absolute bottom-14 left-2 w-52 bg-surface-active border border-surface-border rounded-lg shadow-2xl p-1.5 z-50">
+        <div className="absolute bottom-14 left-2 w-52 bg-surface-active border border-surface-border rounded-sm shadow-2xl p-1.5 z-50">
           <div className="text-[11px] font-bold text-text-muted px-2 py-1 uppercase tracking-wider">Set Status</div>
           {statuses.map((s) => (
             <button

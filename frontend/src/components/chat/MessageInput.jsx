@@ -116,10 +116,10 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
 
   return (
     <div className="px-4 pb-4 bg-transparent">
-      <div className="bg-surface-panel/40 backdrop-blur-md rounded-2xl border border-surface-border p-2 flex flex-col space-y-2 shadow-lg">
+      <div className="bg-surface-panel/40 backdrop-blur-md rounded-md border border-surface-border p-2 flex flex-col space-y-2 shadow-lg">
         {/* Attachment Previews Chip Bar */}
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-2 bg-surface-active/50 rounded-lg border border-surface-border">
+          <div className="flex flex-wrap gap-2 p-2 bg-surface-active/50 rounded-sm border border-surface-border">
             {attachments.map((att, idx) => {
               const isImage = att.type?.startsWith('image/');
               return (
@@ -211,7 +211,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
           <button
             onClick={handleSendMessage}
             disabled={!content.trim() && attachments.length === 0}
-            className={`p-2 rounded-lg transition-colors flex-shrink-0 shadow-sm ${
+            className={`p-2 rounded-sm transition-colors flex-shrink-0 shadow-sm ${
               content.trim() || attachments.length > 0 ? 'bg-accent-primary text-text-primary hover:bg-accent-hover' : 'bg-surface-active text-text-muted cursor-not-allowed border border-surface-border'
             }`}
           >

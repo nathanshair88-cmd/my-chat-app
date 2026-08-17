@@ -78,7 +78,7 @@ export default function MessageItem({ message, searchQuery }) {
   };
 
   return (
-    <div className="group relative flex space-x-4 px-4 py-2 hover:bg-surface-hover transition-colors rounded-lg my-0.5">
+    <div className="group relative flex space-x-4 px-4 py-2 hover:bg-surface-hover transition-colors rounded-sm my-0.5">
       {/* Author Avatar */}
       <img
         src={author?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${author?.username || 'User'}`}
@@ -109,7 +109,7 @@ export default function MessageItem({ message, searchQuery }) {
                       {children}
                     </code>
                   ) : (
-                    <pre className="bg-surface-active p-3 rounded-lg border border-surface-border font-mono text-xs text-accent-primary overflow-x-auto my-2 shadow-inner">
+                    <pre className="bg-surface-active p-3 rounded-sm border border-surface-border font-mono text-xs text-accent-primary overflow-x-auto my-2 shadow-inner">
                       <code {...props}>{children}</code>
                     </pre>
                   );
@@ -137,7 +137,7 @@ export default function MessageItem({ message, searchQuery }) {
 
               if (isImage && att.url) {
                 return (
-                  <div key={idx} className="relative group/att max-w-sm rounded-lg overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
+                  <div key={idx} className="relative group/att max-w-sm rounded-sm overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
                     <img 
                       src={att.url} 
                       alt={att.name || 'Attachment'}
@@ -159,7 +159,7 @@ export default function MessageItem({ message, searchQuery }) {
 
               if (isVideo && att.url) {
                 return (
-                  <div key={idx} className="max-w-sm rounded-lg overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
+                  <div key={idx} className="max-w-sm rounded-sm overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
                     <video 
                       src={att.url} 
                       controls 
@@ -179,7 +179,7 @@ export default function MessageItem({ message, searchQuery }) {
               }
 
               return (
-                <div key={idx} className="flex items-center space-x-3 bg-surface-panel p-2.5 rounded-lg border border-surface-border max-w-xs shadow-sm">
+                <div key={idx} className="flex items-center space-x-3 bg-surface-panel p-2.5 rounded-sm border border-surface-border max-w-xs shadow-sm">
                   <FileText className="w-8 h-8 text-accent-primary flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-semibold text-text-primary truncate">{att.name}</div>

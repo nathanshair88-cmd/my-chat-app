@@ -68,7 +68,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
           {/* Server Options Popover */}
           {showServerMenu && (
-            <div className="absolute top-13 left-2 right-2 bg-surface-active border border-surface-border rounded-lg shadow-2xl p-1.5 z-50">
+            <div className="absolute top-13 left-2 right-2 bg-surface-active border border-surface-border rounded-sm shadow-2xl p-1.5 z-50">
               <button 
                 onClick={() => {
                   copyInviteCode();
@@ -339,7 +339,7 @@ function UserContextMenu({ x, y, user, onClose, isLocalUser, voiceManager }) {
               max="200" 
               value={volume} 
               onChange={handleVolumeChange}
-              className="w-full h-1.5 bg-surface-border rounded-lg appearance-none cursor-pointer accent-accent-primary"
+              className="w-full h-1.5 bg-surface-border rounded-sm appearance-none cursor-pointer accent-accent-primary"
             />
           </div>
           <div className="h-px bg-surface-border my-1 mx-1" />

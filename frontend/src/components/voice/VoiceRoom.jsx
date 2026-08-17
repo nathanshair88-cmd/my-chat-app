@@ -40,7 +40,7 @@ export default function VoiceRoom() {
         </p>
         <button
           onClick={() => voiceManager.joinVoiceChannel(currentChannel.id, user)}
-          className="px-6 py-3 bg-success hover:bg-success/80 text-text-primary font-bold rounded-xl shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
+          className="px-6 py-3 bg-success hover:bg-success/80 text-text-primary font-bold rounded-md shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
         >
           <Radio className="w-5 h-5 animate-pulse" />
           <span>Connect to Voice</span>
@@ -52,7 +52,7 @@ export default function VoiceRoom() {
   return (
     <div className="flex-1 bg-transparent flex flex-col justify-between p-4 relative min-h-0 overflow-hidden select-none">
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between bg-surface-active/80 backdrop-blur-md px-4 py-2.5 rounded-xl border border-surface-border mb-4 z-10 shadow-sm">
+      <div className="flex items-center justify-between bg-surface-active/80 backdrop-blur-md px-4 py-2.5 rounded-md border border-surface-border mb-4 z-10 shadow-sm">
         <div className="flex items-center space-x-2 text-text-primary font-bold text-sm">
           <Radio className="w-4 h-4 text-success animate-pulse" />
           <span>#{currentChannel.name}</span>
@@ -81,7 +81,7 @@ export default function VoiceRoom() {
       </div>
 
       {/* Control Action Toolbar */}
-      <div className="flex items-center justify-center space-x-4 bg-surface-active/80 backdrop-blur-md py-3 px-6 rounded-2xl border border-surface-border mt-4 self-center shadow-2xl z-10">
+      <div className="flex items-center justify-center space-x-4 bg-surface-active/80 backdrop-blur-md py-3 px-6 rounded-md border border-surface-border mt-4 self-center shadow-2xl z-10">
         {/* Mute Mic */}
         <button
           onClick={() => voiceManager.toggleMute()}
@@ -155,7 +155,7 @@ export default function VoiceRoom() {
           className="fixed inset-0 z-50 bg-black/90 flex flex-col justify-between p-6 animate-fadeIn"
         >
           <div className="flex items-center justify-between z-10 absolute top-6 left-6 right-6">
-            <div className="flex items-center space-x-3 bg-surface-active/80 border border-surface-border px-4 py-2 rounded-xl backdrop-blur-md">
+            <div className="flex items-center space-x-3 bg-surface-active/80 border border-surface-border px-4 py-2 rounded-md backdrop-blur-md">
               <span className="font-bold text-text-primary text-sm">{fullscreenItem.username}'s Stream</span>
               {fullscreenItem.isScreenSharing && (
                 <span className="bg-accent-primary text-xs text-text-primary px-2 py-0.5 rounded font-mono uppercase font-semibold">LIVE 60FPS</span>
@@ -215,7 +215,7 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
   const hasVideo = item.stream && item.stream.getVideoTracks().length > 0;
 
   return (
-    <div className={`relative bg-surface-active/50 rounded-2xl overflow-hidden border-2 flex flex-col items-center justify-center shadow-xl transition-all duration-200 aspect-video backdrop-blur-sm ${
+    <div className={`relative bg-surface-active/50 rounded-md overflow-hidden border-2 flex flex-col items-center justify-center shadow-xl transition-all duration-200 aspect-video backdrop-blur-sm ${
       isSpeaking ? 'speaker-active' : 'border-surface-border'
     }`}>
 
@@ -272,7 +272,7 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
               </button>
 
               {showVolumeSlider && (
-                <div className="absolute bottom-9 right-0 bg-surface-active border border-surface-border rounded-lg p-3 w-44 shadow-2xl z-50 animate-fadeIn backdrop-blur-md">
+                <div className="absolute bottom-9 right-0 bg-surface-active border border-surface-border rounded-sm p-3 w-44 shadow-2xl z-50 animate-fadeIn backdrop-blur-md">
                   <div className="flex justify-between text-[11px] font-bold text-text-primary mb-1.5">
                     <span>User Volume</span>
                     <span className="font-mono text-success">{userVol}%</span>

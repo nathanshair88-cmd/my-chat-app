@@ -42,13 +42,13 @@ export default function MediaLightboxModal({ media, onClose }) {
             src={media.url} 
             controls 
             autoPlay 
-            className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain border border-surface-border"
+            className="max-w-full max-h-[80vh] rounded-sm shadow-2xl object-contain border border-surface-border"
           />
         ) : (
           <img 
             src={media.url} 
             alt={media.name || 'Preview'} 
-            className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain border border-surface-border"
+            className="max-w-full max-h-[80vh] rounded-sm shadow-2xl object-contain border border-surface-border"
           />
         )}
 
