@@ -275,7 +275,9 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 }
 
 function UserContextMenu({ x, y, user, onClose, isLocalUser, voiceManager }) {
+  const { startDM, setViewMode } = useServer();
   const [volume, setVolume] = useState(() => voiceManager.getUserVolume(user.id || user.user_id));
+  const [isMuted, setIsMuted] = useState(() => voiceManager.getUserVolume(user.id || user.user_id) === 0);
   const menuRef = useRef(null);
   const [pos, setPos] = useState({ top: y, left: x });
 
@@ -307,7 +309,39 @@ function UserContextMenu({ x, y, user, onClose, isLocalUser, voiceManager }) {
   const handleVolumeChange = (e) => {
     const v = parseInt(e.target.value);
     setVolume(v);
+    setIsMuted(v === 0);
     voiceManager.setUserVolume(user.id || user.user_id, v);
+  };
+
+  const handleToggleMute = () => {
+    const uid = user.id || user.user_id;
+    if (isMuted) {
+      // Restore to 100% volume
+      voiceManager.setUserVolume(uid, 100);
+      setVolume(100);
+      setIsMuted(false);
+    } else {
+      // Mute = set volume to 0
+      voiceManager.setUserVolume(uid, 0);
+      setVolume(0);
+      setIsMuted(true);
+    }
+  };
+
+  const handleMessage = async () => {
+    try {
+      await startDM({ user_id: user.id || user.user_id, username: user.username });
+      setViewMode('dm');
+    } catch (e) {
+      console.error('Failed to start DM:', e);
+    }
+    onClose();
+  };
+
+  const handleMention = () => {
+    // Dispatch a custom event that MessageInput listens to
+    window.dispatchEvent(new CustomEvent('mention-user', { detail: { username: user.username } }));
+    onClose();
   };
 
   return (
@@ -317,16 +351,15 @@ function UserContextMenu({ x, y, user, onClose, isLocalUser, voiceManager }) {
       style={{ left: pos.left, top: pos.top }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Profile</div>
-      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Mention</div>
-      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Message</div>
-      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Start a Call</div>
+      <div className="px-2 py-1.5 mb-1">
+        <div className="font-bold text-text-primary">{user.username}</div>
+        {user.status_message && <div className="text-[11px] text-text-muted truncate">{user.status_message}</div>}
+      </div>
       <div className="h-px bg-surface-border my-1 mx-1" />
-      <div className="text-text-muted text-[11px] font-bold uppercase px-2 mt-1 mb-0.5 tracking-wide">Add Note</div>
-      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Add Friend Nickname</div>
-      
       {!isLocalUser && (
         <>
+          <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={handleMessage}>Message</div>
+          <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={handleMention}>Mention</div>
           <div className="h-px bg-surface-border my-1 mx-1" />
           <div className="px-2 py-1">
             <div className="flex justify-between items-center mb-1">
@@ -343,13 +376,14 @@ function UserContextMenu({ x, y, user, onClose, isLocalUser, voiceManager }) {
             />
           </div>
           <div className="h-px bg-surface-border my-1 mx-1" />
-          <div className="flex items-center justify-between hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors group" onClick={onClose}>
-            <span>Mute</span>
-            <div className="w-4 h-4 border border-surface-border rounded-sm group-hover:border-white"></div>
-          </div>
-          <div className="flex items-center justify-between hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors group" onClick={onClose}>
-            <span>Disable Video</span>
-            <div className="w-4 h-4 border border-surface-border rounded-sm group-hover:border-white"></div>
+          <div 
+            className="flex items-center justify-between hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors"
+            onClick={handleToggleMute}
+          >
+            <span>{isMuted ? 'Unmute' : 'Mute'}</span>
+            <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${isMuted ? 'bg-accent-primary border-accent-primary' : 'border-surface-border'}`}>
+              {isMuted && <Check className="w-3 h-3 text-white" />}
+            </div>
           </div>
         </>
       )}

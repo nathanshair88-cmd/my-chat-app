@@ -20,9 +20,9 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('discoalto_user_id', res.data.id);
           localStorage.setItem('discoalto_username', res.data.username);
           if (res.data.avatar_url) localStorage.setItem('discoalto_avatar_url', res.data.avatar_url);
-          const socket = initSocket(token);
+          initSocket(token);
           p2pEngine.initSocketListeners();
-          loadSettings(); // Restore saved preferences from server
+          loadSettings();
         } catch (err) {
           console.error("Token verification failed:", err);
           localStorage.removeItem('discoalto_token');
@@ -46,7 +46,7 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     initSocket(access_token);
     p2pEngine.initSocketListeners();
-    loadSettings(); // Restore saved preferences from server
+    loadSettings();
     return userData;
   };
 
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
     setUser(userData);
     initSocket(access_token);
     p2pEngine.initSocketListeners();
-    loadSettings(); // Restore saved preferences from server
+    loadSettings();
     return userData;
   };
 
@@ -73,14 +73,22 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-
   const updateStatus = async (status, status_message) => {
     const res = await authAPI.updateStatus({ status, status_message });
     setUser(res.data);
   };
 
+  const updateProfile = async (profileData) => {
+    const res = await authAPI.updateProfile(profileData);
+    const updated = res.data;
+    setUser(updated);
+    if (updated.username) localStorage.setItem('discoalto_username', updated.username);
+    if (updated.avatar_url) localStorage.setItem('discoalto_avatar_url', updated.avatar_url);
+    return updated;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateStatus }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateStatus, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

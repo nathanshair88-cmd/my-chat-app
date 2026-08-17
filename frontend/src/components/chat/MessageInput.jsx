@@ -13,12 +13,27 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
 
   const socket = getSocket();
 
+  const inputRef = useRef(null);
+
   // Append dropped files if passed from parent ChatArea drag-and-drop
   useEffect(() => {
     if (droppedFiles && droppedFiles.length > 0) {
       handleFilesSelected(droppedFiles);
     }
   }, [droppedFiles]);
+
+  // Listen for @mention events from the UserContextMenu
+  useEffect(() => {
+    const handleMentionEvent = (e) => {
+      const { username } = e.detail;
+      setContent(prev => `${prev}@${username} `);
+      // Focus the input
+      setTimeout(() => inputRef.current?.focus(), 50);
+    };
+    window.addEventListener('mention-user', handleMentionEvent);
+    return () => window.removeEventListener('mention-user', handleMentionEvent);
+  }, []);
+
 
   const handleFilesSelected = (files) => {
     Array.from(files).forEach(file => {
@@ -207,6 +222,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
         {/* Input Text Area */}
         <div className="flex items-end space-x-2">
           <textarea
+            ref={inputRef}
             value={content}
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}

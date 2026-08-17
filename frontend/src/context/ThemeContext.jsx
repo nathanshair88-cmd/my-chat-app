@@ -2,29 +2,28 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ThemeContext = createContext();
 
+// Available themes: 'dark' | 'amoled' | 'light'
 export function ThemeProvider({ children }) {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem('app_theme');
-    if (saved !== null) {
-      return saved === 'dark';
-    }
-    // Default to dark mode
-    return true; 
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('app_theme') || 'dark';
   });
 
   useEffect(() => {
-    localStorage.setItem('app_theme', isDarkMode ? 'dark' : 'light');
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
+    localStorage.setItem('app_theme', theme);
+    // Remove all theme classes first
+    document.documentElement.classList.remove('dark', 'amoled', 'light');
+    // Apply current theme
+    document.documentElement.classList.add(theme);
+  }, [theme]);
 
-  const toggleTheme = () => setIsDarkMode(prev => !prev);
+  const setAppTheme = (t) => setTheme(t);
+
+  // Legacy support for isDarkMode toggle used in ChatArea
+  const isDarkMode = theme !== 'light';
+  const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, setAppTheme, isDarkMode, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

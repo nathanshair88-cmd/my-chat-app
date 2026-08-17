@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useServer } from '../../context/ServerContext';
+import { useTheme } from '../../context/ThemeContext';
 import { notificationService } from '../../services/NotificationService';
 import { voiceManager } from '../../services/webrtcVoice';
 import { scheduleSave } from '../../services/settingsService';
@@ -13,6 +14,7 @@ import {
 export default function UserSettingsModal({ onClose }) {
   const { user, updateProfile, logout } = useAuth();
   const { soundEnabled, toggleSoundEnabled } = useServer();
+  const { theme, setAppTheme } = useTheme();
 
   const [activeTab, setActiveTab] = useState('voice'); // 'account' | 'voice' | 'appearance'
 
@@ -991,20 +993,44 @@ export default function UserSettingsModal({ onClose }) {
 
               {/* Theme Selector */}
               <div className="border-t border-surface-border pt-6">
-                <h3 className="text-sm font-bold text-text-primary mb-3">Theme Theme Palette</h3>
+                <h3 className="text-sm font-bold text-text-primary mb-3">Theme Palette</h3>
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 bg-surface-base border-2 border-accent-primary rounded-md text-center cursor-pointer">
-                    <div className="text-xs font-bold text-text-primary">Disco Alto Dark</div>
+                  <button
+                    onClick={() => setAppTheme('dark')}
+                    className={`p-3 bg-surface-base rounded-md text-center cursor-pointer transition-all border-2 hover:scale-[1.02] ${
+                      theme === 'dark' ? 'border-accent-primary shadow-lg shadow-accent-primary/20' : 'border-surface-border'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-text-primary flex items-center justify-center space-x-1">
+                      <span>Disco Alto Dark</span>
+                      {theme === 'dark' && <Check className="w-3 h-3 text-accent-primary" />}
+                    </div>
                     <div className="text-[10px] text-text-muted">Classic Slate</div>
-                  </div>
-                  <div className="p-3 bg-surface-active border border-surface-border rounded-md text-center opacity-60 cursor-not-allowed">
-                    <div className="text-xs font-bold text-text-primary">Midnight AMOLED</div>
-                    <div className="text-[10px] text-text-muted">Pure Pitch Black</div>
-                  </div>
-                  <div className="p-3 bg-surface-panel border border-surface-border rounded-md text-center opacity-60 cursor-not-allowed">
-                    <div className="text-xs font-bold text-text-primary">Ashen Grey</div>
-                    <div className="text-[10px] text-text-muted">Subtle Contrast</div>
-                  </div>
+                  </button>
+                  <button
+                    onClick={() => setAppTheme('amoled')}
+                    className={`p-3 bg-black rounded-md text-center cursor-pointer transition-all border-2 hover:scale-[1.02] ${
+                      theme === 'amoled' ? 'border-purple-400 shadow-lg shadow-purple-400/20' : 'border-surface-border'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-white flex items-center justify-center space-x-1">
+                      <span>Midnight AMOLED</span>
+                      {theme === 'amoled' && <Check className="w-3 h-3 text-purple-400" />}
+                    </div>
+                    <div className="text-[10px] text-gray-500">Pure Pitch Black</div>
+                  </button>
+                  <button
+                    onClick={() => setAppTheme('light')}
+                    className={`p-3 bg-blue-100 rounded-md text-center cursor-pointer transition-all border-2 hover:scale-[1.02] ${
+                      theme === 'light' ? 'border-indigo-600 shadow-lg shadow-indigo-400/20' : 'border-blue-200'
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-slate-900 flex items-center justify-center space-x-1">
+                      <span>Ashen Light</span>
+                      {theme === 'light' && <Check className="w-3 h-3 text-indigo-600" />}
+                    </div>
+                    <div className="text-[10px] text-slate-500">Subtle Contrast</div>
+                  </button>
                 </div>
               </div>
             </div>

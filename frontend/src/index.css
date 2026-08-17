@@ -62,6 +62,48 @@
   --success: #10b981;
 }
 
+:root.amoled {
+  /* AMOLED MIDNIGHT - Pure pitch black for OLED screens */
+  --surface-base: #000000;
+  --surface-panel: rgba(8, 8, 8, 0.98);
+  --surface-hover: rgba(20, 20, 20, 0.95);
+  --surface-active: rgba(18, 18, 18, 0.98);
+  --surface-border: rgba(40, 40, 40, 0.8);
+
+  --text-primary: #ffffff;
+  --text-secondary: #e0e0e0;
+  --text-muted: #555555;
+
+  --accent-primary: #a78bfa; /* Lighter purple for contrast on black */
+  --accent-hover: #8b5cf6;
+
+  --danger: #ff4466;
+  --danger-hover: #ee2255;
+
+  --success: #00e676;
+}
+
+:root.light {
+  /* LIGHT MODE (High Contrast, Colorful) */
+  --surface-base: #dbeafe;
+  --surface-panel: rgba(238, 242, 255, 0.95);
+  --surface-hover: rgba(224, 231, 255, 0.95);
+  --surface-active: #ffffff;
+  --surface-border: rgba(99, 102, 241, 0.5);
+  
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #334155;
+  
+  --accent-primary: #4338ca;
+  --accent-hover: #3730a3;
+  
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  
+  --success: #10b981;
+}
+
 @layer base {
   body {
     @apply bg-surface-base text-text-primary antialiased select-none font-sans overflow-hidden transition-colors duration-500 ease-in-out;
@@ -69,7 +111,6 @@
     padding: 0;
     height: 100vh;
     width: 100vw;
-    /* In dark mode, add a subtle glowing ambient background */
   }
 
   :root.dark body {
@@ -77,14 +118,20 @@
                       radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.15), transparent 25%);
     background-color: var(--surface-base);
   }
+
+  :root.amoled body {
+    background-image: radial-gradient(circle at 15% 50%, rgba(120, 60, 200, 0.12), transparent 30%),
+                      radial-gradient(circle at 85% 30%, rgba(0, 200, 150, 0.08), transparent 30%);
+    background-color: #000000;
+  }
   
-  /* Fallback animated background for light mode */
-  :root:not(.dark) body {
+  :root.light body {
     background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.4), transparent 45%),
                       radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.4), transparent 45%);
     background-color: var(--surface-base);
   }
 }
+
 
 /* Custom Scrollbars */
 ::-webkit-scrollbar {
