@@ -49,6 +49,9 @@ export const ServerProvider = ({ children }) => {
   // Active Thread Message state
   const [activeThreadMessage, setActiveThreadMessage] = useState(null);
 
+  // Online users tracking
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+
   // Sound preference
   const [soundEnabled, setSoundEnabledState] = useState(true);
 
@@ -268,6 +271,18 @@ export const ServerProvider = ({ children }) => {
         }
       };
 
+      const handleUserConnected = (user_data) => {
+        setOnlineUsers(prev => new Set(prev).add(user_data.id));
+      };
+
+      const handleUserDisconnected = ({ user_id }) => {
+        setOnlineUsers(prev => {
+          const next = new Set(prev);
+          next.delete(user_id);
+          return next;
+        });
+      };
+
       const handleUserTyping = (data) => {
         if (viewModeRef.current === 'server' && currentChannelRef.current && data.channel_id === currentChannelRef.current.id) {
           setTypingUsers(prev => {
@@ -297,6 +312,8 @@ export const ServerProvider = ({ children }) => {
       socket.on('reaction_updated', handleReactionUpdated);
       socket.on('user_typing', handleUserTyping);
       socket.on('dms_read_receipt', handleDMsReadReceipt);
+      socket.on('user_connected', handleUserConnected);
+      socket.on('user_disconnected', handleUserDisconnected);
 
       cleanupFns.push(() => {
         socket.off('connect', handleConnect);
@@ -306,6 +323,8 @@ export const ServerProvider = ({ children }) => {
         socket.off('reaction_updated', handleReactionUpdated);
         socket.off('user_typing', handleUserTyping);
         socket.off('dms_read_receipt', handleDMsReadReceipt);
+        socket.off('user_connected', handleUserConnected);
+        socket.off('user_disconnected', handleUserDisconnected);
       });
 
       return true;
@@ -379,6 +398,7 @@ export const ServerProvider = ({ children }) => {
       soundEnabled,
       activeThreadMessage,
       setActiveThreadMessage,
+      onlineUsers,
 
       toggleSoundEnabled,
       selectServer,

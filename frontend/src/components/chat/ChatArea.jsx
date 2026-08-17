@@ -3,13 +3,15 @@ import { useServer } from '../../context/ServerContext';
 import MessageItem from './MessageItem';
 import MessageInput from './MessageInput';
 import ThreadPanel from './ThreadPanel';
-import { Hash, Volume2, Video, Share2, Search, X, UploadCloud, MessageSquare, Moon, Sun } from 'lucide-react';
+import ServerMemberList from '../sidebar/ServerMemberList';
+import { Hash, Volume2, Video, Share2, Search, X, UploadCloud, MessageSquare, Moon, Sun, Users } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function ChatArea({ onOpenP2PModal }) {
   const { viewMode, currentChannel, currentDM, messages, typingUsers, showVoiceGrid, toggleVoiceGrid } = useServer();
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
+  const [showMembers, setShowMembers] = useState(true);
 
   const [isDragging, setIsDragging] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState([]);
@@ -179,6 +181,18 @@ export default function ChatArea({ onOpenP2PModal }) {
             >
               {isDarkMode ? <Sun className="w-4 h-4 text-text-primary" /> : <Moon className="w-4 h-4 text-text-primary" />}
             </button>
+
+            {!isDM && (
+              <button
+                onClick={() => setShowMembers(!showMembers)}
+                className={`p-1.5 rounded-md transition-colors border border-surface-border shadow-sm ${
+                  showMembers ? 'bg-accent-primary text-text-primary' : 'bg-surface-active hover:bg-surface-hover hover:text-accent-primary'
+                }`}
+                title={showMembers ? "Hide Member List" : "Show Member List"}
+              >
+                <Users className="w-4 h-4 text-text-primary" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -241,6 +255,11 @@ export default function ChatArea({ onOpenP2PModal }) {
 
       {/* Thread Panel (Split Pane) */}
       <ThreadPanel />
+
+      {/* Member List (Split Pane) */}
+      {!isDM && showMembers && (
+        <ServerMemberList />
+      )}
     </div>
   );
 }
