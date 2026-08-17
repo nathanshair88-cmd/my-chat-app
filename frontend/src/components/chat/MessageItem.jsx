@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import EmojiPicker from './EmojiPicker';
 import MediaLightboxModal from '../modals/MediaLightboxModal';
+import UserContextMenu from '../modals/UserContextMenu';
 import { Smile, FileText, Download, Play, Image as ImageIcon } from 'lucide-react';
 import { getSocket } from '../../services/socket';
 import { useAuth } from '../../context/AuthContext';
@@ -11,10 +12,12 @@ export default function MessageItem({ message, searchQuery }) {
   const { user } = useAuth();
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeMediaPreview, setActiveMediaPreview] = useState(null);
+  const [contextMenu, setContextMenu] = useState(null);
 
   const socket = getSocket();
 
   const author = message.author || message.sender;
+  const isOwnMessage = author?.id === user?.id;
 
   const handleToggleReaction = (emoji) => {
     if (!socket) return;
@@ -79,17 +82,22 @@ export default function MessageItem({ message, searchQuery }) {
 
   return (
     <div className="group relative flex space-x-4 px-4 py-2 hover:bg-surface-hover transition-colors rounded-sm my-0.5">
-      {/* Author Avatar */}
+      {/* Author Avatar — right-click for context menu */}
       <img
         src={author?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${author?.username || 'User'}`}
         alt={author?.username}
-        className="w-10 h-10 rounded-full bg-surface-panel object-cover flex-shrink-0 mt-0.5 border border-surface-border shadow-sm"
+        onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY }); }}
+        onClick={(e) => { if (e.button === 0) {} }}
+        className="w-10 h-10 rounded-full bg-surface-panel object-cover flex-shrink-0 mt-0.5 border border-surface-border shadow-sm cursor-pointer hover:ring-2 hover:ring-accent-primary/50 transition-all"
       />
 
       <div className="flex-1 min-w-0">
         {/* Header line */}
         <div className="flex items-baseline space-x-2">
-          <span className="font-semibold text-text-primary text-sm hover:underline cursor-pointer">
+          <span
+            className="font-semibold text-text-primary text-sm hover:underline cursor-pointer"
+            onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY }); }}
+          >
             {author?.username || 'Unknown User'}
           </span>
           <span className="text-[11px] text-text-muted font-medium">{formattedDate}</span>
@@ -251,6 +259,18 @@ export default function MessageItem({ message, searchQuery }) {
         <MediaLightboxModal
           media={activeMediaPreview}
           onClose={() => setActiveMediaPreview(null)}
+        />
+      )}
+
+      {/* User Context Menu */}
+      {contextMenu && (
+        <UserContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          user={author}
+          contextType="chat"
+          isLocalUser={isOwnMessage}
+          onClose={() => setContextMenu(null)}
         />
       )}
     </div>

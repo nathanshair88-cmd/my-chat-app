@@ -4,6 +4,7 @@ import { useServer } from '../../context/ServerContext';
 import { useAuth } from '../../context/AuthContext';
 import { watchTogetherService } from '../../services/watchTogetherService';
 import WatchTogetherPlayer from './WatchTogetherPlayer';
+import UserContextMenu from '../modals/UserContextMenu';
 import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, ShieldAlert, Maximize, Minimize, X, Tv2 } from 'lucide-react';
 
 export default function VoiceRoom() {
@@ -116,6 +117,7 @@ export default function VoiceRoom() {
               key={item.user_id} 
               item={item} 
               speakingUsers={voiceState.speakingUsers} 
+              channelId={voiceState.channel_id}
               onOpenFullscreen={(streamItem) => setFullscreenItem(streamItem)}
             />
           ))}
@@ -243,11 +245,14 @@ export default function VoiceRoom() {
 }
 
 
-function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
+function StreamTile({ item, speakingUsers, onOpenFullscreen, channelId }) {
   const videoRef = useRef(null);
+  const { user: currentUser } = useAuth();
   const isSpeaking = speakingUsers.some(id => String(id) === String(item.user_id));
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const [userVol, setUserVol] = useState(item.volume !== undefined ? item.volume : 100);
+  const [contextMenu, setContextMenu] = useState(null);
+  const isLocalUser = item.user_id === 'local' || item.user_id === currentUser?.id;
 
   useEffect(() => {
     if (videoRef.current && item.stream) {
@@ -271,9 +276,15 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
   const hasVideo = item.stream && item.stream.getVideoTracks().length > 0;
 
   return (
-    <div className={`relative bg-surface-active/50 rounded-md overflow-hidden border-2 flex flex-col items-center justify-center shadow-xl transition-all duration-200 aspect-video backdrop-blur-sm ${
-      isSpeaking ? 'speaker-active' : 'border-surface-border'
-    }`}>
+    <div
+      className={`relative bg-surface-active/50 rounded-md overflow-hidden border-2 flex flex-col items-center justify-center shadow-xl transition-all duration-200 aspect-video backdrop-blur-sm ${
+        isSpeaking ? 'speaker-active' : 'border-surface-border'
+      }`}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        setContextMenu({ x: e.clientX, y: e.clientY });
+      }}
+    >
 
       {hasVideo ? (
         <video
@@ -353,6 +364,18 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
           )}
         </div>
       </div>
+      {/* User Context Menu on right-click */}
+      {contextMenu && (
+        <UserContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          user={{ id: item.user_id, username: item.username, avatar_url: item.avatar_url }}
+          contextType="voice"
+          isLocalUser={isLocalUser}
+          channelId={channelId}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }
