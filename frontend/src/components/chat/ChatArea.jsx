@@ -108,7 +108,7 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
 
   return (
     <div 
-      className="flex-1 bg-transparent flex min-w-0 h-full relative"
+      className={`${compact ? 'w-full' : 'flex-1'} bg-transparent flex min-w-0 h-full relative overflow-hidden`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -264,11 +264,11 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
         )}
 
         {/* Message Input */}
-        <MessageInput onOpenP2PModal={onOpenP2PModal} droppedFiles={droppedFiles} />
+        <MessageInput onOpenP2PModal={onOpenP2PModal} droppedFiles={droppedFiles} compact={compact} />
       </div>
 
       {/* Thread Panel (Split Pane) */}
-      <ThreadPanel />
+      {!compact && <ThreadPanel />}
 
       {/* Member List (Split Pane) */}
       {!isDM && showMemberList && membersListOpen && (

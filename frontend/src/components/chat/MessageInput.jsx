@@ -4,7 +4,7 @@ import { useServer } from '../../context/ServerContext';
 import { Send, Bold, Code, Italic, Paperclip, Share2, X, FileText, PlaySquare } from 'lucide-react';
 import GifPicker from './GifPicker';
 
-export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parentId = null }) {
+export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parentId = null, compact = false }) {
   const { viewMode, currentChannel, currentDM } = useServer();
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState([]);
@@ -258,7 +258,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
     : `Message #${currentChannel ? currentChannel.name : 'channel'}`;
 
   return (
-    <div className="px-2 sm:px-4 pb-2 sm:pb-4 bg-transparent">
+    <div className={`${compact ? 'px-2 pb-2' : 'px-2 sm:px-4 pb-2 sm:pb-4'} bg-transparent`}>
       <div className="bg-surface-panel/40 backdrop-blur-md rounded-md border border-surface-border p-2 flex flex-col space-y-2 shadow-lg">
         {/* Reply Preview Bar */}
         {replyingTo && (
@@ -318,7 +318,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
 
         {/* Formatting & Action Bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border pb-1.5 px-1 text-text-muted">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 min-w-0">
             <button 
               onClick={() => insertFormatting('**')} 
               className="p-2 sm:p-1 hover:text-text-primary hover:bg-surface-hover rounded transition-colors mobile-touch-target sm:min-w-0 sm:min-h-0"
@@ -375,7 +375,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {/* P2P WebRTC DataChannel Share Button */}
             <button
               onClick={onOpenP2PModal}
@@ -383,7 +383,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
               title="Send Direct P2P File (Unlimited GBs, Zero Server Storage)"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">P2P File Transfer</span>
+              <span className={compact ? 'hidden' : 'hidden sm:inline'}>P2P File Transfer</span>
             </button>
           </div>
         </div>

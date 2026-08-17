@@ -134,7 +134,7 @@ function MainDashboard() {
                 <button
                   aria-label="Open voice text chat"
                   onClick={() => setVoiceTextChatOpen(true)}
-                  className={`xl:hidden absolute top-3 z-20 mobile-touch-target rounded-md border border-surface-border bg-accent-primary text-text-primary shadow-lg shadow-indigo-500/20 backdrop-blur flex items-center gap-2 px-3 text-sm font-semibold ${
+                  className={`min-[1800px]:hidden absolute top-3 z-20 mobile-touch-target rounded-md border border-surface-border bg-accent-primary text-text-primary shadow-lg shadow-indigo-500/20 backdrop-blur flex items-center gap-2 px-3 text-sm font-semibold ${
                     membersListOpen ? 'right-3 lg:right-60' : 'right-3'
                   }`}
                 >
@@ -146,15 +146,15 @@ function MainDashboard() {
               {voiceTextChatOpen && (
                 <button
                   aria-label="Close voice text chat"
-                  className="fixed inset-0 z-[55] bg-black/50 xl:hidden"
+                  className="fixed inset-0 z-[55] bg-black/50 min-[1800px]:hidden"
                   onClick={() => setVoiceTextChatOpen(false)}
                 />
               )}
 
-              <div className={`fixed xl:relative inset-y-0 right-0 z-[60] xl:z-10 w-[min(92vw,28rem)] sm:w-[28rem] xl:w-[30rem] xl:min-w-[30rem] 2xl:w-[34rem] 2xl:min-w-[34rem] border-l border-surface-border flex flex-col h-dvh xl:h-full min-h-0 bg-surface-panel shadow-2xl xl:shadow-none transition-transform duration-200 ease-out shrink-0 ${
-                voiceTextChatOpen ? 'translate-x-0' : 'translate-x-full xl:translate-x-0'
+              <div className={`fixed min-[1800px]:relative inset-y-0 ${voiceTextChatOpen && membersListOpen ? 'right-0 lg:right-56 xl:right-60' : 'right-0'} min-[1800px]:inset-y-auto min-[1800px]:right-auto z-[60] min-[1800px]:z-10 w-[min(92vw,28rem)] sm:w-[28rem] min-[1800px]:w-[30rem] min-[1800px]:min-w-[30rem] min-[2200px]:w-[34rem] min-[2200px]:min-w-[34rem] border-l border-surface-border flex flex-col h-dvh min-[1800px]:h-full min-h-0 bg-surface-panel shadow-2xl min-[1800px]:shadow-none transition-transform duration-200 ease-out shrink-0 ${
+                voiceTextChatOpen ? 'translate-x-0' : 'translate-x-full min-[1800px]:translate-x-0'
               }`}>
-                <div className="xl:hidden min-h-12 px-3 border-b border-surface-border bg-surface-panel/95 flex items-center justify-between gap-3">
+                <div className="min-[1800px]:hidden min-h-12 px-3 border-b border-surface-border bg-surface-panel/95 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2 min-w-0 text-text-primary font-semibold">
                     <MessageSquare className="w-4 h-4 text-accent-primary shrink-0" />
                     <span className="truncate">Voice Text Chat</span>
