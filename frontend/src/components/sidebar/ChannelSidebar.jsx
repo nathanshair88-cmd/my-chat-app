@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useServer } from '../../context/ServerContext';
 import UserWidget from './UserWidget';
-import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio } from 'lucide-react';
+import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio, PhoneOff } from 'lucide-react';
 import { voiceManager } from '../../services/webrtcVoice';
 
 export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) {
