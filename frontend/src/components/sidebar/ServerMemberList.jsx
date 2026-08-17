@@ -69,8 +69,8 @@ export default function ServerMemberList() {
   };
 
   return (
-    <div className="w-60 bg-surface-active/30 border-l border-surface-border flex flex-col h-full overflow-hidden shrink-0 select-none hidden md:flex">
-      <div className="flex-1 overflow-y-auto p-4 space-y-6 no-scrollbar">
+    <div className="w-56 xl:w-60 bg-surface-active/30 border-l border-surface-border flex flex-col h-full overflow-hidden shrink-0 select-none hidden lg:flex">
+      <div className="flex-1 overflow-y-auto p-3 xl:p-4 space-y-6 no-scrollbar responsive-safe-scroll">
         {onlineMembers.length > 0 && (
           <div>
             <h3 className="text-[11px] font-bold text-text-muted uppercase tracking-wider mb-2 px-2">

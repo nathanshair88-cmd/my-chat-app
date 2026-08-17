@@ -168,6 +168,7 @@ class Friendship(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     friend_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, accepted
+    is_seen: Mapped[bool] = mapped_column(Integer, default=0)  # unread incoming request badge
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
@@ -177,3 +178,18 @@ class Friendship(Base):
     # Relationships
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
     friend: Mapped["User"] = relationship("User", foreign_keys=[friend_id])
+
+class UserBlock(Base):
+    __tablename__ = "user_blocks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    blocker_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    blocked_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('blocker_id', 'blocked_id', name='_user_block_uc'),
+    )
+
+    blocker: Mapped["User"] = relationship("User", foreign_keys=[blocker_id])
+    blocked: Mapped["User"] = relationship("User", foreign_keys=[blocked_id])

@@ -105,12 +105,34 @@
 }
 
 @layer base {
+  html {
+    height: 100%;
+    overflow: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-surface-base text-text-primary antialiased select-none font-sans overflow-hidden transition-colors duration-500 ease-in-out;
     margin: 0;
     padding: 0;
-    height: 100vh;
+    height: 100dvh;
     width: 100vw;
+    touch-action: manipulation;
+  }
+
+  * {
+    min-width: 0;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
   }
 
   :root.dark body {
@@ -129,6 +151,47 @@
     background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.4), transparent 45%),
                       radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.4), transparent 45%);
     background-color: var(--surface-base);
+  }
+}
+
+@layer components {
+  .app-shell-height {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+
+  .mobile-touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .responsive-modal-panel {
+    max-height: min(92dvh, 760px);
+  }
+
+  .responsive-safe-scroll {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-width-sm {
+    width: calc(100% - 1rem);
+    max-width: 24rem;
+  }
+
+  .modal-width-md {
+    width: calc(100% - 1rem);
+    max-width: 28rem;
+  }
+
+  .modal-width-2xl {
+    width: calc(100% - 1rem);
+    max-width: 42rem;
+  }
+
+  .modal-width-5xl {
+    width: calc(100% - 1rem);
+    max-width: 64rem;
   }
 }
 
@@ -203,4 +266,24 @@
   height: 100vh !important;
   display: flex;
   flex-direction: column;
+}
+
+.modal-width-sm {
+  width: calc(100% - 1rem);
+  max-width: 24rem;
+}
+
+.modal-width-md {
+  width: calc(100% - 1rem);
+  max-width: 28rem;
+}
+
+.modal-width-2xl {
+  width: calc(100% - 1rem);
+  max-width: 42rem;
+}
+
+.modal-width-5xl {
+  width: calc(100% - 1rem);
+  max-width: 64rem;
 }

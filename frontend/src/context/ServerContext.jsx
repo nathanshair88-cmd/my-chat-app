@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { serverAPI, channelAPI, dmAPI } from '../services/api';
+import { serverAPI, channelAPI, dmAPI, friendsAPI } from '../services/api';
 import { getSocket } from '../services/socket';
 import { useAuth } from './AuthContext';
 import { notificationService } from '../services/NotificationService';
@@ -49,6 +49,8 @@ export const ServerProvider = ({ children }) => {
   const [currentDM, setCurrentDM] = useState(null);
   const [lastDM, setLastDM] = useState(null);
   const [dmHomeTab, setDMHomeTab] = useState('friends');
+  const [friendships, setFriendships] = useState([]);
+  const [unreadFriendRequests, setUnreadFriendRequests] = useState(0);
   useEffect(() => { currentDMRef.current = currentDM; }, [currentDM]);
 
   // Unified chat state & unread state
@@ -100,6 +102,40 @@ export const ServerProvider = ({ children }) => {
     setUnreadDMs(next);
   }, []);
 
+  const syncFriendships = useCallback((items = []) => {
+    const nextFriendships = Array.isArray(items) ? items : [];
+    setFriendships(nextFriendships);
+    setUnreadFriendRequests(nextFriendships.filter(item => (
+      item?.status === 'pending' &&
+      item?.direction === 'incoming' &&
+      !item?.is_seen
+    )).length);
+  }, []);
+
+  const fetchFriendships = useCallback(async () => {
+    if (!user) return [];
+    try {
+      const res = await friendsAPI.getFriends();
+      const nextFriendships = Array.isArray(res.data) ? res.data : [];
+      syncFriendships(nextFriendships);
+      return nextFriendships;
+    } catch (err) {
+      console.error("Error fetching friendships:", err);
+      syncFriendships([]);
+      return [];
+    }
+  }, [user, syncFriendships]);
+
+  const markFriendRequestsRead = useCallback(async () => {
+    if (!user) return [];
+    try {
+      await friendsAPI.markRequestsRead();
+    } catch (err) {
+      console.error("Error marking friend requests read:", err);
+    }
+    return fetchFriendships();
+  }, [user, fetchFriendships]);
+
   // Fetch servers
   const fetchServers = useCallback(async () => {
     if (!user) return;
@@ -132,7 +168,8 @@ export const ServerProvider = ({ children }) => {
   useEffect(() => {
     fetchServers();
     fetchConversations();
-  }, [fetchServers, fetchConversations]);
+    fetchFriendships();
+  }, [fetchServers, fetchConversations, fetchFriendships]);
 
   const selectServer = (server) => {
     setViewMode('server');
@@ -333,6 +370,17 @@ export const ServerProvider = ({ children }) => {
         setUnreadDMCount(data?.conversation_id, data?.unread_count);
       };
 
+      const handleFriendshipsUpdated = () => {
+        fetchFriendships();
+      };
+
+      const handleFriendRequestReceived = (data) => {
+        fetchFriendships();
+        if (data?.from_user?.id !== user?.id) {
+          notificationService.playNotificationChime();
+        }
+      };
+
       const handleReactionUpdated = (data) => {
         const { message_id, reactions } = data;
         setMessages(prev => prev.map(m => m.id === message_id ? { ...m, reactions } : m));
@@ -399,6 +447,8 @@ export const ServerProvider = ({ children }) => {
       socket.on('new_dm_message', handleNewDMMessage);
       socket.on('new_dm_notification', handleNewDMNotification);
       socket.on('dm_unread_count', handleDMUnreadCount);
+      socket.on('friendships_updated', handleFriendshipsUpdated);
+      socket.on('friend_request_received', handleFriendRequestReceived);
       socket.on('reaction_updated', handleReactionUpdated);
       socket.on('message_edited', handleMessageEdited);
       socket.on('message_deleted', handleMessageDeleted);
@@ -413,6 +463,8 @@ export const ServerProvider = ({ children }) => {
         socket.off('new_dm_message', handleNewDMMessage);
         socket.off('new_dm_notification', handleNewDMNotification);
         socket.off('dm_unread_count', handleDMUnreadCount);
+        socket.off('friendships_updated', handleFriendshipsUpdated);
+        socket.off('friend_request_received', handleFriendRequestReceived);
         socket.off('reaction_updated', handleReactionUpdated);
         socket.off('message_edited', handleMessageEdited);
         socket.off('message_deleted', handleMessageDeleted);
@@ -447,7 +499,7 @@ export const ServerProvider = ({ children }) => {
       cleanupFns.forEach(fn => fn());
     };
 
-  }, [user, fetchConversations, setUnreadDMCount]);
+  }, [user, fetchConversations, fetchFriendships, setUnreadDMCount]);
 
   const addServer = async (name, icon_url) => {
     const res = await serverAPI.createServer({ name, icon_url });
@@ -484,10 +536,12 @@ export const ServerProvider = ({ children }) => {
       conversations,
       currentDM,
       dmHomeTab,
+      friendships,
       messages,
       typingUsers,
       unreadChannels,
       unreadDMs,
+      unreadFriendRequests,
       showVoiceGrid,
       setShowVoiceGrid,
       toggleVoiceGrid,
@@ -503,6 +557,8 @@ export const ServerProvider = ({ children }) => {
       openDMHome,
       openDirectMessages,
       startDM,
+      fetchFriendships,
+      markFriendRequestsRead,
       addServer,
       joinServer,
       addChannel,

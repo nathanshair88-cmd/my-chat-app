@@ -434,18 +434,18 @@ export default function UserSettingsModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-surface-active flex select-none overflow-hidden animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-surface-active flex flex-col md:flex-row select-none overflow-hidden animate-fadeIn">
       {/* Left Sidebar Navigation */}
-      <div className="w-60 bg-surface-panel flex flex-col justify-between p-6 border-r border-surface-border">
-        <div className="space-y-6">
+      <div className="w-full md:w-60 bg-surface-panel flex flex-col justify-between gap-3 p-3 md:p-6 border-b md:border-b-0 md:border-r border-surface-border shrink-0">
+        <div className="space-y-3 md:space-y-6 min-w-0">
           <div className="text-xs font-bold text-text-muted uppercase tracking-wider px-2">
             User Settings
           </div>
 
-          <nav className="space-y-1">
+          <nav className="flex md:block gap-2 md:space-y-1 overflow-x-auto no-scrollbar responsive-safe-scroll">
             <button
               onClick={() => setActiveTab('voice')}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-semibold transition ${
+              className={`shrink-0 md:w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-semibold transition min-h-10 ${
                 activeTab === 'voice' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
@@ -455,7 +455,7 @@ export default function UserSettingsModal({ onClose }) {
 
             <button
               onClick={() => setActiveTab('account')}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-semibold transition ${
+              className={`shrink-0 md:w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-semibold transition min-h-10 ${
                 activeTab === 'account' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
@@ -465,7 +465,7 @@ export default function UserSettingsModal({ onClose }) {
 
             <button
               onClick={() => setActiveTab('appearance')}
-              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-semibold transition ${
+              className={`shrink-0 md:w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-semibold transition min-h-10 ${
                 activeTab === 'appearance' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
@@ -477,7 +477,7 @@ export default function UserSettingsModal({ onClose }) {
 
         <button
           onClick={logout}
-          className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-sm font-semibold text-rose-400 hover:bg-rose-500/10 transition"
+          className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-md text-sm font-semibold text-rose-400 hover:bg-rose-500/10 transition min-h-10"
         >
           <LogOut className="w-4 h-4" />
           <span>Log Out</span>
@@ -485,12 +485,12 @@ export default function UserSettingsModal({ onClose }) {
       </div>
 
       {/* Main Right Content Panel */}
-      <div className="flex-1 bg-surface-base flex flex-col h-full overflow-y-auto p-8 relative custom-scrollbar">
+      <div className="flex-1 min-h-0 bg-surface-base flex flex-col overflow-y-auto p-4 md:p-8 relative custom-scrollbar responsive-safe-scroll">
         {/* Close Button Top Right */}
-        <div className="absolute top-6 right-8 flex items-center space-x-2">
+        <div className="fixed md:absolute top-3 right-3 md:top-6 md:right-8 flex items-center space-x-2 z-20">
           <button
             onClick={onClose}
-            className="flex items-center space-x-1 p-2 bg-surface-panel hover:bg-surface-hover text-text-muted hover:text-text-primary rounded-full transition border border-surface-border"
+            className="flex items-center space-x-1 p-2 bg-surface-panel hover:bg-surface-hover text-text-muted hover:text-text-primary rounded-full transition border border-surface-border mobile-touch-target md:min-w-0 md:min-h-0"
             title="Close Settings (ESC)"
           >
             <X className="w-5 h-5" />
@@ -499,7 +499,7 @@ export default function UserSettingsModal({ onClose }) {
 
         {/* Tab 1: Voice & Video Settings */}
         {activeTab === 'voice' && (
-          <div className="max-w-2xl space-y-8 animate-fadeIn">
+          <div className="max-w-2xl w-full space-y-6 md:space-y-8 animate-fadeIn">
             <div>
               <h2 className="text-xl font-bold text-text-primary mb-1">Voice & Video Settings</h2>
               <p className="text-xs text-text-muted">Configure microphone input, speaker output, and video camera preview.</p>
@@ -507,8 +507,8 @@ export default function UserSettingsModal({ onClose }) {
 
             {/* Permission Prompt Banner */}
             {(!permissionGranted || permissionError) && (
-              <div className="bg-accent-primary/10 border border-accent-primary/40 p-4 rounded-md flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+              <div className="bg-accent-primary/10 border border-accent-primary/40 p-4 rounded-md flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-start space-x-3 min-w-0">
                   <ShieldAlert className="w-6 h-6 text-accent-primary flex-shrink-0" />
                   <div>
                     <div className="text-sm font-bold text-text-primary">Browser Media Permissions Required</div>
@@ -521,7 +521,7 @@ export default function UserSettingsModal({ onClose }) {
                 <button
                   onClick={requestMediaPermissions}
                   disabled={permissionLoading}
-                  className="px-4 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary text-xs font-bold rounded-sm shadow flex items-center space-x-2 transition"
+                  className="px-4 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary text-xs font-bold rounded-sm shadow flex items-center justify-center space-x-2 transition shrink-0"
                 >
                   {permissionLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
                   <span>{permissionLoading ? 'Requesting...' : 'Grant Permissions'}</span>
@@ -611,7 +611,7 @@ export default function UserSettingsModal({ onClose }) {
 
               {/* Push-to-Talk Keybinder */}
               {inputMode === 'ptt' && (
-                <div className="bg-surface-active p-4 rounded-sm border border-surface-border flex items-center justify-between animate-fadeIn">
+                <div className="bg-surface-active p-4 rounded-sm border border-surface-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 animate-fadeIn">
                   <div>
                     <div className="text-xs font-bold text-text-primary">Push-to-Talk Key Shortcut</div>
                     <div className="text-[10px] text-text-muted">Click below and press your preferred PTT key</div>
@@ -658,7 +658,7 @@ export default function UserSettingsModal({ onClose }) {
 
               <div className="space-y-3">
                 {/* Echo Cancellation */}
-                <div className="flex items-center justify-between bg-surface-active p-3 rounded-sm border border-surface-border">
+                <div className="flex items-center justify-between gap-3 bg-surface-active p-3 rounded-sm border border-surface-border">
                   <div>
                     <div className="text-xs font-bold text-text-primary">Echo Cancellation</div>
                     <div className="text-[10px] text-text-muted">Prevents speaker audio feedback into your mic</div>
@@ -674,7 +674,7 @@ export default function UserSettingsModal({ onClose }) {
                 </div>
 
                 {/* Noise Suppression */}
-                <div className="flex items-center justify-between bg-surface-active p-3 rounded-sm border border-surface-border">
+                <div className="flex items-center justify-between gap-3 bg-surface-active p-3 rounded-sm border border-surface-border">
                   <div>
                     <div className="text-xs font-bold text-text-primary">Noise Suppression</div>
                     <div className="text-[10px] text-text-muted">Filters background fan, typing, and room noise</div>
@@ -690,7 +690,7 @@ export default function UserSettingsModal({ onClose }) {
                 </div>
 
                 {/* Automatic Gain Control */}
-                <div className="flex items-center justify-between bg-surface-active p-3 rounded-sm border border-surface-border">
+                <div className="flex items-center justify-between gap-3 bg-surface-active p-3 rounded-sm border border-surface-border">
                   <div>
                     <div className="text-xs font-bold text-text-primary">Automatic Gain Control (AGC)</div>
                     <div className="text-[10px] text-text-muted">Automatically balances quiet and loud voice levels</div>
@@ -722,7 +722,7 @@ export default function UserSettingsModal({ onClose }) {
             </div>
 
             {/* Volume Sliders */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-surface-panel p-5 rounded-md border border-surface-border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-surface-panel p-4 sm:p-5 rounded-md border border-surface-border">
               <div>
                 <div className="flex justify-between text-xs font-semibold text-text-muted mb-2">
                   <span>Input Volume Gain</span>
@@ -756,7 +756,7 @@ export default function UserSettingsModal({ onClose }) {
 
             {/* Mic Testing Box with Hear Self Loopback */}
             <div className="bg-surface-panel p-5 rounded-md border border-surface-border space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-bold text-text-primary flex items-center space-x-2">
                     <span>Mic Test</span>
@@ -765,7 +765,7 @@ export default function UserSettingsModal({ onClose }) {
                   <p className="text-xs text-text-muted">Test your mic level in real-time as you speak into your microphone.</p>
                 </div>
 
-                <div className="flex items-center space-x-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                   <button
                     onClick={playTestSound}
                     className="px-3 py-1.5 bg-surface-active hover:bg-surface-hover text-xs font-semibold text-text-primary rounded-md border border-surface-border flex items-center space-x-1.5 transition"
@@ -786,7 +786,7 @@ export default function UserSettingsModal({ onClose }) {
               </div>
 
               {/* Hear Self Toggle */}
-              <div className="flex items-center justify-between bg-surface-active px-3 py-2 rounded-sm border border-surface-border">
+              <div className="flex items-center justify-between gap-3 bg-surface-active px-3 py-2 rounded-sm border border-surface-border">
                 <span className="text-xs text-text-primary">Hear Yourself (Audio Loopback Test)</span>
                 <button
                   onClick={toggleHearSelf}
@@ -809,7 +809,7 @@ export default function UserSettingsModal({ onClose }) {
 
             {/* Video Camera Preview Section */}
             <div className="bg-surface-panel p-5 rounded-md border border-surface-border space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <label className="block text-xs font-bold text-text-muted uppercase flex items-center space-x-1.5">
                     <Camera className="w-4 h-4 text-amber-400" />
@@ -843,7 +843,7 @@ export default function UserSettingsModal({ onClose }) {
 
 
               {/* Live Camera Feed Tile */}
-              <div className="relative w-full h-64 bg-surface-active rounded-sm overflow-hidden border border-surface-border flex items-center justify-center">
+              <div className="relative w-full h-44 sm:h-64 bg-surface-active rounded-sm overflow-hidden border border-surface-border flex items-center justify-center">
                 <video
                   ref={videoPreviewRef}
                   autoPlay
@@ -864,7 +864,7 @@ export default function UserSettingsModal({ onClose }) {
 
         {/* Tab 2: My Account & Profile */}
         {activeTab === 'account' && (
-          <div className="max-w-2xl space-y-6 animate-fadeIn">
+          <div className="max-w-2xl w-full space-y-6 animate-fadeIn">
             <div>
               <h2 className="text-xl font-bold text-text-primary mb-1">My Account</h2>
               <p className="text-xs text-text-muted">Update your profile picture, username, email, and security credentials.</p>
@@ -881,7 +881,7 @@ export default function UserSettingsModal({ onClose }) {
               </div>
             )}
 
-            <form onSubmit={handleSaveProfile} className="space-y-4 bg-surface-panel p-6 rounded-md border border-surface-border">
+            <form onSubmit={handleSaveProfile} className="space-y-4 bg-surface-panel p-4 sm:p-6 rounded-md border border-surface-border">
               <div>
                 <label className="block text-xs font-bold text-text-muted uppercase mb-1">Username</label>
                 <input
@@ -964,16 +964,16 @@ export default function UserSettingsModal({ onClose }) {
 
         {/* Tab 3: Appearance & Notifications */}
         {activeTab === 'appearance' && (
-          <div className="max-w-2xl space-y-6 animate-fadeIn">
+          <div className="max-w-2xl w-full space-y-6 animate-fadeIn">
             <div>
               <h2 className="text-xl font-bold text-text-primary mb-1">App Appearance & Sounds</h2>
               <p className="text-xs text-text-muted">Customize notifications, sound chimes, and theme styling.</p>
             </div>
 
-            <div className="bg-surface-panel p-6 rounded-md border border-surface-border space-y-6">
+            <div className="bg-surface-panel p-4 sm:p-6 rounded-md border border-surface-border space-y-6">
               {/* Notification Chime Switch */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start space-x-3">
                   <Bell className="w-5 h-5 text-accent-primary" />
                   <div>
                     <div className="text-sm font-bold text-text-primary">Incoming Message Notification Chimes</div>
@@ -994,7 +994,7 @@ export default function UserSettingsModal({ onClose }) {
               {/* Theme Selector */}
               <div className="border-t border-surface-border pt-6">
                 <h3 className="text-sm font-bold text-text-primary mb-3">Theme Palette</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
                   <button
                     onClick={() => setAppTheme('dark')}
                     className={`p-3 bg-surface-base rounded-md text-center cursor-pointer transition-all border-2 hover:scale-[1.02] ${

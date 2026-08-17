@@ -6,7 +6,7 @@ import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio, PhoneOff, 
 import { voiceManager } from '../../services/webrtcVoice';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
 
-export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) {
+export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings, onNavigate }) {
   const { currentServer, currentChannel, selectChannel, unreadChannels, showVoiceGrid, toggleVoiceGrid } = useServer();
 
 
@@ -25,7 +25,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
   if (!currentServer) {
     return (
-      <div className="w-60 bg-surface-panel/30 backdrop-blur-md flex flex-col justify-between border-r border-surface-border">
+      <div className="w-[min(82vw,18rem)] md:w-60 bg-surface-panel/30 backdrop-blur-md flex flex-col justify-between border-r border-surface-border h-full">
         <div className="p-4 text-text-muted text-sm font-medium">Select or create a workspace to start collaborating.</div>
         <UserWidget />
       </div>
@@ -61,13 +61,13 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
   const activeVoiceChannel = (currentServer.channels || []).find(c => c.id === voiceState.channel_id);
 
   return (
-    <div className="w-60 bg-surface-panel/30 backdrop-blur-md flex flex-col justify-between select-none z-10 border-r border-surface-border">
+    <div className="w-[min(82vw,18rem)] md:w-60 bg-surface-panel/30 backdrop-blur-md flex flex-col justify-between select-none z-10 border-r border-surface-border h-full">
       <div className="flex-1 flex flex-col min-h-0">
         {/* Server Header Dropdown */}
         <div className="relative">
           <button 
             onClick={() => setShowServerMenu(!showServerMenu)}
-            className="w-full h-12 px-4 flex items-center justify-between border-b border-surface-border font-bold text-text-primary shadow-sm hover:bg-surface-hover transition-colors"
+            className="w-full min-h-12 px-4 flex items-center justify-between border-b border-surface-border font-bold text-text-primary shadow-sm hover:bg-surface-hover transition-colors"
           >
             <span className="truncate">{currentServer.name}</span>
             <ChevronDown className="w-5 h-5 text-text-muted" />
@@ -134,7 +134,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                 {canManageServer && (
                   <button
                     onClick={onOpenCreateChannel}
-                    className="text-text-muted hover:text-text-primary transition-colors"
+                    className="text-text-muted hover:text-text-primary transition-colors p-1 rounded mobile-touch-target md:min-w-0 md:min-h-0"
                     title="Create Channel"
                   >
                     <Plus className="w-3.5 h-3.5" />
@@ -173,6 +173,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                           } else {
                             selectChannel(channel, false); // Single click (preview)
                           }
+                          onNavigate?.();
                         }}
                         onDoubleClick={() => {
                           if (isVoiceChannel) {
@@ -180,7 +181,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                           }
                         }}
                         title={isVoiceChannel && !isVoiceConnected ? 'Single-click to preview · Double-click to join voice' : undefined}
-                        className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                        className={`w-full flex items-center justify-between px-2 py-2 md:py-1.5 rounded-md text-sm font-medium transition-colors ${
                           isActive ? 'bg-surface-active text-text-primary font-semibold shadow-sm' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
                         }`}
                       >
@@ -287,7 +288,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
             <div className="flex items-center space-x-1">
               <button
                 onClick={toggleVoiceGrid}
-                className={`p-1.5 rounded transition-colors shadow-sm ${
+                className={`p-2 md:p-1.5 rounded transition-colors shadow-sm mobile-touch-target md:min-w-0 md:min-h-0 ${
                   showVoiceGrid ? 'bg-accent-primary text-text-primary' : 'bg-surface-hover text-text-muted hover:text-text-primary'
                 }`}
                 title={showVoiceGrid ? "Switch to Text Chat" : "Open Full Voice & Video Grid"}
@@ -296,7 +297,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
               </button>
               <button
                 onClick={() => voiceManager.leaveVoiceChannel()}
-                className="p-1.5 bg-danger/10 hover:bg-danger text-danger hover:text-text-primary rounded transition-colors shadow-sm"
+                className="p-2 md:p-1.5 bg-danger/10 hover:bg-danger text-danger hover:text-text-primary rounded transition-colors shadow-sm mobile-touch-target md:min-w-0 md:min-h-0"
                 title="Disconnect Voice"
               >
                 <PhoneOff className="w-4 h-4" />

@@ -60,17 +60,17 @@ export default function VoiceRoom() {
 
   if (!isConnected) {
     return (
-      <div className="flex-1 bg-surface-base flex flex-col items-center justify-center p-8 text-center select-none">
-        <div className="w-20 h-20 rounded-full bg-surface-panel flex items-center justify-center mb-4 border border-surface-border shadow-md">
+      <div className="flex-1 bg-surface-base flex flex-col items-center justify-center p-4 sm:p-8 text-center select-none">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-surface-panel flex items-center justify-center mb-4 border border-surface-border shadow-md">
           <Radio className="w-10 h-10 text-accent-primary" />
         </div>
-        <h3 className="text-xl font-bold text-text-primary mb-2">Voice & Video Room: #{currentChannel.name}</h3>
+        <h3 className="text-lg sm:text-xl font-bold text-text-primary mb-2 break-words">Voice & Video Room: #{currentChannel.name}</h3>
         <p className="text-sm text-text-muted max-w-md mb-6">
           Connect to start crystal-clear audio chat, active speaker detection, and full 60FPS screen sharing.
         </p>
         <button
           onClick={() => voiceManager.joinVoiceChannel(currentChannel.id, user)}
-          className="px-6 py-3 bg-success hover:bg-success/80 text-text-primary font-bold rounded-md shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
+          className="px-5 sm:px-6 py-3 bg-success hover:bg-success/80 text-text-primary font-bold rounded-md shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
         >
           <Radio className="w-5 h-5 animate-pulse" />
           <span>Connect to Voice</span>
@@ -80,12 +80,12 @@ export default function VoiceRoom() {
   }
 
   return (
-    <div className="flex-1 bg-transparent flex flex-col justify-between p-4 relative min-h-0 overflow-hidden select-none">
+    <div className="flex-1 bg-transparent flex flex-col justify-between p-2 sm:p-4 relative min-h-0 overflow-hidden select-none">
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between bg-surface-active/80 backdrop-blur-md px-4 py-2.5 rounded-md border border-surface-border mb-4 z-10 shadow-sm">
-        <div className="flex items-center space-x-2 text-text-primary font-bold text-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-surface-active/80 backdrop-blur-md px-3 sm:px-4 py-2.5 rounded-md border border-surface-border mb-3 sm:mb-4 z-10 shadow-sm ml-12 sm:ml-0">
+        <div className="flex items-center space-x-2 text-text-primary font-bold text-sm min-w-0">
           <Radio className="w-4 h-4 text-success animate-pulse" />
-          <span>#{currentChannel.name}</span>
+          <span className="truncate">#{currentChannel.name}</span>
           <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded-md font-mono border border-success/30">
             {voiceState.streams.length} Connected
           </span>
@@ -99,7 +99,7 @@ export default function VoiceRoom() {
       </div>
 
       {/* Multi-Stream Video Tile Grid + Watch Together Theater Mode */}
-      <div className="flex-1 flex min-h-0 gap-3 overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row min-h-0 gap-3 overflow-hidden">
         {/* Watch Together Player — takes 70% when active */}
         {showWatchTogether && (
           <div className="flex-1 min-w-0 min-h-0">
@@ -111,7 +111,7 @@ export default function VoiceRoom() {
         )}
 
         {/* Voice tiles — full width normally, 30% sidebar in theater mode */}
-        <div className={`${showWatchTogether ? 'w-64 flex-shrink-0' : 'flex-1'} grid ${showWatchTogether ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'} gap-3 overflow-y-auto no-scrollbar p-1 auto-rows-max`}>
+        <div className={`${showWatchTogether ? 'w-full lg:w-64 lg:flex-shrink-0' : 'flex-1'} grid ${showWatchTogether ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-3'} gap-3 overflow-y-auto no-scrollbar p-1 auto-rows-max responsive-safe-scroll`}>
           {voiceState.streams.map((item) => (
             <StreamTile 
               key={item.user_id} 
@@ -125,11 +125,11 @@ export default function VoiceRoom() {
       </div>
 
       {/* Control Action Toolbar */}
-      <div className="flex items-center justify-center space-x-4 bg-surface-active/80 backdrop-blur-md py-3 px-6 rounded-md border border-surface-border mt-4 self-center shadow-2xl z-10">
+      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-surface-active/80 backdrop-blur-md py-2.5 sm:py-3 px-3 sm:px-6 rounded-md border border-surface-border mt-3 sm:mt-4 self-center max-w-full shadow-2xl z-10">
         {/* Watch Together / Activities Button */}
         <button
           onClick={() => setShowWatchTogether(v => !v)}
-          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm relative ${
+          className={`p-3 sm:p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm relative mobile-touch-target ${
             showWatchTogether ? 'bg-red-600 text-white shadow-red-600/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
           title={showWatchTogether ? 'Hide Watch Together' : 'Watch Together (YouTube Sync)'}
@@ -143,7 +143,7 @@ export default function VoiceRoom() {
         {/* Mute Mic */}
         <button
           onClick={() => voiceManager.toggleMute()}
-          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm ${
+          className={`p-3 sm:p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm mobile-touch-target ${
             voiceState.isMuted ? 'bg-danger text-text-primary shadow-danger/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
           title={voiceState.isMuted ? "Unmute Mic" : "Mute Mic"}
@@ -154,7 +154,7 @@ export default function VoiceRoom() {
         {/* Deafen Audio */}
         <button
           onClick={() => voiceManager.toggleDeafen()}
-          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm ${
+          className={`p-3 sm:p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm mobile-touch-target ${
             voiceState.isDeafened ? 'bg-danger text-text-primary shadow-danger/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
           title={voiceState.isDeafened ? "Undeafen Audio" : "Deafen Audio"}
@@ -171,7 +171,7 @@ export default function VoiceRoom() {
               voiceManager.startScreenShare();
             }
           }}
-          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm ${
+          className={`p-3 sm:p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm mobile-touch-target ${
             voiceState.isScreenSharing ? 'bg-accent-primary text-text-primary shadow-accent-primary/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
           title={voiceState.isScreenSharing ? "Stop Screen Share" : "Share Screen (Full Res @ 60FPS)"}
@@ -182,7 +182,7 @@ export default function VoiceRoom() {
         {/* Camera (Webcam) Button */}
         <button
           onClick={() => voiceManager.toggleCamera()}
-          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm ${
+          className={`p-3 sm:p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm mobile-touch-target ${
             voiceState.isCameraOn ? 'bg-success text-text-primary shadow-success/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
           title={voiceState.isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
@@ -193,7 +193,7 @@ export default function VoiceRoom() {
         {/* Disconnect Voice */}
         <button
           onClick={() => voiceManager.leaveVoiceChannel()}
-          className="p-3.5 bg-danger hover:bg-danger-hover text-text-primary rounded-full transition-all transform active:scale-95 shadow-lg shadow-danger/30"
+          className="p-3 sm:p-3.5 bg-danger hover:bg-danger-hover text-text-primary rounded-full transition-all transform active:scale-95 shadow-lg shadow-danger/30 mobile-touch-target"
           title="Disconnect Voice"
         >
           <PhoneOff className="w-5 h-5" />
@@ -210,11 +210,11 @@ export default function VoiceRoom() {
               });
             }
           }}
-          className="fixed inset-0 z-50 bg-black/90 flex flex-col justify-between p-6 animate-fadeIn"
+          className="fixed inset-0 z-50 bg-black/90 flex flex-col justify-between p-3 sm:p-6 animate-fadeIn"
         >
-          <div className="flex items-center justify-between z-10 absolute top-6 left-6 right-6">
-            <div className="flex items-center space-x-3 bg-surface-active/80 border border-surface-border px-4 py-2 rounded-md backdrop-blur-md">
-              <span className="font-bold text-text-primary text-sm">{fullscreenItem.username}'s Stream</span>
+          <div className="flex items-center justify-between gap-3 z-10 absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6">
+            <div className="flex items-center space-x-3 bg-surface-active/80 border border-surface-border px-3 sm:px-4 py-2 rounded-md backdrop-blur-md min-w-0">
+              <span className="font-bold text-text-primary text-sm truncate">{fullscreenItem.username}'s Stream</span>
               {fullscreenItem.isScreenSharing && (
                 <span className="bg-accent-primary text-xs text-text-primary px-2 py-0.5 rounded font-mono uppercase font-semibold">LIVE 60FPS</span>
               )}
@@ -296,19 +296,19 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen, channelId }) {
           onClick={handleToggleFullscreen}
         />
       ) : (
-        <div className="flex flex-col items-center justify-center p-6">
-          <div className={`w-20 h-20 rounded-full bg-surface-panel border-4 flex items-center justify-center transition-all duration-300 ${
+        <div className="flex flex-col items-center justify-center p-4 sm:p-6">
+          <div className={`w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-surface-panel border-4 flex items-center justify-center transition-all duration-300 ${
             isSpeaking ? 'border-success shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-surface-border'
           }`}>
-            <span className="text-2xl font-bold text-text-primary">{item.username.substring(0, 2).toUpperCase()}</span>
+            <span className="text-lg sm:text-2xl font-bold text-text-primary">{item.username.substring(0, 2).toUpperCase()}</span>
           </div>
         </div>
       )}
 
       {/* Participant Name Badge Overlay & Volume / Fullscreen Controls */}
-      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-auto">
-        <div className="bg-surface-active/80 backdrop-blur px-2.5 py-1 rounded-md text-xs font-semibold text-text-primary flex items-center space-x-1.5 border border-surface-border shadow-sm">
-          <span>{item.username}</span>
+      <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 flex items-center justify-between gap-2 pointer-events-auto">
+        <div className="bg-surface-active/80 backdrop-blur px-2.5 py-1 rounded-md text-xs font-semibold text-text-primary flex items-center space-x-1.5 border border-surface-border shadow-sm min-w-0">
+          <span className="truncate">{item.username}</span>
           {item.isScreenSharing && (
             <span className="bg-accent-primary text-[10px] text-text-primary px-1.5 py-0.5 rounded font-mono uppercase shadow-sm">Screen</span>
           )}

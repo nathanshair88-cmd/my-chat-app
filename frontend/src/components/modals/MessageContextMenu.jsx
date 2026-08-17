@@ -20,8 +20,8 @@ export default function MessageContextMenu({
     if (menuRef.current) {
       const rect = menuRef.current.getBoundingClientRect();
       setPos({
-        top: y + rect.height > window.innerHeight ? Math.max(0, y - rect.height) : y,
-        left: x + rect.width > window.innerWidth ? Math.max(0, x - rect.width) : x
+        top: y + rect.height > window.innerHeight ? Math.max(8, window.innerHeight - rect.height - 8, y - rect.height) : Math.max(8, y),
+        left: x + rect.width > window.innerWidth ? Math.max(8, window.innerWidth - rect.width - 8, x - rect.width) : Math.max(8, x)
       });
     }
   }, [x, y]);
@@ -79,7 +79,7 @@ export default function MessageContextMenu({
   return (
     <div
       ref={menuRef}
-      className="fixed z-[9999] w-48 bg-surface-active border border-surface-border rounded-lg shadow-2xl overflow-hidden animate-fadeIn text-[13px] p-1 space-y-0.5"
+      className="fixed z-[9999] w-[min(12rem,calc(100vw-1rem))] bg-surface-active border border-surface-border rounded-lg shadow-2xl overflow-hidden animate-fadeIn text-[13px] p-1 space-y-0.5"
       style={{ top: pos.top, left: pos.left }}
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}

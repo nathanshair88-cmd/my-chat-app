@@ -50,7 +50,7 @@ export default function GifPicker({ onSelectGif, onClose }) {
   return (
     <div 
       ref={pickerRef}
-      className="absolute bottom-full mb-2 left-0 w-[300px] sm:w-[350px] bg-surface-active border border-surface-border rounded-lg shadow-2xl overflow-hidden animate-fadeIn z-50 flex flex-col h-[400px]"
+      className="fixed sm:absolute left-2 right-2 bottom-20 sm:bottom-full sm:mb-2 sm:left-0 sm:right-auto w-auto sm:w-[350px] bg-surface-active border border-surface-border rounded-lg shadow-2xl overflow-hidden animate-fadeIn z-50 flex flex-col h-[min(70dvh,400px)]"
     >
       {/* Header / Search */}
       <div className="p-2 border-b border-surface-border bg-surface-panel/50">

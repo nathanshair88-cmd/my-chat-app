@@ -211,6 +211,64 @@ async def _dedupe_dm_conversations(conn):
     )
 
 
+async def _dedupe_friendships(conn):
+    res = await conn.execute(text("SELECT id, user_id, friend_id, status FROM friendships ORDER BY id"))
+    friendships = res.all()
+    canonical_by_pair = {}
+
+    for friendship_id, user_id, friend_id, status in friendships:
+        if user_id == friend_id:
+            await conn.execute(
+                text("DELETE FROM friendships WHERE id = :friendship_id"),
+                {"friendship_id": friendship_id},
+            )
+            continue
+
+        pair = tuple(sorted((user_id, friend_id)))
+        existing_id, existing_status = canonical_by_pair.get(pair, (None, None))
+        if existing_id is None:
+            canonical_by_pair[pair] = (friendship_id, status)
+            continue
+
+        if status == "accepted" and existing_status != "accepted":
+            await conn.execute(
+                text("UPDATE friendships SET status = 'accepted', is_seen = 1 WHERE id = :friendship_id"),
+                {"friendship_id": existing_id},
+            )
+            canonical_by_pair[pair] = (existing_id, "accepted")
+
+        await conn.execute(
+            text("DELETE FROM friendships WHERE id = :friendship_id"),
+            {"friendship_id": friendship_id},
+        )
+
+    if friendships:
+        await conn.commit()
+
+    await _run_sql(
+        conn,
+        "UPDATE friendships SET status = 'pending' "
+        "WHERE status IS NULL OR status NOT IN ('pending', 'accepted')",
+    )
+    await _run_sql(conn, "UPDATE friendships SET is_seen = 0 WHERE is_seen IS NULL")
+
+    if conn.dialect.name == "postgresql":
+        await _run_sql(
+            conn,
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_friendships_user_pair "
+            "ON friendships (LEAST(user_id, friend_id), GREATEST(user_id, friend_id))",
+        )
+    else:
+        await _run_sql(
+            conn,
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_friendships_user_pair "
+            "ON friendships ("
+            "CASE WHEN user_id < friend_id THEN user_id ELSE friend_id END, "
+            "CASE WHEN user_id < friend_id THEN friend_id ELSE user_id END"
+            ")",
+        )
+
+
 async def run_migrations(conn):
     """Safely migrate existing tables without breaking existing data."""
     await _backfill_public_user_ids(conn)
@@ -222,6 +280,7 @@ async def run_migrations(conn):
         ("server_members", "role VARCHAR(50) DEFAULT 'member'"),
         ("messages", "parent_id INTEGER"),
         ("direct_messages", "is_read INTEGER DEFAULT 0"),
+        ("friendships", "is_seen INTEGER DEFAULT 0"),
         ("messages", "webhook_id INTEGER"),
         ("messages", "custom_username TEXT"),
         ("messages", "custom_avatar_url TEXT"),
@@ -232,6 +291,7 @@ async def run_migrations(conn):
 
     await _normalize_member_roles(conn)
     await _dedupe_dm_conversations(conn)
+    await _dedupe_friendships(conn)
 
 
 async def init_db():

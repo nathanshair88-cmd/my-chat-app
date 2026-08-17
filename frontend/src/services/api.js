@@ -55,9 +55,15 @@ export const dmAPI = {
 
 export const friendsAPI = {
   getFriends: () => API.get('/friends/'),
-  sendRequest: (username) => API.post('/friends/request', { username }),
+  getRelationship: (target_user_id) => API.get(`/friends/relationship/${target_user_id}`),
+  sendRequest: (target) => API.post('/friends/request', typeof target === 'object' ? target : { target }),
+  markRequestsRead: () => API.put('/friends/requests/mark-read'),
   acceptRequest: (id) => API.put(`/friends/${id}/accept`),
+  declineRequest: (id) => API.put(`/friends/${id}/decline`),
+  cancelRequest: (id) => API.delete(`/friends/${id}/cancel`),
   removeFriend: (id) => API.delete(`/friends/${id}`),
+  blockUser: (target) => API.post('/friends/block', typeof target === 'object' ? target : { target_user_id: target }),
+  unblockUser: (target_user_id) => API.delete(`/friends/block/${target_user_id}`),
 };
 
 export const roleAPI = {

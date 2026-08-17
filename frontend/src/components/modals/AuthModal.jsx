@@ -49,14 +49,14 @@ export default function AuthModal() {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
-      <div className="bg-surface-base border border-surface-border rounded-md w-full max-w-md shadow-2xl p-6 space-y-6">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 select-none animate-in fade-in duration-200">
+      <div className="bg-surface-base border border-surface-border rounded-md modal-width-md max-w-md shadow-2xl p-4 sm:p-6 space-y-5 sm:space-y-6 responsive-modal-panel overflow-y-auto responsive-safe-scroll">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center">
-          <div className="w-14 h-14 rounded-md bg-accent-primary flex items-center justify-center mb-3 shadow-lg shadow-indigo-500/20">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-md bg-accent-primary flex items-center justify-center mb-3 shadow-lg shadow-indigo-500/20">
             <MessageSquare className="w-8 h-8 text-text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-text-primary">
+          <h1 className="text-xl sm:text-2xl font-bold text-text-primary">
             {isRegister ? 'Create an Account' : 'Welcome Back!'}
           </h1>
           <p className="text-xs text-text-muted mt-1">
@@ -65,7 +65,7 @@ export default function AuthModal() {
         </div>
 
         {error && (
-          <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-sm flex items-center space-x-2 text-rose-400 text-xs font-medium">
+          <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-sm flex items-start space-x-2 text-rose-400 text-xs font-medium">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
@@ -92,7 +92,7 @@ export default function AuthModal() {
                 <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1.5">
                   Avatar Preset
                 </label>
-                <div className="flex items-center space-x-2 mb-2">
+                <div className="flex flex-wrap items-center gap-2 mb-2">
                   {avatarPresets.map((preset, i) => (
                     <button
                       type="button"

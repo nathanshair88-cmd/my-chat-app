@@ -1,7 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useServer } from '../../context/ServerContext';
-import { useAuth } from '../../context/AuthContext';
-import { dmAPI, friendsAPI } from '../../services/api';
+import { dmAPI } from '../../services/api';
 import UserWidget from './UserWidget';
 import UserContextMenu from '../modals/UserContextMenu';
 import { Inbox, MessageCircle, Plus, Search, Users, X } from 'lucide-react';
@@ -19,51 +18,29 @@ const avatarFor = (user) => (
   user?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user?.username || 'user')}`
 );
 
-export default function DMSidebar({ onOpenSettings }) {
+export default function DMSidebar({ onOpenSettings, onNavigate }) {
   const {
     conversations,
     currentDM,
     dmHomeTab,
+    friendships,
     openDMHome,
     selectDM,
     startDM,
-    unreadDMs
+    unreadDMs,
+    unreadFriendRequests
   } = useServer();
-  const { user } = useAuth();
 
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
-  const [friendships, setFriendships] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
 
   const conversationList = conversations || [];
-  const incomingRequestCount = friendships.filter(
-    item => item.status === 'pending' && item.friend_id === user?.id
-  ).length;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchFriendships = async () => {
-      try {
-        const res = await friendsAPI.getFriends();
-        if (!cancelled) {
-          setFriendships(Array.isArray(res.data) ? res.data : []);
-        }
-      } catch (err) {
-        console.error('Error fetching friend requests:', err);
-        if (!cancelled) setFriendships([]);
-      }
-    };
-
-    fetchFriendships();
-    return () => {
-      cancelled = true;
-    };
-  }, [user?.id]);
+  const acceptedCount = friendships.filter(item => item.status === 'accepted').length;
+  const pendingCount = friendships.filter(item => item.status === 'pending' && item.direction === 'outgoing').length;
 
   const handleSearch = async (e) => {
     const q = e.target.value;
@@ -90,6 +67,7 @@ export default function DMSidebar({ onOpenSettings }) {
   const handleStartDM = async (targetUser) => {
     try {
       await startDM({ target_user_id: targetUser.id });
+      onNavigate?.();
       setShowSearchModal(false);
       setSearchQuery('');
       setSearchResults([]);
@@ -107,11 +85,11 @@ export default function DMSidebar({ onOpenSettings }) {
   };
 
   return (
-    <div className="w-64 bg-surface-panel flex flex-col h-full border-r border-surface-border select-none">
+    <div className="w-[min(82vw,19rem)] md:w-64 bg-surface-panel flex flex-col h-full border-r border-surface-border select-none">
       <div className="p-3 border-b border-surface-border shadow-sm">
         <button
           onClick={() => setShowSearchModal(true)}
-          className="w-full h-9 bg-surface-active text-text-muted text-sm px-3 rounded-md flex items-center justify-between hover:bg-surface-hover transition border border-surface-border"
+          className="w-full min-h-10 bg-surface-active text-text-muted text-sm px-3 rounded-md flex items-center justify-between hover:bg-surface-hover transition border border-surface-border"
         >
           <span className="flex items-center space-x-2 min-w-0">
             <Search className="w-4 h-4 shrink-0" />
@@ -122,7 +100,10 @@ export default function DMSidebar({ onOpenSettings }) {
 
       <div className="px-2 py-2 space-y-1">
         <button
-          onClick={() => openDMHome('friends')}
+          onClick={() => {
+            openDMHome('friends');
+            onNavigate?.();
+          }}
           className={`w-full flex items-center justify-between px-3 py-2 rounded-md group transition ${
             !currentDM && dmHomeTab === 'friends'
               ? 'bg-surface-active text-text-primary shadow-sm'
@@ -133,10 +114,40 @@ export default function DMSidebar({ onOpenSettings }) {
             <Users className="w-5 h-5 shrink-0" />
             <span className="font-semibold text-sm truncate">Friends</span>
           </span>
+          {acceptedCount > 0 && (
+            <span className="ml-2 text-[11px] font-bold text-text-muted">
+              {acceptedCount}
+            </span>
+          )}
         </button>
 
         <button
-          onClick={() => openDMHome('requests')}
+          onClick={() => {
+            openDMHome('pending');
+            onNavigate?.();
+          }}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-md group transition ${
+            !currentDM && dmHomeTab === 'pending'
+              ? 'bg-surface-active text-text-primary shadow-sm'
+              : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
+          }`}
+        >
+          <span className="flex items-center space-x-3 min-w-0">
+            <MessageCircle className="w-5 h-5 shrink-0" />
+            <span className="font-semibold text-sm truncate">Pending</span>
+          </span>
+          {pendingCount > 0 && (
+            <span className="ml-2 text-[11px] font-bold text-text-muted">
+              {pendingCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => {
+            openDMHome('requests');
+            onNavigate?.();
+          }}
           className={`w-full flex items-center justify-between px-3 py-2 rounded-md group transition ${
             !currentDM && dmHomeTab === 'requests'
               ? 'bg-surface-active text-text-primary shadow-sm'
@@ -147,9 +158,9 @@ export default function DMSidebar({ onOpenSettings }) {
             <Inbox className="w-5 h-5 shrink-0" />
             <span className="font-semibold text-sm truncate">Requests</span>
           </span>
-          {incomingRequestCount > 0 && (
+          {unreadFriendRequests > 0 && (
             <span className="ml-2 bg-danger text-text-primary text-[10px] font-bold min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full">
-              {incomingRequestCount > 99 ? '99+' : incomingRequestCount}
+              {unreadFriendRequests > 99 ? '99+' : unreadFriendRequests}
             </span>
           )}
         </button>
@@ -180,7 +191,10 @@ export default function DMSidebar({ onOpenSettings }) {
             return (
               <button
                 key={conv.id}
-                onClick={() => selectDM(conv)}
+              onClick={() => {
+                selectDM(conv);
+                onNavigate?.();
+              }}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setContextMenu({ x: e.clientX, y: e.clientY, user: other });
@@ -234,8 +248,8 @@ export default function DMSidebar({ onOpenSettings }) {
       )}
 
       {showSearchModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-surface-base w-full max-w-md rounded-md p-5 shadow-2xl border border-surface-border">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-surface-base modal-width-md max-w-md rounded-md p-4 sm:p-5 shadow-2xl border border-surface-border responsive-modal-panel overflow-y-auto responsive-safe-scroll">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-lg font-bold text-text-primary">Start a Direct Message</h3>
               <button

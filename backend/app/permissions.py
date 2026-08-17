@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import and_, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Channel, DMConversation, Friendship, Server, ServerMember
+from app.models import Channel, DMConversation, Friendship, Server, ServerMember, UserBlock
 
 ROLE_OWNER = "owner"
 ROLE_ADMIN = "admin"
@@ -136,9 +136,25 @@ async def users_are_friends(db: AsyncSession, user_id: int, target_user_id: int)
     return res.scalar_one_or_none() is not None
 
 
+async def users_are_blocked(db: AsyncSession, user_id: int, target_user_id: int) -> bool:
+    res = await db.execute(
+        select(UserBlock.id)
+        .where(
+            or_(
+                and_(UserBlock.blocker_id == user_id, UserBlock.blocked_id == target_user_id),
+                and_(UserBlock.blocker_id == target_user_id, UserBlock.blocked_id == user_id),
+            ),
+        )
+        .limit(1)
+    )
+    return res.scalar_one_or_none() is not None
+
+
 async def can_signal_user(db: AsyncSession, user_id: int, target_user_id) -> bool:
     target_user_id = to_int(target_user_id)
     if target_user_id is None or target_user_id == user_id:
+        return False
+    if await users_are_blocked(db, user_id, target_user_id):
         return False
     return (
         await users_share_server(db, user_id, target_user_id)

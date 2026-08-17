@@ -30,16 +30,16 @@ export default function CreateChannelModal({ onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
-      <div className="bg-surface-base border border-surface-border rounded-md w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="p-6 flex items-center justify-between border-b border-surface-border">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 select-none animate-in fade-in duration-200">
+      <div className="bg-surface-base border border-surface-border rounded-md modal-width-md max-w-md shadow-2xl overflow-hidden responsive-modal-panel overflow-y-auto responsive-safe-scroll">
+        <div className="p-4 sm:p-6 flex items-center justify-between border-b border-surface-border">
           <h2 className="text-xl font-bold text-text-primary">Create Channel</h2>
           <button onClick={onClose} className="text-text-muted hover:text-text-primary">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
           <div>
             <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
               Channel Type
@@ -53,7 +53,7 @@ export default function CreateChannelModal({ onClose }) {
                   <div
                     key={t.id}
                     onClick={() => setChannelType(t.id)}
-                    className={`flex items-center space-x-3 p-3 rounded-md border cursor-pointer transition-colors ${
+                    className={`flex items-center space-x-3 p-3 rounded-md border cursor-pointer transition-colors min-h-[4.25rem] ${
                       isSelected ? 'bg-surface-hover border-accent-primary' : 'bg-surface-panel border-transparent hover:bg-surface-hover'
                     }`}
                   >
@@ -95,14 +95,14 @@ export default function CreateChannelModal({ onClose }) {
             />
           </div>
 
-          <div className="bg-surface-panel -mx-6 -mb-6 p-4 flex items-center justify-between mt-6">
+          <div className="bg-surface-panel -mx-6 -mb-6 p-4 flex items-center justify-between gap-3 mt-6">
             <button type="button" onClick={onClose} className="text-xs font-semibold text-text-primary hover:underline">
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-sm transition-colors"
+              className="px-4 sm:px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-sm transition-colors"
             >
               {loading ? 'Creating...' : 'Create Channel'}
             </button>

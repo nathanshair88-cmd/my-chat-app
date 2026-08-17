@@ -587,9 +587,9 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
     >
       
       {/* Ambient glow background */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-accent-primary/10 blur-3xl" />
-        <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-purple-600/10 blur-3xl" />
+      <div className="hidden">
+        <div className="hidden" />
+        <div className="hidden" />
       </div>
 
       {/* ── Header bar ─────────────────────────────────────────────────── */}
@@ -599,30 +599,30 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
           pointerEvents: (isFullscreen && !showControlsInFullscreen) ? 'none' : 'auto',
           transform: (isFullscreen && !showControlsInFullscreen) ? 'translateY(-16px)' : 'translateY(0)'
         }}
-        className={`z-30 flex items-center justify-between px-4 py-3 shrink-0 transition-all duration-300 ${
+        className={`z-30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-3 sm:px-4 py-3 shrink-0 transition-all duration-300 ${
           isFullscreen 
             ? 'absolute top-0 left-0 right-0 border-none bg-gradient-to-b from-black/80 to-transparent pt-6' 
             : 'relative border-b border-surface-border bg-surface-active/50 backdrop-blur-md'
         }`}
       >
-        <div className="flex items-center space-x-2.5">
+        <div className="flex items-center space-x-2.5 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/30">
             <TvMinimalPlay className="w-4.5 h-4.5 text-white" />
           </div>
-          <div>
-            <div className="text-text-primary font-bold text-sm flex items-center space-x-2">
+          <div className="min-w-0">
+            <div className="text-text-primary font-bold text-sm flex flex-wrap items-center gap-2">
               <span>Watch Together</span>
               <span className="text-[10px] bg-success/20 text-success border border-success/30 px-1.5 py-0.5 rounded font-mono uppercase font-bold animate-pulse">
                 LIVE SYNC
               </span>
             </div>
             {watchState.title && (
-              <div className="text-text-muted text-[11px] truncate max-w-xs">{watchState.title}</div>
+              <div className="text-text-muted text-[11px] truncate max-w-[60vw] sm:max-w-xs">{watchState.title}</div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {/* Ad-blocker toggle */}
           <button
             onClick={() => setAdSkipEnabled(v => !v)}
@@ -634,7 +634,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
             }`}
           >
             <ShieldOff className="w-3 h-3" />
-            <span>AD-SKIP {adSkipEnabled ? 'ON' : 'OFF'}</span>
+            <span className="hidden sm:inline">AD-SKIP {adSkipEnabled ? 'ON' : 'OFF'}</span>
             {adSkipActive && <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping ml-0.5" />}
           </button>
 
@@ -656,7 +656,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
             }`}
           >
             <SkipForward className="w-3 h-3" />
-            <span>SPONSORBLOCK {sponsorBlockEnabled ? 'ON' : 'OFF'}</span>
+            <span className="hidden sm:inline">SPONSORBLOCK {sponsorBlockEnabled ? 'ON' : 'OFF'}</span>
             {sponsorSkipActive && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping ml-0.5" />}
           </button>
 
@@ -692,12 +692,12 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
 
       {/* ── URL Input / no-video state ──────────────────────────────────── */}
       {!watchState.videoId ? (
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-8 space-y-6">
-          <div className="w-24 h-24 rounded-2xl bg-red-600/20 border border-red-600/30 flex items-center justify-center shadow-2xl shadow-red-600/20">
-            <Tv2 className="w-12 h-12 text-red-400" />
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-4 sm:p-8 space-y-5 sm:space-y-6">
+          <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-2xl bg-red-600/20 border border-red-600/30 flex items-center justify-center shadow-2xl shadow-red-600/20">
+            <Tv2 className="w-9 h-9 sm:w-12 sm:h-12 text-red-400" />
           </div>
           <div className="text-center">
-            <h3 className="text-xl font-bold text-text-primary mb-1">Start Watching Together</h3>
+            <h3 className="text-lg sm:text-xl font-bold text-text-primary mb-1">Start Watching Together</h3>
             <p className="text-text-muted text-sm max-w-sm">
               Paste a YouTube URL below. Everyone in the voice room will watch in perfect sync.
             </p>
@@ -726,7 +726,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
             </button>
           </form>
 
-          <div className="flex items-center space-x-4 text-[11px] text-text-muted">
+          <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-[11px] text-text-muted">
             <div className="flex items-center space-x-1"><ShieldOff className="w-3 h-3 text-red-400" /><span>Ad-Skip built in</span></div>
             <div className="flex items-center space-x-1"><SkipForward className="w-3 h-3 text-green-400" /><span>SponsorBlock</span></div>
             <div className="flex items-center space-x-1"><Users className="w-3 h-3 text-accent-primary" /><span>Full sync</span></div>
@@ -735,7 +735,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
       ) : (
         <>
           {/* ── YouTube Player & Queue Sidebar ────────────────────────────── */}
-          <div className="relative z-10 flex-1 min-h-0 bg-black flex flex-row overflow-hidden">
+          <div className="relative z-10 flex-1 min-h-0 bg-black flex flex-col lg:flex-row overflow-hidden">
             <div
               ref={iframeContainerRef}
               className="flex-1 w-full relative"
@@ -743,7 +743,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
             />
             
             {showQueue && (
-              <div className="w-80 bg-surface-base border-l border-surface-border flex flex-col z-20">
+              <div className="w-full lg:w-80 h-56 lg:h-full bg-surface-base border-t lg:border-t-0 lg:border-l border-surface-border flex flex-col z-20 shrink-0">
                 <div className="p-3 border-b border-surface-border flex items-center justify-between bg-surface-active">
                   <h3 className="text-text-primary font-bold text-sm flex items-center space-x-2">
                     <ListVideo className="w-4 h-4" />
@@ -818,7 +818,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
           {/* ── Control bar — floats as overlay in fullscreen, docked normally ── */}
           <div
             className={[
-              'z-20 shrink-0 px-4 pt-3 pb-4 bg-surface-active/90 backdrop-blur-xl border-t border-surface-border space-y-2 transition-all duration-300',
+              'z-20 shrink-0 px-3 sm:px-4 pt-3 pb-4 bg-surface-active/90 backdrop-blur-xl border-t border-surface-border space-y-2 transition-all duration-300',
               isFullscreen ? 'absolute bottom-0 left-0 right-0' : 'relative',
               isFullscreen && !showControlsInFullscreen ? 'opacity-0 translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0',
             ].join(' ')}
@@ -826,7 +826,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
 
             {/* Notification toast */}
             {notification && (
-              <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-surface-active border border-surface-border text-text-primary text-xs font-semibold px-3 py-1.5 rounded-full shadow-xl whitespace-nowrap animate-fadeIn">
+              <div className="absolute -top-9 left-1/2 -translate-x-1/2 bg-surface-active border border-surface-border text-text-primary text-xs font-semibold px-3 py-1.5 rounded-full shadow-xl max-w-[calc(100vw-2rem)] truncate animate-fadeIn">
                 {notification}
               </div>
             )}
@@ -871,8 +871,8 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
             </div>
 
             {/* Controls row */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-3">
                 {/* Play / Pause */}
                 <button
                   onClick={handlePlayPause}
@@ -890,7 +890,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex flex-wrap items-center justify-start sm:justify-end gap-2 sm:gap-3">
                 {/* Volume */}
                 <div className="flex items-center space-x-1.5">
                   <button
@@ -910,13 +910,13 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
                       if (v > 0) setIsMuted(false);
                       playerRef.current?.setVolume(v);
                     }}
-                    className="w-20 h-1 accent-red-500 cursor-pointer"
+                    className="w-16 sm:w-20 h-1 accent-red-500 cursor-pointer"
                   />
                   <span className="text-[10px] text-text-muted font-mono w-6">{isMuted ? '0' : volume}%</span>
                 </div>
 
                 {/* Change video input (compact) */}
-                <form onSubmit={handleSetVideo} className="flex items-center space-x-1">
+                <form onSubmit={handleSetVideo} className="hidden md:flex items-center space-x-1">
                   <div className="relative">
                     <Link className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-3 text-text-muted" />
                     <input
@@ -924,7 +924,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
                       value={urlInput}
                       onChange={(e) => { setUrlInput(e.target.value); setInputError(''); }}
                       placeholder="Change video URL..."
-                      className="bg-surface-hover border border-surface-border rounded-md pl-7 pr-2 py-1.5 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-primary w-44 transition-all"
+                      className="bg-surface-hover border border-surface-border rounded-md pl-7 pr-2 py-1.5 text-xs text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-primary w-36 lg:w-44 transition-all"
                     />
                   </div>
                   <button
@@ -958,7 +958,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
             </div>
 
             {/* Status badges row */}
-            <div className="flex items-center space-x-2 text-[10px] font-mono">
+            <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono">
               {adSkipEnabled && (
                 <span className={`flex items-center space-x-0.5 px-1.5 py-0.5 rounded border ${adSkipActive ? 'bg-red-500/20 border-red-500/40 text-red-400' : 'bg-surface-hover border-surface-border text-text-muted'}`}>
                   <ShieldOff className="w-2.5 h-2.5 mr-0.5" />
@@ -972,7 +972,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
                 </span>
               )}
               {watchState.lastActivity && (
-                <span className="text-text-muted ml-auto truncate max-w-xs">{watchState.lastActivity}</span>
+                <span className="text-text-muted sm:ml-auto truncate max-w-full sm:max-w-xs">{watchState.lastActivity}</span>
               )}
             </div>
           </div>

@@ -100,7 +100,7 @@ export default function MessageItem({ message, searchQuery }) {
     : (author?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${displayName}`);
 
   return (
-    <div className={`group relative flex space-x-4 px-4 py-2 hover:bg-surface-hover transition-colors rounded-sm my-0.5 ${isBot ? 'bg-surface-active/30' : ''}`}>
+    <div className={`group relative flex space-x-3 sm:space-x-4 px-2 sm:px-4 py-2 hover:bg-surface-hover transition-colors rounded-sm my-0.5 ${isBot ? 'bg-surface-active/30' : ''}`}>
       {/* Author Avatar — right-click for context menu */}
       <img
         src={displayAvatar}
@@ -108,15 +108,15 @@ export default function MessageItem({ message, searchQuery }) {
         onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY }); }}
         onClick={(e) => { if (e.button === 0) {} }}
         onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${displayName}`; }}
-        className="w-10 h-10 rounded-full bg-surface-panel object-cover flex-shrink-0 mt-0.5 border border-surface-border shadow-sm cursor-pointer hover:ring-2 hover:ring-accent-primary/50 transition-all"
+        className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-surface-panel object-cover flex-shrink-0 mt-0.5 border border-surface-border shadow-sm cursor-pointer hover:ring-2 hover:ring-accent-primary/50 transition-all"
       />
 
       <div className="flex-1 min-w-0">
         {/* Header line */}
-        <div className="flex items-baseline space-x-2">
-          <div className="flex items-center space-x-1.5">
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <div className="flex items-center space-x-1.5 min-w-0">
             <span
-              className="font-semibold text-sm hover:underline cursor-pointer"
+              className="font-semibold text-sm hover:underline cursor-pointer truncate"
               style={roleColor && !isBot ? { color: roleColor } : { color: 'var(--text-primary, #ffffff)' }}
               onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY }); }}
             >
@@ -181,15 +181,15 @@ export default function MessageItem({ message, searchQuery }) {
 
               if (isImage && att.url) {
                 return (
-                  <div key={idx} className="relative group/att max-w-sm rounded-sm overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
+                  <div key={idx} className="relative group/att max-w-full sm:max-w-sm rounded-sm overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
                     <img 
                       src={att.url} 
                       alt={att.name || 'Attachment'}
                       onClick={() => setActiveMediaPreview(att)}
-                      className="max-h-60 w-auto object-cover cursor-pointer hover:opacity-90 transition" 
+                      className="max-h-60 max-w-full w-auto object-cover cursor-pointer hover:opacity-90 transition" 
                     />
                     <div className="p-1.5 bg-surface-active/80 backdrop-blur-sm text-[11px] text-text-primary flex items-center justify-between border-t border-surface-border">
-                      <span className="truncate max-w-[200px]">{att.name}</span>
+                      <span className="truncate max-w-[min(12rem,60vw)]">{att.name}</span>
                       <button
                         onClick={() => setActiveMediaPreview(att)}
                         className="text-accent-primary hover:underline font-semibold"
@@ -203,14 +203,14 @@ export default function MessageItem({ message, searchQuery }) {
 
               if (isVideo && att.url) {
                 return (
-                  <div key={idx} className="max-w-sm rounded-sm overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
+                  <div key={idx} className="max-w-full sm:max-w-sm rounded-sm overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
                     <video 
                       src={att.url} 
                       controls 
                       className="max-h-60 w-full object-cover" 
                     />
                     <div className="p-1.5 bg-surface-active/80 backdrop-blur-sm text-[11px] text-text-primary flex items-center justify-between border-t border-surface-border">
-                      <span className="truncate max-w-[200px]">{att.name}</span>
+                      <span className="truncate max-w-[min(12rem,60vw)]">{att.name}</span>
                       <button
                         onClick={() => setActiveMediaPreview(att)}
                         className="text-accent-primary hover:underline font-semibold"
@@ -223,7 +223,7 @@ export default function MessageItem({ message, searchQuery }) {
               }
 
               return (
-                <div key={idx} className="flex items-center space-x-3 bg-surface-panel p-2.5 rounded-sm border border-surface-border max-w-xs shadow-sm">
+                <div key={idx} className="flex items-center space-x-3 bg-surface-panel p-2.5 rounded-sm border border-surface-border max-w-full sm:max-w-xs shadow-sm">
                   <FileText className="w-8 h-8 text-accent-primary flex-shrink-0" />
                   <div className="min-w-0 flex-1">
                     <div className="text-xs font-semibold text-text-primary truncate">{att.name}</div>

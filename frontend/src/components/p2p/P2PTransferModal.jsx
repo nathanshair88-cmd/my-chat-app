@@ -32,16 +32,16 @@ export default function P2PTransferModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-in fade-in duration-200 select-none">
-      <div className="bg-surface-base border border-surface-border rounded-md w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-200 select-none">
+      <div className="bg-surface-base border border-surface-border rounded-md modal-width-2xl max-w-2xl shadow-2xl overflow-hidden flex flex-col responsive-modal-panel">
         {/* Modal Header */}
-        <div className="bg-surface-panel px-6 py-4 flex items-center justify-between border-b border-surface-border">
-          <div className="flex items-center space-x-2">
+        <div className="bg-surface-panel px-4 sm:px-6 py-4 flex items-start sm:items-center justify-between gap-3 border-b border-surface-border">
+          <div className="flex items-center space-x-2 min-w-0">
             <div className="w-8 h-8 rounded-sm bg-accent-primary flex items-center justify-center">
               <Zap className="w-5 h-5 text-text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-text-primary leading-none">Unrestricted P2P File Share</h2>
+              <h2 className="text-base sm:text-lg font-bold text-text-primary leading-tight">Unrestricted P2P File Share</h2>
               <p className="text-xs text-text-muted mt-0.5">Direct browser-to-browser WebRTC DataChannel (No file size caps)</p>
             </div>
           </div>
@@ -52,7 +52,7 @@ export default function P2PTransferModal({ onClose }) {
         </div>
 
         {/* Modal Content Body */}
-        <div className="p-6 space-y-6 overflow-y-auto no-scrollbar flex-1">
+        <div className="p-4 sm:p-6 space-y-6 overflow-y-auto no-scrollbar flex-1 responsive-safe-scroll">
           {/* Send File Section */}
           <div className="bg-surface-panel p-4 rounded-md border border-surface-border space-y-4">
             <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Initiate New Transfer</h3>
@@ -112,7 +112,7 @@ export default function P2PTransferModal({ onClose }) {
               <div className="space-y-3">
                 {transfers.map((t) => (
                   <div key={t.transfer_id} className="bg-surface-active p-4 rounded-md border border-surface-border space-y-2">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <div className="flex items-center space-x-2 min-w-0 pr-2">
                         {t.role === 'sender' ? <Upload className="w-4 h-4 text-accent-primary flex-shrink-0" /> : <Download className="w-4 h-4 text-success flex-shrink-0" />}
                         <span className="text-xs font-bold text-text-primary truncate">{t.file_name}</span>
@@ -136,7 +136,7 @@ export default function P2PTransferModal({ onClose }) {
                     </div>
 
                     {/* Metrics Line: Progress %, Transfer Speed MB/s, Controls */}
-                    <div className="flex items-center justify-between text-[11px] text-text-muted">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[11px] text-text-muted">
                       <div>
                         <span>{t.progress}%</span>
                         {t.speedMBps > 0 && <span className="ml-2 font-mono text-text-primary font-semibold">{t.speedMBps} MB/s</span>}

@@ -32,9 +32,9 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
-      <div className="bg-surface-base border border-surface-border rounded-md w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="p-6 text-center space-y-2 relative">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 select-none animate-in fade-in duration-200">
+      <div className="bg-surface-base border border-surface-border rounded-md modal-width-md max-w-md shadow-2xl overflow-hidden responsive-modal-panel overflow-y-auto responsive-safe-scroll">
+        <div className="p-4 sm:p-6 text-center space-y-2 relative">
           <button onClick={onClose} className="absolute right-4 top-4 text-text-muted hover:text-text-primary">
             <X className="w-5 h-5" />
           </button>
@@ -43,7 +43,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
             {mode === 'create' ? <Plus className="w-6 h-6 text-text-primary" /> : <Compass className="w-6 h-6 text-text-primary" />}
           </div>
 
-          <h2 className="text-2xl font-bold text-text-primary">
+          <h2 className="text-xl sm:text-2xl font-bold text-text-primary">
             {mode === 'create' ? 'Customize Your Server' : 'Join a Server'}
           </h2>
           <p className="text-xs text-text-muted">
@@ -103,7 +103,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
             </div>
           )}
 
-          <div className="bg-surface-panel -mx-6 -mb-6 p-4 flex items-center justify-between mt-6">
+          <div className="bg-surface-panel -mx-6 -mb-6 p-4 flex items-center justify-between gap-3 mt-6">
             <button
               type="button"
               onClick={onClose}
@@ -114,7 +114,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-sm transition-colors"
+              className="px-4 sm:px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-sm transition-colors"
             >
               {loading ? 'Working...' : mode === 'create' ? 'Create Server' : 'Join Server'}
             </button>
