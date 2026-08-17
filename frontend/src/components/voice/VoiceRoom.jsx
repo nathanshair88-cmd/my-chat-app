@@ -369,7 +369,7 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen, channelId }) {
         <UserContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          user={{ id: item.user_id, username: item.username, avatar_url: item.avatar_url }}
+          user={{ id: item.user_id, public_id: item.public_id, username: item.username, avatar_url: item.avatar_url }}
           contextType="voice"
           isLocalUser={isLocalUser}
           channelId={channelId}

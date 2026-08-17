@@ -48,6 +48,7 @@ async def get_friends(current_user: User = Depends(get_current_user), db: AsyncS
             "created_at": friendship.created_at,
             "friend_user": {
                 "id": other_user.id,
+                "public_id": other_user.public_id,
                 "username": other_user.username,
                 "avatar_url": other_user.avatar_url,
                 "status": other_user.status,
@@ -60,8 +61,17 @@ async def get_friends(current_user: User = Depends(get_current_user), db: AsyncS
 @router.post("/request")
 async def send_friend_request(req: FriendRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     # Find target user
-    res = await db.execute(select(User).where(User.username == req.username))
+    lookup = req.username.strip()
+    public_id = lookup[1:] if lookup.startswith("#") else lookup
+    res = await db.execute(select(User).where(User.public_id == public_id.upper()))
     target_user = res.scalar_one_or_none()
+
+    if not target_user:
+        res = await db.execute(select(User).where(User.username == lookup))
+        matches = res.scalars().all()
+        if len(matches) > 1:
+            raise HTTPException(status_code=409, detail="Multiple users have that username. Use their #ID instead.")
+        target_user = matches[0] if matches else None
     
     if not target_user:
         raise HTTPException(status_code=404, detail="User not found")

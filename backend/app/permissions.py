@@ -5,6 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Channel, DMConversation, Friendship, Server, ServerMember
 
+ROLE_OWNER = "owner"
+ROLE_ADMIN = "admin"
+ROLE_MEMBER = "member"
+VALID_SERVER_ROLES = {ROLE_OWNER, ROLE_ADMIN, ROLE_MEMBER}
+
 
 def to_int(value) -> Optional[int]:
     try:
@@ -30,6 +35,15 @@ async def is_server_member(db: AsyncSession, user_id: int, server_id: int) -> bo
     return res.scalar_one_or_none() is not None
 
 
+async def get_server_member(db: AsyncSession, user_id: int, server_id: int) -> Optional[ServerMember]:
+    res = await db.execute(
+        select(ServerMember)
+        .where(ServerMember.server_id == server_id, ServerMember.user_id == user_id)
+        .limit(1)
+    )
+    return res.scalar_one_or_none()
+
+
 async def is_server_owner(db: AsyncSession, user_id: int, server_id: int) -> bool:
     res = await db.execute(
         select(Server.id)
@@ -37,6 +51,33 @@ async def is_server_owner(db: AsyncSession, user_id: int, server_id: int) -> boo
         .limit(1)
     )
     return res.scalar_one_or_none() is not None
+
+
+async def get_member_role(db: AsyncSession, user_id: int, server_id: int) -> Optional[str]:
+    if await is_server_owner(db, user_id, server_id):
+        return ROLE_OWNER
+    member = await get_server_member(db, user_id, server_id)
+    if not member:
+        return None
+    return member.role if member.role in VALID_SERVER_ROLES else ROLE_MEMBER
+
+
+async def can_manage_server(db: AsyncSession, user_id: int, server_id: int) -> bool:
+    role = await get_member_role(db, user_id, server_id)
+    return role in {ROLE_OWNER, ROLE_ADMIN}
+
+
+async def can_manage_member(db: AsyncSession, actor_id: int, target_member: ServerMember, server: Server) -> bool:
+    actor_role = await get_member_role(db, actor_id, server.id)
+    target_role = ROLE_OWNER if target_member.user_id == server.owner_id else (
+        target_member.role if target_member.role in VALID_SERVER_ROLES else ROLE_MEMBER
+    )
+
+    if actor_role == ROLE_OWNER:
+        return target_role != ROLE_OWNER
+    if actor_role == ROLE_ADMIN:
+        return target_role == ROLE_MEMBER
+    return False
 
 
 async def user_channel(db: AsyncSession, user_id: int, channel_id, allowed_types=None) -> Optional[Channel]:

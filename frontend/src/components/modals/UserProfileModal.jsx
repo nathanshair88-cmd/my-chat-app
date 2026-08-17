@@ -15,6 +15,7 @@ export default function UserProfileModal({ user, onClose }) {
   }, [onClose]);
 
   const uid = user?.id || user?.user_id;
+  const publicId = user?.public_id || uid;
 
   const handleMessage = async () => {
     try {
@@ -83,7 +84,7 @@ export default function UserProfileModal({ user, onClose }) {
             </div>
             
             <div className="text-sm font-mono text-text-muted mb-4">
-              #{uid}
+              #{publicId}
             </div>
 
             {user?.status_message && (

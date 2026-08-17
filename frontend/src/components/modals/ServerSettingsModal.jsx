@@ -139,6 +139,15 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
     }
   };
 
+  const handleUpdateMemberRole = async (memberUserId, role) => {
+    try {
+      await serverAPI.updateMemberRole(server.id, memberUserId, role);
+      setMembers(prev => prev.map(m => m.user_id === memberUserId ? { ...m, role } : m));
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to update member role');
+    }
+  };
+
   const handleCreateWebhook = async (e) => {
     e.preventDefault();
     if (!newWebhookChannelId) {
@@ -175,7 +184,9 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
     setTimeout(() => setCopiedToken(null), 2000);
   };
 
+  const currentMember = members.find(m => m.user_id === user?.id);
   const isOwner = server.owner_id === user?.id;
+  const canManageServer = isOwner || currentMember?.role === 'admin';
 
   return (
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
@@ -291,7 +302,7 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       required
-                      disabled={!isOwner}
+                      disabled={!canManageServer}
                       className="w-full bg-surface-active text-text-primary border border-surface-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent transition-all"
                     />
                   </div>
@@ -304,13 +315,13 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
                       type="url"
                       value={iconUrl}
                       onChange={(e) => setIconUrl(e.target.value)}
-                      disabled={!isOwner}
+                      disabled={!canManageServer}
                       className="w-full bg-surface-active text-text-primary border border-surface-border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent transition-all"
                       placeholder="https://example.com/icon.png"
                     />
                   </div>
 
-                  {isOwner && (
+                  {canManageServer && (
                     <div className="pt-4 flex items-center space-x-4">
                       <button
                         type="submit"
@@ -408,6 +419,11 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
                 <div className="space-y-2">
                   {members.map(member => {
                     const isMemberOwner = member.role === 'owner';
+                    const memberRole = isMemberOwner ? 'owner' : member.role === 'admin' ? 'admin' : 'member';
+                    const isMemberAdmin = memberRole === 'admin';
+                    const canRemoveThisMember = isOwner
+                      ? !isMemberOwner
+                      : canManageServer && memberRole === 'member' && member.user_id !== user?.id;
                     const avatarUrl = member.user?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${member.user?.username || 'user'}`;
                     
                     return (
@@ -419,10 +435,31 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
                               <span>{member.user?.username}</span>
                               {isMemberOwner && <Shield className="w-3.5 h-3.5 text-amber-500" title="Server Owner" />}
                             </div>
-                            <div className="text-xs text-text-muted font-mono">#{member.user_id}</div>
+                            <div className="text-xs text-text-muted font-mono">#{member.user?.public_id || member.user_id}</div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-4">
+                          <div className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${
+                            memberRole === 'owner'
+                              ? 'border-amber-500/60 text-amber-400'
+                              : isMemberAdmin
+                                ? 'border-accent-primary/60 text-accent-primary'
+                                : 'border-surface-border text-text-muted'
+                          }`}>
+                            {memberRole === 'owner' ? 'Owner' : isMemberAdmin ? 'Admin' : 'Member'}
+                          </div>
+
+                          {isOwner && !isMemberOwner && (
+                            <select
+                              value={memberRole}
+                              onChange={(e) => handleUpdateMemberRole(member.user_id, e.target.value)}
+                              className="bg-surface-panel border border-surface-border text-text-primary text-xs rounded px-2 py-1 focus:outline-none"
+                            >
+                              <option value="member">Member</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          )}
+
                           {/* Role Assignment Dropdown */}
                           {isOwner && !isMemberOwner && (
                             roles.length > 0 ? (
@@ -454,7 +491,7 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
                             </div>
                           )}
 
-                          {isOwner && !isMemberOwner && (
+                          {canRemoveThisMember && (
                             <button
                               onClick={() => handleRemoveMember(member.user_id)}
                               className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-md transition-colors"
@@ -481,7 +518,7 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
                   <Bot className="w-10 h-10 text-text-muted/30" />
                 </div>
 
-                {isOwner && (
+                {canManageServer && (
                   <form onSubmit={handleCreateWebhook} className="mb-8 p-4 bg-surface-active rounded-md border border-surface-border">
                     <h3 className="text-sm font-bold text-text-primary mb-4 flex items-center">
                       <Plus className="w-4 h-4 mr-2 text-accent-primary" />
@@ -556,7 +593,7 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
                                 </div>
                               </div>
                             </div>
-                            {isOwner && (
+                            {canManageServer && (
                               <button
                                 onClick={() => handleDeleteWebhook(webhook.id)}
                                 className="p-2 text-text-muted hover:text-danger hover:bg-danger/10 rounded-md transition-colors"

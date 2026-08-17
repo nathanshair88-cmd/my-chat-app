@@ -3,11 +3,13 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.models import User, Server, ServerMember, Channel
 from app.schemas import UserCreate, UserLogin, TokenResponse, UserResponse, UserStatusUpdate, UserProfileUpdate, UserSettingsUpdate
 from app.auth import get_password_hash, verify_password, create_access_token, get_current_user
+from app.user_ids import generate_public_id
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -25,6 +27,15 @@ def _validate_password(password: str):
     if len(password.encode("utf-8")) > 72:
         raise HTTPException(status_code=400, detail="Password must be 72 bytes or fewer")
 
+
+async def _new_public_id(db: AsyncSession) -> str:
+    for _ in range(20):
+        public_id = generate_public_id()
+        res = await db.execute(select(User.id).where(User.public_id == public_id))
+        if res.scalar_one_or_none() is None:
+            return public_id
+    raise HTTPException(status_code=500, detail="Could not allocate user ID")
+
 @router.post("/register", response_model=TokenResponse)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     username = _clean_text(user_in.username, 50)
@@ -34,45 +45,52 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username cannot be empty")
     _validate_password(user_in.password)
 
-    # Check if username or email already exists
-    res = await db.execute(select(User).where((User.username == username) | (User.email == email)))
+    res = await db.execute(select(User).where(User.email == email))
     existing_user = res.scalar_one_or_none()
     if existing_user:
-        raise HTTPException(status_code=400, detail="Username or Email already registered")
+        raise HTTPException(status_code=400, detail="Email already registered")
 
     # Pick default avatar if none provided
     avatar = avatar or f"https://api.dicebear.com/7.x/bottts/svg?seed={username}"
 
-    new_user = User(
-        username=username,
-        email=email,
-        hashed_password=get_password_hash(user_in.password),
-        avatar_url=avatar,
-        status="online"
-    )
-    db.add(new_user)
-    await db.flush()
+    for attempt in range(5):
+        try:
+            new_user = User(
+                public_id=await _new_public_id(db),
+                username=username,
+                email=email,
+                hashed_password=get_password_hash(user_in.password),
+                avatar_url=avatar,
+                status="online"
+            )
+            db.add(new_user)
+            await db.flush()
 
-    # Create default server for new user
-    invite_code = secrets.token_urlsafe(8)[:8]
-    default_server = Server(
-        name=f"{username}'s Server"[:100],
-        invite_code=invite_code,
-        owner_id=new_user.id
-    )
-    db.add(default_server)
-    await db.flush()
+            # Create default server for new user
+            invite_code = secrets.token_urlsafe(8)[:8]
+            default_server = Server(
+                name=f"{username}'s Server"[:100],
+                invite_code=invite_code,
+                owner_id=new_user.id
+            )
+            db.add(default_server)
+            await db.flush()
 
-    member = ServerMember(server_id=default_server.id, user_id=new_user.id, role="owner")
-    db.add(member)
+            member = ServerMember(server_id=default_server.id, user_id=new_user.id, role="owner")
+            db.add(member)
 
-    ch_text = Channel(server_id=default_server.id, name="general", type="text", category="Text Channels", position=0)
-    ch_voice = Channel(server_id=default_server.id, name="Lounge", type="voice", category="Voice Channels", position=1)
-    ch_media = Channel(server_id=default_server.id, name="p2p-lounge", type="media", category="Media Channels", position=2)
-    db.add_all([ch_text, ch_voice, ch_media])
+            ch_text = Channel(server_id=default_server.id, name="general", type="text", category="Text Channels", position=0)
+            ch_voice = Channel(server_id=default_server.id, name="Lounge", type="voice", category="Voice Channels", position=1)
+            ch_media = Channel(server_id=default_server.id, name="p2p-lounge", type="media", category="Media Channels", position=2)
+            db.add_all([ch_text, ch_voice, ch_media])
 
-    await db.commit()
-    await db.refresh(new_user)
+            await db.commit()
+            await db.refresh(new_user)
+            break
+        except IntegrityError:
+            await db.rollback()
+            if attempt == 4:
+                raise HTTPException(status_code=500, detail="Could not create user")
 
     token = create_access_token(data={"sub": str(new_user.id)})
     return TokenResponse(access_token=token, user=UserResponse.model_validate(new_user))
@@ -119,11 +137,7 @@ async def update_profile(
         username = _clean_text(profile_in.username, 50)
         if not username:
             raise HTTPException(status_code=400, detail="Username cannot be empty")
-        if username != current_user.username:
-            res = await db.execute(select(User).where(User.username == username))
-            if res.scalar_one_or_none():
-                raise HTTPException(status_code=400, detail="Username already taken")
-            current_user.username = username
+        current_user.username = username
 
     if profile_in.email is not None:
         email = _clean_text(profile_in.email, 120).lower()

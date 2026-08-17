@@ -8,6 +8,7 @@ from app.database import get_db
 from app.models import User, Server, ServerMember, Channel
 from app.schemas import ServerCreate, ServerResponse, ServerJoin, ChannelCreate, ChannelResponse
 from app.auth import get_current_user
+from app.permissions import can_manage_member, can_manage_server, is_server_owner
 
 router = APIRouter(prefix="/api/servers", tags=["servers"])
 
@@ -161,8 +162,8 @@ async def create_channel(
     server = res.scalar_one_or_none()
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
-    if server.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the owner can create channels")
+    if not await can_manage_server(db, current_user.id, server_id):
+        raise HTTPException(status_code=403, detail="Only owners and admins can create channels")
 
     name = _clean_text(channel_in.name, 100)
     channel_type = _clean_text(channel_in.type, 20).lower()
@@ -205,8 +206,8 @@ async def update_server(
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
 
-    if server.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the owner can modify the server")
+    if not await can_manage_server(db, current_user.id, server_id):
+        raise HTTPException(status_code=403, detail="Only owners and admins can modify the server")
 
     name = _clean_text(server_in.name, 100)
     if not name:
@@ -229,7 +230,7 @@ async def delete_server(
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
 
-    if server.owner_id != current_user.id:
+    if not await is_server_owner(db, current_user.id, server_id):
         raise HTTPException(status_code=403, detail="Only the owner can delete the server")
 
     await db.delete(server)
@@ -248,12 +249,6 @@ async def remove_member(
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
 
-    if server.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Only the owner can remove members")
-    
-    if user_id == server.owner_id:
-        raise HTTPException(status_code=400, detail="Cannot remove the owner")
-
     res_member = await db.execute(
         select(ServerMember).where(ServerMember.server_id == server_id, ServerMember.user_id == user_id)
     )
@@ -261,6 +256,12 @@ async def remove_member(
     
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
+
+    if member.user_id == server.owner_id:
+        raise HTTPException(status_code=400, detail="Cannot remove the owner")
+
+    if not await can_manage_member(db, current_user.id, member, server):
+        raise HTTPException(status_code=403, detail="Not authorized to remove this member")
 
     await db.delete(member)
     await db.commit()

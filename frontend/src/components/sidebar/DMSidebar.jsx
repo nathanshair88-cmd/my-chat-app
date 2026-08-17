@@ -14,21 +14,27 @@ export default function DMSidebar({ onOpenSettings }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState('');
   const [contextMenu, setContextMenu] = useState(null);
+  const conversationList = conversations || [];
 
   const handleSearch = async (e) => {
     const q = e.target.value;
     setSearchQuery(q);
     if (!q.trim()) {
       setSearchResults([]);
+      setSearchError('');
       return;
     }
     setSearching(true);
+    setSearchError('');
     try {
       const res = await dmAPI.searchUsers(q);
-      setSearchResults(res.data);
+      setSearchResults(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error("Error searching users:", err);
+      setSearchResults([]);
+      setSearchError(err.response?.data?.detail || 'Could not search users');
     } finally {
       setSearching(false);
     }
@@ -40,6 +46,7 @@ export default function DMSidebar({ onOpenSettings }) {
       setShowSearchModal(false);
       setSearchQuery('');
       setSearchResults([]);
+      setSearchError('');
     } catch (err) {
       console.error("Failed to start DM:", err);
     }
@@ -96,12 +103,12 @@ export default function DMSidebar({ onOpenSettings }) {
           </button>
         </div>
 
-        {conversations.length === 0 ? (
+        {conversationList.length === 0 ? (
           <div className="px-3 py-6 text-center text-xs text-text-muted">
             No direct messages yet.<br />Click + above to find a friend!
           </div>
         ) : (
-          conversations.map((conv) => {
+          conversationList.map((conv) => {
             const isSelected = currentDM && currentDM.id === conv.id;
             const unreadCount = unreadDMs[conv.id] || 0;
             const other = conv.other_user;
@@ -141,6 +148,9 @@ export default function DMSidebar({ onOpenSettings }) {
                   {other?.status_message && (
                     <div className="text-[11px] text-text-muted truncate">{other.status_message}</div>
                   )}
+                  {!other?.status_message && other?.public_id && (
+                    <div className="text-[11px] text-text-muted truncate font-mono">#{other.public_id}</div>
+                  )}
                 </div>
               </button>
             );
@@ -169,7 +179,10 @@ export default function DMSidebar({ onOpenSettings }) {
             <h3 className="text-lg font-bold text-text-primary mb-3 flex items-center justify-between">
               <span>Start a Direct Message</span>
               <button
-                onClick={() => setShowSearchModal(false)}
+                onClick={() => {
+                  setShowSearchModal(false);
+                  setSearchError('');
+                }}
                 className="text-text-muted hover:text-text-primary text-sm"
               >
                 ✕
@@ -180,7 +193,7 @@ export default function DMSidebar({ onOpenSettings }) {
               <input
                 type="text"
                 autoFocus
-                placeholder="Type a username to search..."
+                placeholder="Type a username or #ID to search..."
                 value={searchQuery}
                 onChange={handleSearch}
                 className="w-full bg-surface-active text-text-primary text-sm px-4 py-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-primary"
@@ -191,6 +204,8 @@ export default function DMSidebar({ onOpenSettings }) {
             <div className="max-h-60 overflow-y-auto space-y-1 custom-scrollbar">
               {searching ? (
                 <div className="py-4 text-center text-xs text-text-muted">Searching...</div>
+              ) : searchError ? (
+                <div className="py-4 text-center text-xs text-danger">{searchError}</div>
               ) : searchResults.length === 0 ? (
                 <div className="py-4 text-center text-xs text-text-muted">
                   {searchQuery ? 'No users found matching query' : 'Type above to search registered users'}
@@ -208,7 +223,7 @@ export default function DMSidebar({ onOpenSettings }) {
                       </div>
                       <div>
                         <div className="text-sm font-medium">{u.username}</div>
-                        <div className="text-xs text-text-muted">{u.status_message || u.status || 'available'}</div>
+                        <div className="text-xs text-text-muted font-mono">#{u.public_id || u.id}</div>
                       </div>
                     </div>
                     <span className="bg-accent-primary text-text-primary text-xs px-2.5 py-1 rounded hover:bg-accent-hover">

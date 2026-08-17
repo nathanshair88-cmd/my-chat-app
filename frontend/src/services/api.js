@@ -35,6 +35,7 @@ export const serverAPI = {
   updateServer: (id, data) => API.put(`/servers/${id}`, data),
   deleteServer: (id) => API.delete(`/servers/${id}`),
   removeMember: (server_id, user_id) => API.delete(`/servers/${server_id}/members/${user_id}`),
+  updateMemberRole: (server_id, user_id, role) => API.put(`/servers/${server_id}/members/${user_id}/role`, { role }),
   joinServer: (invite_code) => API.post('/servers/join', { invite_code }),
   createChannel: (server_id, data) => API.post(`/servers/${server_id}/channels`, data),
 };

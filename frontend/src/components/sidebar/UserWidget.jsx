@@ -52,7 +52,7 @@ export default function UserWidget({ onOpenSettings }) {
         <div className="min-w-0 flex-1">
           <div className="text-xs font-semibold text-text-primary truncate leading-tight">{user.username}</div>
           <div className="text-[11px] text-text-muted truncate leading-none mt-0.5">
-            {user.status_message || `#${user.id}`}
+            {user.status_message || `#${user.public_id || user.id}`}
           </div>
         </div>
       </div>

@@ -8,6 +8,15 @@ import { voiceManager } from '../services/webrtcVoice';
 
 const ServerContext = createContext();
 
+const dedupeConversations = (items = []) => {
+  const seen = new Set();
+  return items.filter(conv => {
+    if (!conv || seen.has(conv.id)) return false;
+    seen.add(conv.id);
+    return true;
+  });
+};
+
 export const ServerProvider = ({ children }) => {
   const { user } = useAuth();
 
@@ -83,7 +92,7 @@ export const ServerProvider = ({ children }) => {
     if (!user) return;
     try {
       const res = await dmAPI.getConversations();
-      setConversations(res.data);
+      setConversations(dedupeConversations(res.data));
     } catch (err) {
       console.error("Error fetching DM conversations:", err);
     }
@@ -196,9 +205,9 @@ export const ServerProvider = ({ children }) => {
       const newConv = res.data;
       setConversations(prev => {
         const exists = prev.find(c => c.id === newConv.id);
-        return exists ? prev : [newConv, ...prev];
+        return exists ? prev : dedupeConversations([newConv, ...prev]);
       });
-      selectDM(newConv);
+      await selectDM(newConv);
       return newConv;
     } catch (err) {
       console.error("Error starting DM:", err);

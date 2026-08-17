@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.database import AsyncSessionLocal
 from app.models import User, Message, Reaction, Channel, ServerMember, DMConversation, DirectMessage, Server
 from app.auth import decode_token
-from app.permissions import can_signal_user, to_int, user_channel, user_dm_conversation
+from app.permissions import can_manage_member, can_signal_user, to_int, user_channel, user_dm_conversation
 from app.cors import is_allowed_origin
 
 logger = logging.getLogger("discoalto.socket")
@@ -91,6 +91,7 @@ def _message_dict(message: Message) -> dict:
         "created_at": message.created_at.isoformat(),
         "author": {
             "id": message.author.id,
+            "public_id": message.author.public_id,
             "username": message.author.username,
             "avatar_url": message.author.avatar_url,
             "status": message.author.status,
@@ -114,6 +115,7 @@ def _dm_dict(message: DirectMessage) -> dict:
         "created_at": message.created_at.isoformat(),
         "sender": {
             "id": message.sender.id,
+            "public_id": message.sender.public_id,
             "username": message.sender.username,
             "avatar_url": message.sender.avatar_url,
             "status": message.sender.status,
@@ -197,6 +199,7 @@ async def connect(sid, environ, auth=None):
 
         user_data = {
             "id": user.id,
+            "public_id": user.public_id,
             "username": user.username,
             "avatar_url": user.avatar_url,
             "status": user.status,
@@ -214,6 +217,7 @@ async def connect(sid, environ, auth=None):
 
     presence_data = {
         "id": user_data["id"],
+        "public_id": user_data["public_id"],
         "username": user_data["username"],
         "avatar_url": user_data["avatar_url"],
         "status": user_data["status"],
@@ -491,6 +495,7 @@ async def join_voice(sid, data):
 
     user_info = {
         "id": user_data["id"],
+        "public_id": user_data["public_id"],
         "username": user_data["username"],
         "avatar_url": user_data["avatar_url"],
         "is_screen_sharing": False,
@@ -642,6 +647,7 @@ async def p2p_file_offer(sid, data):
             await sio.emit("p2p_file_offer", {
                 "sender": {
                     "id": user_data["id"],
+                    "public_id": user_data["public_id"],
                     "username": user_data["username"],
                     "avatar_url": user_data["avatar_url"],
                     "status": user_data["status"],
@@ -1166,7 +1172,17 @@ async def kick_from_voice(sid, data):
             return
         res = await db.execute(select(Server).where(Server.id == channel.server_id))
         server = res.scalar_one_or_none()
-        if not server or server.owner_id != user_data["id"]:
+        if not server:
+            return
+
+        res = await db.execute(
+            select(ServerMember).where(
+                ServerMember.server_id == server.id,
+                ServerMember.user_id == target_user_id,
+            )
+        )
+        target_member = res.scalar_one_or_none()
+        if not target_member or not await can_manage_member(db, user_data["id"], target_member, server):
             return
 
     if target_user_id not in voice_room_users.get(channel_id, {}):

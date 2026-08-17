@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
           const res = await authAPI.getMe();
           setUser(res.data);
           localStorage.setItem('discoalto_user_id', res.data.id);
+          localStorage.setItem('discoalto_public_id', res.data.public_id);
           localStorage.setItem('discoalto_username', res.data.username);
           if (res.data.avatar_url) localStorage.setItem('discoalto_avatar_url', res.data.avatar_url);
           initSocket(token);
@@ -29,6 +30,7 @@ export const AuthProvider = ({ children }) => {
           console.error("Token verification failed:", err);
           localStorage.removeItem('discoalto_token');
           localStorage.removeItem('discoalto_user_id');
+          localStorage.removeItem('discoalto_public_id');
           localStorage.removeItem('discoalto_username');
           localStorage.removeItem('discoalto_avatar_url');
         }
@@ -43,6 +45,7 @@ export const AuthProvider = ({ children }) => {
     const { access_token, user: userData } = res.data;
     localStorage.setItem('discoalto_token', access_token);
     localStorage.setItem('discoalto_user_id', userData.id);
+    localStorage.setItem('discoalto_public_id', userData.public_id);
     localStorage.setItem('discoalto_username', userData.username);
     if (userData.avatar_url) localStorage.setItem('discoalto_avatar_url', userData.avatar_url);
     setUser(userData);
@@ -57,6 +60,7 @@ export const AuthProvider = ({ children }) => {
     const { access_token, user: userData } = res.data;
     localStorage.setItem('discoalto_token', access_token);
     localStorage.setItem('discoalto_user_id', userData.id);
+    localStorage.setItem('discoalto_public_id', userData.public_id);
     localStorage.setItem('discoalto_username', userData.username);
     if (userData.avatar_url) localStorage.setItem('discoalto_avatar_url', userData.avatar_url);
     setUser(userData);
@@ -70,6 +74,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('discoalto_token');
     localStorage.removeItem('discoalto_user_id');
+    localStorage.removeItem('discoalto_public_id');
     localStorage.removeItem('discoalto_username');
     localStorage.removeItem('discoalto_avatar_url');
     disconnectSocket();
@@ -86,6 +91,7 @@ export const AuthProvider = ({ children }) => {
     const updated = res.data;
     setUser(updated);
     if (updated.username) localStorage.setItem('discoalto_username', updated.username);
+    if (updated.public_id) localStorage.setItem('discoalto_public_id', updated.public_id);
     if (updated.avatar_url) localStorage.setItem('discoalto_avatar_url', updated.avatar_url);
     return updated;
   };

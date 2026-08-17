@@ -3,6 +3,8 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
+from app.user_ids import generate_public_id
+
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./discoalto_clone.db")
 
 # Fix Render Postgres URLs if they use the old postgres:// scheme
@@ -32,34 +34,205 @@ AsyncSessionLocal = async_sessionmaker(
     expire_on_commit=False
 )
 
+
 class Base(DeclarativeBase):
     pass
+
 
 async def get_db():
     async with AsyncSessionLocal() as session:
         yield session
 
-async def run_migrations(conn):
-    """Safely add new columns to existing tables without breaking existing data."""
-    migrations = [
-        # Add settings_json column to users table if it doesn't exist
-        "ALTER TABLE users ADD COLUMN IF NOT EXISTS settings_json TEXT",
-        "ALTER TABLE server_members ADD COLUMN IF NOT EXISTS custom_role_id INTEGER",
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id INTEGER",
-        "ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0",
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS webhook_id INTEGER",
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS custom_username TEXT",
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS custom_avatar_url TEXT",
-        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
-    ]
-    for sql in migrations:
-        try:
-            await conn.execute(text(sql))
-            await conn.commit()
-        except Exception as e:
-            await conn.rollback()
-            # Column already exists or other non-fatal error — ignore
+
+async def _run_sql(conn, sql: str, params: dict | None = None, ignore_errors: bool = True):
+    try:
+        await conn.execute(text(sql), params or {})
+        await conn.commit()
+        return True
+    except Exception as e:
+        await conn.rollback()
+        if ignore_errors:
             print(f"Migration skipped (already applied?): {e}")
+            return False
+        raise
+
+
+async def _column_exists(conn, table: str, column_name: str) -> bool:
+    if conn.dialect.name == "sqlite":
+        res = await conn.execute(text(f"PRAGMA table_info({table})"))
+        return any(row[1] == column_name for row in res.all())
+
+    if conn.dialect.name == "postgresql":
+        res = await conn.execute(
+            text(
+                "SELECT 1 FROM information_schema.columns "
+                "WHERE table_name = :table AND column_name = :column"
+            ),
+            {"table": table, "column": column_name},
+        )
+        return res.scalar_one_or_none() is not None
+
+    return False
+
+
+async def _add_column(conn, table: str, column_definition: str):
+    column_name = column_definition.split()[0]
+    if await _column_exists(conn, table, column_name):
+        return
+
+    if conn.dialect.name == "postgresql":
+        await _run_sql(conn, f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column_definition}")
+    else:
+        await _run_sql(conn, f"ALTER TABLE {table} ADD COLUMN {column_definition}")
+
+
+async def _drop_username_unique_index(conn):
+    if conn.dialect.name == "postgresql":
+        await _run_sql(conn, "ALTER TABLE users DROP CONSTRAINT IF EXISTS users_username_key")
+        await _run_sql(conn, "DROP INDEX IF EXISTS ix_users_username")
+        await _run_sql(conn, "CREATE INDEX IF NOT EXISTS ix_users_username ON users (username)")
+    else:
+        await _run_sql(conn, "DROP INDEX IF EXISTS ix_users_username")
+        await _run_sql(conn, "CREATE INDEX IF NOT EXISTS ix_users_username ON users (username)")
+
+
+async def _backfill_public_user_ids(conn):
+    await _add_column(conn, "users", "public_id VARCHAR(10)")
+
+    res = await conn.execute(text("SELECT public_id FROM users WHERE public_id IS NOT NULL AND public_id <> ''"))
+    used_ids = {row[0] for row in res.all()}
+
+    res = await conn.execute(text("SELECT id FROM users WHERE public_id IS NULL OR public_id = '' ORDER BY id"))
+    user_ids = [row[0] for row in res.all()]
+
+    for user_id in user_ids:
+        public_id = generate_public_id()
+        while public_id in used_ids:
+            public_id = generate_public_id()
+        used_ids.add(public_id)
+        await conn.execute(
+            text("UPDATE users SET public_id = :public_id WHERE id = :user_id"),
+            {"public_id": public_id, "user_id": user_id},
+        )
+    if user_ids:
+        await conn.commit()
+
+    await _run_sql(conn, "CREATE UNIQUE INDEX IF NOT EXISTS ix_users_public_id ON users (public_id)")
+    if conn.dialect.name == "postgresql":
+        await _run_sql(conn, "ALTER TABLE users ALTER COLUMN public_id SET NOT NULL")
+
+
+async def _normalize_member_roles(conn):
+    await _run_sql(
+        conn,
+        "UPDATE server_members SET role = 'member' "
+        "WHERE role IS NULL OR role NOT IN ('owner', 'admin', 'member')",
+    )
+    await _run_sql(
+        conn,
+        "UPDATE server_members SET role = 'owner' "
+        "WHERE EXISTS ("
+        "SELECT 1 FROM servers WHERE servers.id = server_members.server_id "
+        "AND servers.owner_id = server_members.user_id)",
+    )
+    await _run_sql(
+        conn,
+        "UPDATE server_members SET role = 'member' "
+        "WHERE role = 'owner' AND NOT EXISTS ("
+        "SELECT 1 FROM servers WHERE servers.id = server_members.server_id "
+        "AND servers.owner_id = server_members.user_id)",
+    )
+
+
+async def _dedupe_dm_conversations(conn):
+    res = await conn.execute(text("SELECT id, user1_id, user2_id FROM dm_conversations ORDER BY id"))
+    conversations = res.all()
+    canonical_by_pair = {}
+
+    for conv_id, user1_id, user2_id in conversations:
+        if user1_id == user2_id:
+            continue
+        pair = tuple(sorted((user1_id, user2_id)))
+        canonical_by_pair.setdefault(pair, conv_id)
+
+    for conv_id, user1_id, user2_id in conversations:
+        if user1_id == user2_id:
+            await conn.execute(
+                text("DELETE FROM direct_messages WHERE conversation_id = :conversation_id"),
+                {"conversation_id": conv_id},
+            )
+            await conn.execute(
+                text("DELETE FROM dm_conversations WHERE id = :conversation_id"),
+                {"conversation_id": conv_id},
+            )
+            continue
+
+        pair = tuple(sorted((user1_id, user2_id)))
+        canonical_id = canonical_by_pair.get(pair)
+        if canonical_id == conv_id:
+            continue
+
+        await conn.execute(
+            text(
+                "UPDATE direct_messages "
+                "SET conversation_id = :canonical_id "
+                "WHERE conversation_id = :duplicate_id"
+            ),
+            {"canonical_id": canonical_id, "duplicate_id": conv_id},
+        )
+        await conn.execute(
+            text("DELETE FROM dm_conversations WHERE id = :duplicate_id"),
+            {"duplicate_id": conv_id},
+        )
+
+    for conv_id, user1_id, user2_id in conversations:
+        if user1_id == user2_id:
+            continue
+        pair = tuple(sorted((user1_id, user2_id)))
+        if canonical_by_pair.get(pair) != conv_id or (user1_id, user2_id) == pair:
+            continue
+
+        await conn.execute(
+            text(
+                "UPDATE dm_conversations "
+                "SET user1_id = :user1_id, user2_id = :user2_id "
+                "WHERE id = :conversation_id"
+            ),
+            {"user1_id": pair[0], "user2_id": pair[1], "conversation_id": conv_id},
+        )
+
+    if conversations:
+        await conn.commit()
+
+    await _run_sql(
+        conn,
+        "CREATE UNIQUE INDEX IF NOT EXISTS ix_dm_conversations_user_pair "
+        "ON dm_conversations (user1_id, user2_id)",
+    )
+
+
+async def run_migrations(conn):
+    """Safely migrate existing tables without breaking existing data."""
+    await _backfill_public_user_ids(conn)
+    await _drop_username_unique_index(conn)
+
+    migrations = [
+        ("users", "settings_json TEXT"),
+        ("server_members", "custom_role_id INTEGER"),
+        ("server_members", "role VARCHAR(50) DEFAULT 'member'"),
+        ("messages", "parent_id INTEGER"),
+        ("direct_messages", "is_read INTEGER DEFAULT 0"),
+        ("messages", "webhook_id INTEGER"),
+        ("messages", "custom_username TEXT"),
+        ("messages", "custom_avatar_url TEXT"),
+        ("messages", "updated_at TIMESTAMP"),
+    ]
+    for table, column_definition in migrations:
+        await _add_column(conn, table, column_definition)
+
+    await _normalize_member_roles(conn)
+    await _dedupe_dm_conversations(conn)
+
 
 async def init_db():
     async with engine.begin() as conn:

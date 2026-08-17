@@ -8,7 +8,8 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    username: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    public_id: Mapped[str] = mapped_column(String(10), unique=True, index=True, nullable=False)
+    username: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
     email: Mapped[str] = mapped_column(String(120), unique=True, index=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
@@ -176,4 +177,3 @@ class Friendship(Base):
     # Relationships
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
     friend: Mapped["User"] = relationship("User", foreign_keys=[friend_id])
-

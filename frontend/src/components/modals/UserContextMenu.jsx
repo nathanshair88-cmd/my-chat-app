@@ -37,6 +37,7 @@ export default function UserContextMenu({
   const [showProfile, setShowProfile] = useState(false);
 
   const uid = user?.id || user?.user_id;
+  const publicId = user?.public_id || uid;
 
   // Pre-calculate to avoid edge clipping before layout effect runs
   const MENU_WIDTH = 240; // w-60 = 240px
@@ -162,7 +163,7 @@ export default function UserContextMenu({
             {user?.status_message && (
               <div className="text-[11px] text-text-muted truncate">{user.status_message}</div>
             )}
-            <div className="text-[10px] text-text-muted font-mono">#{uid}</div>
+            <div className="text-[10px] text-text-muted font-mono">#{publicId}</div>
           </div>
         </div>
       </div>
@@ -191,7 +192,7 @@ export default function UserContextMenu({
         <MenuItem
           icon={copied === 'userid' ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Hash className="w-3.5 h-3.5" />}
           label={copied === 'userid' ? 'Copied!' : 'Copy User ID'}
-          onClick={() => handleCopy(String(uid), 'userid')}
+          onClick={() => handleCopy(`#${publicId}`, 'userid')}
         />
 
         {/* Voice-specific actions */}

@@ -30,6 +30,7 @@ class UserSettingsUpdate(BaseModel):
 
 class UserResponse(BaseModel):
     id: int
+    public_id: str
     username: str
     email: EmailStr
     avatar_url: Optional[str] = None
@@ -43,6 +44,7 @@ class UserResponse(BaseModel):
 
 class UserPublicResponse(BaseModel):
     id: int
+    public_id: str
     username: str
     avatar_url: Optional[str] = None
     status: str

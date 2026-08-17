@@ -161,14 +161,14 @@ export default function FriendsArea() {
           <div className="max-w-2xl">
             <h2 className="text-text-primary font-bold mb-2 text-lg uppercase tracking-wider">Add Friend</h2>
             <p className="text-text-muted text-sm mb-4">
-              You can add friends with their Disco Alto username.
+              You can add friends with their Disco Alto username or #ID.
             </p>
             <form onSubmit={handleAddFriend} className="relative mb-4">
               <input 
                 type="text" 
                 value={addUsername}
                 onChange={(e) => setAddUsername(e.target.value)}
-                placeholder="You can add friends with their Disco Alto username."
+                placeholder="Username or #ID"
                 className={`w-full bg-surface-panel border ${addStatus?.type === 'success' ? 'border-success' : addStatus?.type === 'error' ? 'border-danger' : 'border-surface-border'} text-text-primary rounded-lg px-4 py-3 focus:outline-none focus:ring-1 focus:ring-accent-primary transition-colors pr-32`}
               />
               <button 
@@ -245,7 +245,7 @@ export default function FriendsArea() {
                             <span>{friendUser.username}</span>
                           </div>
                           <div className="text-xs text-text-muted truncate max-w-[200px]">
-                            {f.status === 'accepted' ? (friendUser.status_message || friendUser.status) : 
+                            {f.status === 'accepted' ? (friendUser.status_message || (friendUser.public_id ? `#${friendUser.public_id}` : friendUser.status)) :
                              isIncomingRequest ? 'Incoming Friend Request' : 'Outgoing Friend Request'}
                           </div>
                         </div>

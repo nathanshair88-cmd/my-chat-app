@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from app.database import get_db
 from app.models import User, ServerRole, Server, ServerMember
-from app.permissions import is_server_member
+from app.permissions import ROLE_ADMIN, ROLE_MEMBER, is_server_member
 from app.auth import get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
@@ -31,7 +31,10 @@ class RoleResponse(BaseModel):
         from_attributes = True
 
 class AssignRoleRequest(BaseModel):
-    role_id: Optional[int]
+    role_id: Optional[int] = None
+
+class MemberRoleUpdate(BaseModel):
+    role: str
 
 def _clean_text(value, max_length: int) -> str:
     return str(value or "").strip()[:max_length]
@@ -138,3 +141,22 @@ async def assign_role_to_member(server_id: int, user_id: int, req: AssignRoleReq
     member.custom_role_id = req.role_id
     await db.commit()
     return {"message": "Role assigned successfully"}
+
+@router.put("/{server_id}/members/{user_id}/role")
+async def update_member_base_role(server_id: int, user_id: int, req: MemberRoleUpdate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    server = await _check_owner(server_id, current_user.id, db)
+
+    new_role = _clean_text(req.role, 20).lower()
+    if new_role not in {ROLE_ADMIN, ROLE_MEMBER}:
+        raise HTTPException(status_code=400, detail="Role must be Admin or Member")
+    if user_id == server.owner_id:
+        raise HTTPException(status_code=400, detail="Cannot change the owner role")
+
+    res = await db.execute(select(ServerMember).where(and_(ServerMember.server_id == server_id, ServerMember.user_id == user_id)))
+    member = res.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    member.role = new_role
+    await db.commit()
+    return {"message": "Member role updated successfully", "role": member.role}

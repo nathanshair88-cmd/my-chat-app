@@ -10,7 +10,7 @@ from datetime import datetime
 from app.database import get_db
 from app.models import Server, User, Webhook, Message, Channel
 from app.auth import get_current_user
-from app.permissions import is_server_owner
+from app.permissions import can_manage_server
 
 router = APIRouter(tags=["webhooks"])
 
@@ -34,18 +34,24 @@ class WebhookExecute(BaseModel):
     username: Optional[str] = None
     avatar_url: Optional[str] = None
 
+
+async def _ensure_can_manage_server(server_id: int, user_id: int, db: AsyncSession):
+    res = await db.execute(select(Server.id).where(Server.id == server_id))
+    if res.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Server not found")
+    if not await can_manage_server(db, user_id, server_id):
+        raise HTTPException(status_code=403, detail="Not authorized")
+
 @router.get("/api/servers/{server_id}/webhooks", response_model=List[WebhookResponse])
 async def get_webhooks(server_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if not await is_server_owner(db, current_user.id, server_id):
-        raise HTTPException(status_code=403, detail="Not authorized")
+    await _ensure_can_manage_server(server_id, current_user.id, db)
 
     res = await db.execute(select(Webhook).where(Webhook.server_id == server_id))
     return res.scalars().all()
 
 @router.post("/api/servers/{server_id}/webhooks", response_model=WebhookResponse)
 async def create_webhook(server_id: int, webhook: WebhookCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if not await is_server_owner(db, current_user.id, server_id):
-        raise HTTPException(status_code=403, detail="Not authorized")
+    await _ensure_can_manage_server(server_id, current_user.id, db)
 
     name = webhook.name.strip()[:100]
     if not name:
@@ -69,8 +75,7 @@ async def create_webhook(server_id: int, webhook: WebhookCreate, current_user: U
 
 @router.delete("/api/servers/{server_id}/webhooks/{webhook_id}")
 async def delete_webhook(server_id: int, webhook_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    if not await is_server_owner(db, current_user.id, server_id):
-        raise HTTPException(status_code=403, detail="Not authorized")
+    await _ensure_can_manage_server(server_id, current_user.id, db)
 
     res = await db.execute(select(Webhook).where(Webhook.id == webhook_id, Webhook.server_id == server_id))
     webhook = res.scalar_one_or_none()
@@ -131,6 +136,7 @@ async def execute_webhook(token: str, payload: WebhookExecute, db: AsyncSession 
         "created_at": full_msg.created_at.isoformat(),
         "author": {
             "id": full_msg.author.id,
+            "public_id": full_msg.author.public_id,
             "username": full_msg.author.username,
             "avatar_url": full_msg.author.avatar_url,
             "status": full_msg.author.status

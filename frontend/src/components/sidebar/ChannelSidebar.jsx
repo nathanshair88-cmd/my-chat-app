@@ -54,7 +54,10 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
     }
   };
 
-  const isOwner = String(currentServer.owner_id) === String(localStorage.getItem('discoalto_user_id'));
+  const currentUserId = Number(localStorage.getItem('discoalto_user_id'));
+  const currentMember = currentServer.members?.find(m => Number(m.user_id) === currentUserId);
+  const isOwner = String(currentServer.owner_id) === String(currentUserId);
+  const canManageServer = isOwner || currentMember?.role === 'admin';
   const activeVoiceChannel = (currentServer.channels || []).find(c => c.id === voiceState.channel_id);
 
   return (
@@ -90,7 +93,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
               <div className="h-[1px] bg-surface-border my-1" />
 
-              {isOwner && (
+              {canManageServer && (
                 <>
                   <button 
                     onClick={() => {
@@ -106,7 +109,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                 </>
               )}
 
-              {isOwner && (
+              {canManageServer && (
                 <button
                   onClick={() => {
                     onOpenCreateChannel();
@@ -128,7 +131,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
             <div key={catName}>
               <div className="flex items-center justify-between px-2 mb-1">
                 <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{catName}</span>
-                {isOwner && (
+                {canManageServer && (
                   <button
                     onClick={onOpenCreateChannel}
                     className="text-text-muted hover:text-text-primary transition-colors"
