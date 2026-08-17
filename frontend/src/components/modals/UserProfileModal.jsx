@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useServer } from '../../context/ServerContext';
 import { X, MessageSquare, Calendar } from 'lucide-react';
 
@@ -39,7 +40,7 @@ export default function UserProfileModal({ user, onClose }) {
     ? new Date(user.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
     : 'Recently joined';
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       {/* Backdrop */}
       <div 
@@ -113,6 +114,7 @@ export default function UserProfileModal({ user, onClose }) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
