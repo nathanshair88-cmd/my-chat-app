@@ -799,6 +799,12 @@ class WebRTCVoiceManager {
       const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discoalto_user_id'));
       if (Number(user_id) === Number(currentUserId)) return;
 
+      // If we have an active P2P WebRTC connection with this user, ignore the fallback chunks!
+      const pc = this.peerConnections.get(user_id);
+      if (pc && pc.iceConnectionState === 'connected' && this.remoteStreams.has(user_id)) {
+         return;
+      }
+
       this.remoteParticipantsMeta.set(String(user_id), { username, avatar_url });
 
       try {
@@ -816,11 +822,13 @@ class WebRTCVoiceManager {
         let gainNode = this.userGainNodes.get(user_id);
         if (!gainNode) {
           gainNode = this.audioContext.createGain();
-          const userVol = this.getUserVolume(user_id);
-          gainNode.gain.value = userVol / 100;
           this.userGainNodes.set(user_id, gainNode);
           gainNode.connect(this.audioContext.destination);
         }
+        
+        // Dynamically apply user volume and global deafen state
+        const userVol = this.getUserVolume(user_id);
+        gainNode.gain.value = this.isDeafened ? 0 : (userVol / 100);
 
         sourceNode.connect(gainNode);
         sourceNode.start(0);
@@ -1006,7 +1014,10 @@ class WebRTCVoiceManager {
             }
             const average = sum / bufferLength;
 
-            if (average > 10) {
+            const threshold = userId === 'local' ? this.vadSensitivity : 10;
+            const isLocalSilenced = userId === 'local' && (this.isMuted || (this.inputMode === 'ptt' && !this.pttActive));
+
+            if (average > threshold && !isLocalSilenced) {
               if (releaseTimeout) {
                 clearTimeout(releaseTimeout);
                 releaseTimeout = null;
