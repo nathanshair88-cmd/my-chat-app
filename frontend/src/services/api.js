@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const useVercelProxy =
+  typeof window !== 'undefined' &&
+  window.location.hostname.endsWith('.vercel.app') &&
+  import.meta.env.VITE_FORCE_DIRECT_BACKEND !== 'true';
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: useVercelProxy ? '/api' : (import.meta.env.VITE_API_URL || '/api'),
 });
 
 // Interceptor to add JWT token

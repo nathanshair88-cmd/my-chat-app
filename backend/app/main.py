@@ -22,9 +22,10 @@ fastapi_app = FastAPI(
 )
 
 # CORS setup
+default_cors_origins = "http://localhost:5173,http://127.0.0.1:5173,https://disco-alto.vercel.app"
 cors_origins = [
     origin.strip()
-    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://disco-alto.vercel.app").split(",")
+    for origin in (os.getenv("CORS_ORIGINS") or default_cors_origins).split(",")
     if origin.strip()
 ]
 fastapi_app.add_middleware(

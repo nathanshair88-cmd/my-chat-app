@@ -9,13 +9,16 @@ from app.models import User, Message, Reaction, Channel, ServerMember, DMConvers
 from app.auth import decode_token
 from app.permissions import can_signal_user, to_int, user_channel, user_dm_conversation
 
+DEFAULT_CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,https://disco-alto.vercel.app"
+
 sio = socketio.AsyncServer(
     async_mode='asgi',
     cors_allowed_origins=[
         origin.strip()
-        for origin in os.getenv(
-            "SOCKET_CORS_ORIGINS",
-            os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,https://disco-alto.vercel.app"),
+        for origin in (
+            os.getenv("SOCKET_CORS_ORIGINS")
+            or os.getenv("CORS_ORIGINS")
+            or DEFAULT_CORS_ORIGINS
         ).split(",")
         if origin.strip()
     ],
