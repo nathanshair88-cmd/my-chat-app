@@ -50,6 +50,7 @@ async def run_migrations(conn):
         "ALTER TABLE messages ADD COLUMN webhook_id INTEGER REFERENCES webhooks(id) ON DELETE SET NULL",
         "ALTER TABLE messages ADD COLUMN custom_username TEXT",
         "ALTER TABLE messages ADD COLUMN custom_avatar_url TEXT",
+        "ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP",
     ]
     for sql in migrations:
         try:
