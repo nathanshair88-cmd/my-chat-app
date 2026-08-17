@@ -7,7 +7,7 @@ import ServerMemberList from '../sidebar/ServerMemberList';
 import { Hash, Volume2, Video, Share2, Search, X, UploadCloud, MessageSquare, Moon, Sun, Users } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
-export default function ChatArea({ onOpenP2PModal }) {
+export default function ChatArea({ onOpenP2PModal, showMemberList = true, compact = false }) {
   const { viewMode, currentChannel, currentDM, messages, typingUsers, showVoiceGrid, toggleVoiceGrid } = useServer();
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,7 +116,7 @@ export default function ChatArea({ onOpenP2PModal }) {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header Bar */}
-        <div className="min-h-12 pl-14 pr-2 md:px-4 border-b border-surface-border flex items-center justify-between gap-2 shadow-sm bg-surface-panel/40 backdrop-blur-md z-10">
+        <div className={`${compact ? 'min-h-12 px-3' : 'min-h-12 pl-14 pr-2 md:px-4'} border-b border-surface-border flex items-center justify-between gap-2 shadow-sm bg-surface-panel/40 backdrop-blur-md z-10`}>
           <div className="flex items-center min-w-0 pr-2">
             {isDM ? (
               <div className="flex items-center space-x-2 min-w-0">
@@ -134,7 +134,7 @@ export default function ChatArea({ onOpenP2PModal }) {
           </div>
 
           {/* Right Header Toolbar: Search Bar, Video Grid & P2P Button */}
-          <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 shrink-0">
+          <div className={`flex items-center shrink-0 ${compact ? 'gap-1.5' : 'gap-1.5 sm:gap-2 lg:gap-3'}`}>
             {/* Voice Channel Video Grid Toggle */}
             {currentChannel && (currentChannel.type === 'voice' || currentChannel.type === 'media') && (
               <button
@@ -150,7 +150,7 @@ export default function ChatArea({ onOpenP2PModal }) {
             )}
 
             {/* Real-time Message Search Input */}
-            <div className="relative hidden sm:flex items-center">
+            <div className={`${compact ? 'hidden' : 'relative hidden sm:flex items-center'}`}>
 
               <input
                 type="text"
@@ -175,7 +175,7 @@ export default function ChatArea({ onOpenP2PModal }) {
               className="flex items-center space-x-1.5 p-2 lg:px-3 lg:py-1.5 bg-surface-active hover:bg-surface-hover text-text-primary text-xs font-semibold rounded-md transition-colors border border-surface-border shadow-sm mobile-touch-target lg:min-w-0 lg:min-h-0"
             >
               <Share2 className="w-3.5 h-3.5 text-accent-primary" />
-              <span className="hidden lg:inline">P2P Transfer</span>
+              <span className={compact ? 'hidden' : 'hidden lg:inline'}>P2P Transfer</span>
             </button>
             
             {/* Theme Toggle */}
@@ -187,7 +187,7 @@ export default function ChatArea({ onOpenP2PModal }) {
               {isDarkMode ? <Sun className="w-4 h-4 text-text-primary" /> : <Moon className="w-4 h-4 text-text-primary" />}
             </button>
 
-            {!isDM && (
+            {!isDM && showMemberList && (
               <button
                 onClick={() => setShowMembers(!showMembers)}
                 className={`p-2 sm:p-1.5 rounded-md transition-colors border border-surface-border shadow-sm mobile-touch-target sm:min-w-0 sm:min-h-0 ${
@@ -262,7 +262,7 @@ export default function ChatArea({ onOpenP2PModal }) {
       <ThreadPanel />
 
       {/* Member List (Split Pane) */}
-      {!isDM && showMembers && (
+      {!isDM && showMemberList && showMembers && (
         <ServerMemberList />
       )}
     </div>

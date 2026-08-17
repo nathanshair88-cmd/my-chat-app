@@ -5,6 +5,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import ServerSidebar from './components/sidebar/ServerSidebar';
 import ChannelSidebar from './components/sidebar/ChannelSidebar';
 import DMSidebar from './components/sidebar/DMSidebar';
+import ServerMemberList from './components/sidebar/ServerMemberList';
 import ChatArea from './components/chat/ChatArea';
 import DirectMessagesArea from './components/chat/DirectMessagesArea';
 import VoiceRoom from './components/voice/VoiceRoom';
@@ -16,7 +17,7 @@ import P2PTransferModal from './components/p2p/P2PTransferModal';
 import { p2pEngine } from './services/webrtcP2PFile';
 import { notificationService } from './services/NotificationService';
 import UserSettingsModal from './components/modals/UserSettingsModal';
-import { Menu } from 'lucide-react';
+import { Menu, MessageSquare, X } from 'lucide-react';
 
 function MainDashboard() {
   const { user, loading } = useAuth();
@@ -27,12 +28,19 @@ function MainDashboard() {
   const [showP2PModal, setShowP2PModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [voiceTextChatOpen, setVoiceTextChatOpen] = useState(false);
 
   const closeMobileNav = () => setMobileNavOpen(false);
 
   useEffect(() => {
     setMobileNavOpen(false);
   }, [viewMode]);
+
+  useEffect(() => {
+    if (!showVoiceGrid || viewMode === 'dm') {
+      setVoiceTextChatOpen(false);
+    }
+  }, [showVoiceGrid, viewMode]);
 
   // Automatically open P2P modal on incoming transfers
   useEffect(() => {
@@ -119,11 +127,52 @@ function MainDashboard() {
         {/* 3. Main Center Workspace (Chat or Voice/Video Grid) */}
         <div className="flex-1 flex min-w-0 h-full relative bg-surface-base/30 backdrop-blur-md">
           {showVoiceGrid && viewMode !== 'dm' ? (
-            <div className="flex-1 flex flex-col xl:flex-row h-full min-w-0">
+            <div className="flex-1 flex h-full min-w-0 relative overflow-hidden">
               <VoiceRoom />
-              <div className="w-full xl:w-96 border-t xl:border-t-0 xl:border-l border-surface-border flex flex-col h-[42%] xl:h-full min-h-0 bg-surface-panel/40">
-                <ChatArea onOpenP2PModal={() => setShowP2PModal(true)} />
+
+              {!voiceTextChatOpen && (
+                <button
+                  aria-label="Open voice text chat"
+                  onClick={() => setVoiceTextChatOpen(true)}
+                  className="2xl:hidden absolute top-3 right-3 lg:right-60 xl:right-64 z-20 mobile-touch-target rounded-md border border-surface-border bg-accent-primary text-text-primary shadow-lg shadow-indigo-500/20 backdrop-blur flex items-center gap-2 px-3 text-sm font-semibold"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="hidden sm:inline">Text Chat</span>
+                </button>
+              )}
+
+              {voiceTextChatOpen && (
+                <button
+                  aria-label="Close voice text chat"
+                  className="fixed inset-0 z-40 bg-black/50 2xl:hidden"
+                  onClick={() => setVoiceTextChatOpen(false)}
+                />
+              )}
+
+              <div className={`fixed 2xl:relative inset-y-0 right-0 z-50 2xl:z-10 w-[min(92vw,28rem)] sm:w-[28rem] 2xl:w-[30rem] 2xl:min-w-[28rem] 2xl:max-w-[34rem] border-l border-surface-border flex flex-col h-dvh 2xl:h-full min-h-0 bg-surface-panel shadow-2xl 2xl:shadow-none transition-transform duration-200 ease-out shrink-0 ${
+                voiceTextChatOpen ? 'translate-x-0' : 'translate-x-full 2xl:translate-x-0'
+              }`}>
+                <div className="2xl:hidden min-h-12 px-3 border-b border-surface-border bg-surface-panel/95 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 min-w-0 text-text-primary font-semibold">
+                    <MessageSquare className="w-4 h-4 text-accent-primary shrink-0" />
+                    <span className="truncate">Voice Text Chat</span>
+                  </div>
+                  <button
+                    aria-label="Close voice text chat"
+                    onClick={() => setVoiceTextChatOpen(false)}
+                    className="mobile-touch-target rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover flex items-center justify-center"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <ChatArea
+                  onOpenP2PModal={() => setShowP2PModal(true)}
+                  showMemberList={false}
+                  compact
+                />
               </div>
+
+              <ServerMemberList />
             </div>
           ) : viewMode === 'dm' ? (
             <DirectMessagesArea onOpenP2PModal={() => setShowP2PModal(true)} />

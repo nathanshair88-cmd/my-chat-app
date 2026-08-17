@@ -60,7 +60,7 @@ export default function VoiceRoom() {
 
   if (!isConnected) {
     return (
-      <div className="flex-1 bg-surface-base flex flex-col items-center justify-center p-4 sm:p-8 text-center select-none">
+      <div className="flex-1 min-w-0 bg-surface-base flex flex-col items-center justify-center p-4 sm:p-8 text-center select-none">
         <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-surface-panel flex items-center justify-center mb-4 border border-surface-border shadow-md">
           <Radio className="w-10 h-10 text-accent-primary" />
         </div>
@@ -80,7 +80,7 @@ export default function VoiceRoom() {
   }
 
   return (
-    <div className="flex-1 bg-transparent flex flex-col justify-between p-2 sm:p-4 relative min-h-0 overflow-hidden select-none">
+    <div className="flex-1 min-w-0 bg-transparent flex flex-col justify-between p-2 sm:p-4 relative min-h-0 overflow-hidden select-none">
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-surface-active/80 backdrop-blur-md px-3 sm:px-4 py-2.5 rounded-md border border-surface-border mb-3 sm:mb-4 z-10 shadow-sm ml-12 sm:ml-0">
         <div className="flex items-center space-x-2 text-text-primary font-bold text-sm min-w-0">
