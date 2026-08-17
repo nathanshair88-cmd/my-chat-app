@@ -60,12 +60,12 @@ function MainDashboard() {
   }
 
   return (
-    <div className="flex h-screen w-screen p-0 sm:p-2 md:p-4 bg-transparent overflow-hidden select-none relative">
+    <div className="flex h-screen w-screen p-0 bg-transparent overflow-hidden select-none relative">
       {/* Background Voice Audio Player */}
       <GlobalVoiceAudioPlayer />
 
       {/* Main Glass App Container */}
-      <div className="flex w-full h-full glass-panel sm:rounded-none overflow-hidden shadow-2xl relative border border-surface-border transition-all duration-300">
+      <div className="flex w-full h-full glass-panel rounded-none overflow-hidden relative transition-all duration-300">
         
         {/* 1. Leftmost Server Rail */}
         <ServerSidebar

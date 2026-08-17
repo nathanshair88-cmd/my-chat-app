@@ -22,11 +22,11 @@
 
 :root {
   /* LIGHT MODE (High Contrast, Colorful) */
-  --surface-base: #e0e7ff; /* Indigo-100 */
-  --surface-panel: rgba(255, 255, 255, 0.85); /* Slightly opaque white */
-  --surface-hover: rgba(219, 234, 254, 0.8); /* Blue-100 hover */
+  --surface-base: #dbeafe; /* Soft vibrant blue base */
+  --surface-panel: rgba(238, 242, 255, 0.95); /* Very light indigo panel */
+  --surface-hover: rgba(224, 231, 255, 0.95); /* Indigo 100 hover */
   --surface-active: #ffffff;
-  --surface-border: rgba(99, 102, 241, 0.4); /* Indigo border */
+  --surface-border: rgba(99, 102, 241, 0.5); /* Stronger indigo border */
   
   --text-primary: #0f172a; /* Slate 900 */
   --text-secondary: #1e293b; /* Slate 800 */
@@ -80,8 +80,8 @@
   
   /* Fallback animated background for light mode */
   :root:not(.dark) body {
-    background-image: radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.25), transparent 35%),
-                      radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.25), transparent 35%);
+    background-image: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.4), transparent 45%),
+                      radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.4), transparent 45%);
     background-color: var(--surface-base);
   }
 }
