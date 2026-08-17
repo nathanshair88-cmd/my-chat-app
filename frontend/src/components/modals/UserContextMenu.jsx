@@ -33,7 +33,6 @@ export default function UserContextMenu({
   const { user: currentUser } = useAuth();
 
   const menuRef = useRef(null);
-  const [pos, setPos]         = useState({ top: y, left: x });
   const [volume, setVolume]   = useState(() => voiceManager.getUserVolume(user?.id || user?.user_id));
   const [isMuted, setIsMuted] = useState(() => voiceManager.getUserVolume(user?.id || user?.user_id) === 0);
   const [copied, setCopied]   = useState('');
@@ -41,12 +40,21 @@ export default function UserContextMenu({
 
   const uid = user?.id || user?.user_id;
 
-  // Clamp to viewport
+  // Pre-calculate to avoid edge clipping before layout effect runs
+  const MENU_WIDTH = 240; // w-60 = 240px
+  const MENU_HEIGHT = 380; // Approximate max height
+
+  const [pos, setPos] = useState({ 
+    top: y + MENU_HEIGHT > window.innerHeight ? Math.max(0, window.innerHeight - MENU_HEIGHT - 20) : y, 
+    left: x + MENU_WIDTH > window.innerWidth ? Math.max(0, x - MENU_WIDTH) : x 
+  });
+
+  // Clamp to viewport robustly on resize or if height changes significantly
   useEffect(() => {
     if (menuRef.current) {
       const rect = menuRef.current.getBoundingClientRect();
       setPos({
-        top:  y + rect.height > window.innerHeight ? Math.max(0, y - rect.height) : y,
+        top:  y + rect.height > window.innerHeight ? Math.max(0, window.innerHeight - rect.height - 10) : y,
         left: x + rect.width  > window.innerWidth  ? Math.max(0, x - rect.width)  : x
       });
     }
