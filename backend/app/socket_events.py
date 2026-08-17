@@ -545,6 +545,7 @@ async def send_dm_message(sid, data):
             "sender_id": full_dm.sender_id,
             "content": full_dm.content,
             "attachments_json": full_dm.attachments_json,
+            "is_read": bool(full_dm.is_read),
             "created_at": full_dm.created_at.isoformat(),
             "sender": {
                 "id": full_dm.sender.id,
@@ -559,6 +560,45 @@ async def send_dm_message(sid, data):
     target_sids = user_to_sids.get(target_user_id, set())
     for tsid in target_sids:
         await sio.emit("new_dm_notification", dm_dict, to=tsid)
+
+@sio.event
+async def mark_dms_read(sid, data):
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+
+    conversation_id = data.get("conversation_id")
+    if not conversation_id:
+        return
+
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(
+            select(DirectMessage).where(
+                DirectMessage.conversation_id == conversation_id,
+                DirectMessage.sender_id != user_data["id"],
+                DirectMessage.is_read == 0
+            )
+        )
+        unread_msgs = res.scalars().all()
+        
+        if not unread_msgs:
+            return
+
+        for msg in unread_msgs:
+            msg.is_read = 1
+        
+        await db.commit()
+        
+        # Who was the sender of these messages?
+        # We need to notify them that their messages were read.
+        sender_id = unread_msgs[0].sender_id
+        
+        target_sids = user_to_sids.get(sender_id, set())
+        for tsid in target_sids:
+            await sio.emit("dms_read_receipt", {
+                "conversation_id": conversation_id,
+                "read_by": user_data["id"]
+            }, to=tsid)
 
 
 # --- Watch Together Activity ---

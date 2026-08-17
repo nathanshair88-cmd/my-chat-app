@@ -175,6 +175,7 @@ export const ServerProvider = ({ children }) => {
       setUnreadDMs(prev => ({ ...prev, [conversation.id]: 0 }));
       if (socket) {
         socket.emit('join_dm', { conversation_id: conversation.id });
+        socket.emit('mark_dms_read', { conversation_id: conversation.id });
       }
 
       try {
@@ -255,6 +256,18 @@ export const ServerProvider = ({ children }) => {
         setMessages(prev => prev.map(m => m.id === message_id ? { ...m, reactions } : m));
       };
 
+      const handleDMsReadReceipt = (data) => {
+        const { conversation_id, read_by } = data;
+        if (viewModeRef.current === 'dm' && currentDMRef.current && currentDMRef.current.id === conversation_id) {
+          setMessages(prev => prev.map(m => {
+            if (m.sender_id !== read_by && !m.is_read) {
+              return { ...m, is_read: true };
+            }
+            return m;
+          }));
+        }
+      };
+
       const handleUserTyping = (data) => {
         if (viewModeRef.current === 'server' && currentChannelRef.current && data.channel_id === currentChannelRef.current.id) {
           setTypingUsers(prev => {
@@ -283,6 +296,7 @@ export const ServerProvider = ({ children }) => {
       socket.on('new_dm_notification', handleNewDMNotification);
       socket.on('reaction_updated', handleReactionUpdated);
       socket.on('user_typing', handleUserTyping);
+      socket.on('dms_read_receipt', handleDMsReadReceipt);
 
       cleanupFns.push(() => {
         socket.off('connect', handleConnect);
@@ -291,6 +305,7 @@ export const ServerProvider = ({ children }) => {
         socket.off('new_dm_notification', handleNewDMNotification);
         socket.off('reaction_updated', handleReactionUpdated);
         socket.off('user_typing', handleUserTyping);
+        socket.off('dms_read_receipt', handleDMsReadReceipt);
       });
 
       return true;

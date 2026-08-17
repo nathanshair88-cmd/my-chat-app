@@ -5,7 +5,7 @@ import EmojiPicker from './EmojiPicker';
 import MediaLightboxModal from '../modals/MediaLightboxModal';
 import UserContextMenu from '../modals/UserContextMenu';
 import MessageContextMenu from '../modals/MessageContextMenu';
-import { Smile, FileText, Download, Play, Image as ImageIcon } from 'lucide-react';
+import { Smile, FileText, Download, Play, Image as ImageIcon, MoreVertical, X, CheckCheck } from 'lucide-react';
 import { getSocket } from '../../services/socket';
 import { useAuth } from '../../context/AuthContext';
 import { useServer } from '../../context/ServerContext';
@@ -114,7 +114,12 @@ export default function MessageItem({ message, searchQuery }) {
           >
             {author?.username || 'Unknown User'}
           </span>
-          <span className="text-[11px] text-text-muted font-medium">{formattedDate}</span>
+          <div className="flex items-center space-x-1">
+            <span className="text-[11px] text-text-muted font-medium">{formattedDate}</span>
+            {viewMode === 'dm' && isOwnMessage && message.is_read && (
+              <CheckCheck className="w-3.5 h-3.5 text-accent-primary" title="Read" />
+            )}
+          </div>
         </div>
 
         {/* Markdown Content Body */}

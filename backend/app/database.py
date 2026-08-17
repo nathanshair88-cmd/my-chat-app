@@ -46,6 +46,7 @@ async def run_migrations(conn):
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS settings_json TEXT",
         "ALTER TABLE server_members ADD COLUMN custom_role_id INTEGER REFERENCES server_roles(id) ON DELETE SET NULL",
         "ALTER TABLE messages ADD COLUMN parent_id INTEGER REFERENCES messages(id) ON DELETE CASCADE",
+        "ALTER TABLE direct_messages ADD COLUMN is_read INTEGER DEFAULT 0",
     ]
     for sql in migrations:
         try:

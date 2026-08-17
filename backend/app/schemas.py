@@ -150,6 +150,7 @@ class DirectMessageResponse(BaseModel):
     sender_id: int
     content: str
     attachments_json: Optional[str] = None
+    is_read: bool = False
     created_at: datetime
     sender: UserResponse
 

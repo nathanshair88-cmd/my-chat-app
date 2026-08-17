@@ -141,6 +141,7 @@ class DirectMessage(Base):
     sender_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     attachments_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    is_read: Mapped[bool] = mapped_column(Integer, default=0) # using Integer as boolean for sqlite compatibility
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     conversation: Mapped["DMConversation"] = relationship("DMConversation", back_populates="messages")
