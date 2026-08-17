@@ -584,13 +584,18 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
       </div>
 
       {/* ── Header bar ─────────────────────────────────────────────────── */}
-      <div className={`z-30 flex items-center justify-between px-4 py-3 shrink-0 transition-all duration-300 ${
-        isFullscreen 
-          ? 'absolute top-0 left-0 right-0 border-none bg-gradient-to-b from-black/80 to-transparent pt-6' 
-          : 'relative border-b border-surface-border bg-surface-active/50 backdrop-blur-md'
-      } ${
-        isFullscreen && !showControlsInFullscreen ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'
-      }`}>
+      <div 
+        style={{ 
+          opacity: (isFullscreen && !showControlsInFullscreen) ? 0 : 1,
+          pointerEvents: (isFullscreen && !showControlsInFullscreen) ? 'none' : 'auto',
+          transform: (isFullscreen && !showControlsInFullscreen) ? 'translateY(-16px)' : 'translateY(0)'
+        }}
+        className={`z-30 flex items-center justify-between px-4 py-3 shrink-0 transition-all duration-300 ${
+          isFullscreen 
+            ? 'absolute top-0 left-0 right-0 border-none bg-gradient-to-b from-black/80 to-transparent pt-6' 
+            : 'relative border-b border-surface-border bg-surface-active/50 backdrop-blur-md'
+        }`}
+      >
         <div className="flex items-center space-x-2.5">
           <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/30">
             <TvMinimalPlay className="w-4.5 h-4.5 text-white" />
