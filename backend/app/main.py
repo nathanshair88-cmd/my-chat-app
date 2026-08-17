@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
     yield
 
 fastapi_app = FastAPI(
-    title="Discord Clone API",
+    title="Disco Alto Clone API",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -30,7 +30,7 @@ fastapi_app.add_middleware(
 
 @fastapi_app.get("/")
 async def root():
-    return {"status": "online", "message": "Discord Clone API Backend is running"}
+    return {"status": "online", "message": "Disco Alto Clone API Backend is running"}
 
 # Include Routers
 fastapi_app.include_router(auth.router)

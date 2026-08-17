@@ -1,17 +1,17 @@
 # 100% Free Permanent 24/7 Deployment Guide
 
-Follow these simple steps to deploy your **Discord Clone App** online with **permanent URLs** that stay online **24/7 forever for free** without ever expiring or closing.
+Follow these simple steps to deploy your **Disco Alto Clone App** online with **permanent URLs** that stay online **24/7 forever for free** without ever expiring or closing.
 
 ---
 
 ## Step 1: Push Project to GitHub
 
-1. Create a repository on [GitHub](https://github.com/new) (e.g. `free-discord-app`).
+1. Create a repository on [GitHub](https://github.com/new) (e.g. `free-discoalto-app`).
 2. Run these commands in your project folder to push:
    ```bash
    git init
    git add .
-   git commit -m "Deploy Free Discord App"
+   git commit -m "Deploy Free Disco Alto App"
    git branch -M main
    git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
    git push -u origin main
@@ -29,7 +29,7 @@ Follow these simple steps to deploy your **Discord Clone App** online with **per
    - **Build Command**: `pip install -r requirements.txt`
    - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 4. Click **Create Web Service**.
-5. Once deployed, copy your permanent backend URL (e.g. `https://discord-app-backend.onrender.com`).
+5. Once deployed, copy your permanent backend URL (e.g. `https://discoalto-app-backend.onrender.com`).
 
 ---
 
@@ -48,6 +48,6 @@ Follow these simple steps to deploy your **Discord Clone App** online with **per
 ---
 
 ### 🎉 Result: Your App is Online 24/7 Permanently!
-- Your frontend link will be permanent (e.g., `https://free-discord-app.vercel.app`).
+- Your frontend link will be permanent (e.g., `https://free-discoalto-app.vercel.app`).
 - It will **never expire**, **never close**, and requires **zero maintenance**.
 - WebSockets, voice channels, DMs, and P2P file transfers work seamlessly across all devices globally!

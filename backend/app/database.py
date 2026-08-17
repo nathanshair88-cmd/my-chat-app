@@ -3,7 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./discord_clone.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./discoalto_clone.db")
 
 # Fix Render Postgres URLs if they use the old postgres:// scheme
 if DATABASE_URL.startswith("postgres://"):

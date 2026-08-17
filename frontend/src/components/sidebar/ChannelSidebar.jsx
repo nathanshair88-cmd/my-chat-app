@@ -166,12 +166,12 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                         <div className="ml-5 my-1 space-y-1 pl-2 border-l border-surface-border animate-fadeIn">
                           {connectedUsers.map((u) => {
                             const uId = u.id || u.user_id;
-                            const localUserId = String(localStorage.getItem('discord_user_id') || '');
+                            const localUserId = String(localStorage.getItem('discoalto_user_id') || '');
                             const isUserSpeaking = speakingUsers.some(id => String(id) === String(uId)) ||
                               (String(uId) === localUserId && speakingUsers.includes('local'));
                             let displayUsername = u.username;
                             if (!displayUsername || displayUsername === 'You') {
-                              displayUsername = localStorage.getItem('discord_username') || 'Member';
+                              displayUsername = localStorage.getItem('discoalto_username') || 'Member';
                             }
                             const avatarUrl = u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${displayUsername}`;
 
@@ -188,7 +188,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                                   setContextMenu({ x: e.clientX, y: e.clientY, user: u });
                                 }}
                               >
-                                {/* Avatar with Real-time Discord Green Glowing Speaking Ring */}
+                                {/* Avatar with Real-time Disco Alto Green Glowing Speaking Ring */}
                                 <div className={`
                                   w-6 h-6 rounded-full overflow-hidden shrink-0 border-2 transition-all duration-300 relative 
                                   ${isUserSpeaking 
@@ -265,7 +265,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
           x={contextMenu.x} 
           y={contextMenu.y} 
           user={contextMenu.user} 
-          isLocalUser={String(contextMenu.user.id || contextMenu.user.user_id) === String(localStorage.getItem('discord_user_id'))}
+          isLocalUser={String(contextMenu.user.id || contextMenu.user.user_id) === String(localStorage.getItem('discoalto_user_id'))}
           onClose={() => setContextMenu(null)} 
           voiceManager={voiceManager}
         />

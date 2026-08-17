@@ -56,7 +56,7 @@ class NotificationService {
       if (!this.audioCtx) return;
 
       const now = this.audioCtx.currentTime;
-      // Discord voice join chime: rising two-tone (C5 -> G5)
+      // Disco Alto voice join chime: rising two-tone (C5 -> G5)
       const notes = [523.25, 783.99];
 
       notes.forEach((freq, idx) => {
@@ -88,7 +88,7 @@ class NotificationService {
       if (!this.audioCtx) return;
 
       const now = this.audioCtx.currentTime;
-      // Discord voice disconnect chime: falling two-tone (G5 -> C5)
+      // Disco Alto voice disconnect chime: falling two-tone (G5 -> C5)
       const notes = [783.99, 523.25];
 
       notes.forEach((freq, idx) => {

@@ -1,6 +1,6 @@
 # Complete Non-Cloudflare Global Hosting & Tunneling Guide
 
-This guide provides reliable, high-performance alternatives to Cloudflare for hosting and exposing your **Discord Clone App** globally. All Cloudflare components (Cloudflare Tunnels and Cloudflare STUN) have been completely removed from this repository.
+This guide provides reliable, high-performance alternatives to Cloudflare for hosting and exposing your **Disco Alto Clone App** globally. All Cloudflare components (Cloudflare Tunnels and Cloudflare STUN) have been completely removed from this repository.
 
 ---
 

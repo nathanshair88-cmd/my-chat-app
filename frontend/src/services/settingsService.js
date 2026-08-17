@@ -12,18 +12,18 @@ let saveTimer = null;
 
 // All the localStorage keys that belong to user settings
 const SETTINGS_KEYS = [
-  'discord_input_mode',
-  'discord_ptt_key',
-  'discord_echo_cancellation',
-  'discord_noise_suppression',
-  'discord_auto_gain',
-  'discord_vad_sensitivity',
-  'discord_audio_input',
-  'discord_audio_output',
-  'discord_video_input',
-  'discord_input_volume',
-  'discord_output_volume',
-  'discord_audio_bitrate',
+  'discoalto_input_mode',
+  'discoalto_ptt_key',
+  'discoalto_echo_cancellation',
+  'discoalto_noise_suppression',
+  'discoalto_auto_gain',
+  'discoalto_vad_sensitivity',
+  'discoalto_audio_input',
+  'discoalto_audio_output',
+  'discoalto_video_input',
+  'discoalto_input_volume',
+  'discoalto_output_volume',
+  'discoalto_audio_bitrate',
 ];
 
 /** Collect current settings from localStorage into a plain object */
@@ -47,16 +47,16 @@ export function applySettings(settings) {
   });
 
   // Apply voice manager settings
-  const inputMode = settings['discord_input_mode'];
+  const inputMode = settings['discoalto_input_mode'];
   if (inputMode) voiceManager.setInputMode(inputMode);
 
-  const pttKey = settings['discord_ptt_key'];
+  const pttKey = settings['discoalto_ptt_key'];
   if (pttKey) voiceManager.setPttKey(pttKey);
 
-  const echo = settings['discord_echo_cancellation'];
-  const noise = settings['discord_noise_suppression'];
-  const gain = settings['discord_auto_gain'];
-  const vad = settings['discord_vad_sensitivity'];
+  const echo = settings['discoalto_echo_cancellation'];
+  const noise = settings['discoalto_noise_suppression'];
+  const gain = settings['discoalto_auto_gain'];
+  const vad = settings['discoalto_vad_sensitivity'];
 
   voiceManager.setAudioProcessing({
     ...(echo !== undefined && { echoCancellation: echo === 'true' }),

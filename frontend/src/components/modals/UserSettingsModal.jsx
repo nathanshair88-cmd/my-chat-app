@@ -25,13 +25,13 @@ export default function UserSettingsModal({ onClose }) {
   const [permissionError, setPermissionError] = useState('');
 
   // Selected device IDs
-  const [selectedInputDevice, setSelectedInputDevice] = useState(localStorage.getItem('discord_audio_input') || 'default');
-  const [selectedOutputDevice, setSelectedOutputDevice] = useState(localStorage.getItem('discord_audio_output') || 'default');
-  const [selectedVideoDevice, setSelectedVideoDevice] = useState(localStorage.getItem('discord_video_input') || 'default');
+  const [selectedInputDevice, setSelectedInputDevice] = useState(localStorage.getItem('discoalto_audio_input') || 'default');
+  const [selectedOutputDevice, setSelectedOutputDevice] = useState(localStorage.getItem('discoalto_audio_output') || 'default');
+  const [selectedVideoDevice, setSelectedVideoDevice] = useState(localStorage.getItem('discoalto_video_input') || 'default');
 
   // Volume sliders
-  const [inputVolume, setInputVolume] = useState(Number(localStorage.getItem('discord_input_volume')) || 100);
-  const [outputVolume, setOutputVolume] = useState(Number(localStorage.getItem('discord_output_volume')) || 100);
+  const [inputVolume, setInputVolume] = useState(Number(localStorage.getItem('discoalto_input_volume')) || 100);
+  const [outputVolume, setOutputVolume] = useState(Number(localStorage.getItem('discoalto_output_volume')) || 100);
 
   // Mic test state
   const [isTestingMic, setIsTestingMic] = useState(false);
@@ -171,7 +171,7 @@ export default function UserSettingsModal({ onClose }) {
   // Handle device selection saves
   const handleSelectInputDevice = (id) => {
     setSelectedInputDevice(id);
-    localStorage.setItem('discord_audio_input', id);
+    localStorage.setItem('discoalto_audio_input', id);
     scheduleSave();
     if (isTestingMic) {
       stopMicTest();
@@ -181,13 +181,13 @@ export default function UserSettingsModal({ onClose }) {
 
   const handleSelectOutputDevice = (id) => {
     setSelectedOutputDevice(id);
-    localStorage.setItem('discord_audio_output', id);
+    localStorage.setItem('discoalto_audio_output', id);
     scheduleSave();
   };
 
   const handleSelectVideoDevice = (id) => {
     setSelectedVideoDevice(id);
-    localStorage.setItem('discord_video_input', id);
+    localStorage.setItem('discoalto_video_input', id);
     scheduleSave();
     if (isPreviewingCamera) {
       stopCameraPreview();
@@ -197,7 +197,7 @@ export default function UserSettingsModal({ onClose }) {
 
   const handleInputVolumeChange = (v) => {
     setInputVolume(v);
-    localStorage.setItem('discord_input_volume', v);
+    localStorage.setItem('discoalto_input_volume', v);
     scheduleSave();
     if (micGainNodeRef.current) {
       micGainNodeRef.current.gain.value = v / 100;
@@ -206,7 +206,7 @@ export default function UserSettingsModal({ onClose }) {
 
   const handleOutputVolumeChange = (v) => {
     setOutputVolume(v);
-    localStorage.setItem('discord_output_volume', v);
+    localStorage.setItem('discoalto_output_volume', v);
     scheduleSave();
   };
 
@@ -311,7 +311,7 @@ export default function UserSettingsModal({ onClose }) {
   const [noiseSuppression, setNoiseSuppression] = useState(voiceManager.noiseSuppression);
   const [autoGainControl, setAutoGainControl] = useState(voiceManager.autoGainControl);
   const [vadSensitivity, setVadSensitivityState] = useState(voiceManager.vadSensitivity);
-  const [audioBitrate, setAudioBitrate] = useState(localStorage.getItem('discord_audio_bitrate') || '128');
+  const [audioBitrate, setAudioBitrate] = useState(localStorage.getItem('discoalto_audio_bitrate') || '128');
 
   const handleInputModeChange = (mode) => {
     setInputModeState(mode);
@@ -357,7 +357,7 @@ export default function UserSettingsModal({ onClose }) {
 
   const handleBitrateChange = (val) => {
     setAudioBitrate(val);
-    localStorage.setItem('discord_audio_bitrate', val);
+    localStorage.setItem('discoalto_audio_bitrate', val);
     scheduleSave();
   };
 
@@ -994,7 +994,7 @@ export default function UserSettingsModal({ onClose }) {
                 <h3 className="text-sm font-bold text-text-primary mb-3">Theme Theme Palette</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div className="p-3 bg-surface-base border-2 border-accent-primary rounded-md text-center cursor-pointer">
-                    <div className="text-xs font-bold text-text-primary">Discord Dark</div>
+                    <div className="text-xs font-bold text-text-primary">Disco Alto Dark</div>
                     <div className="text-[10px] text-text-muted">Classic Slate</div>
                   </div>
                   <div className="p-3 bg-surface-active border border-surface-border rounded-md text-center opacity-60 cursor-not-allowed">

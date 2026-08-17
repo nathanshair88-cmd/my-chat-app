@@ -6,7 +6,7 @@ const API = axios.create({
 
 // Interceptor to add JWT token
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('discord_token');
+  const token = localStorage.getItem('discoalto_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

@@ -14,7 +14,7 @@ frontend/dist/
 # Database & SQLite files
 *.db
 *.sqlite
-backend/discord_clone.db
+backend/discoalto_clone.db
 
 # Environment variables
 .env

@@ -12,23 +12,23 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchMe = async () => {
-      const token = localStorage.getItem('discord_token');
+      const token = localStorage.getItem('discoalto_token');
       if (token) {
         try {
           const res = await authAPI.getMe();
           setUser(res.data);
-          localStorage.setItem('discord_user_id', res.data.id);
-          localStorage.setItem('discord_username', res.data.username);
-          if (res.data.avatar_url) localStorage.setItem('discord_avatar_url', res.data.avatar_url);
+          localStorage.setItem('discoalto_user_id', res.data.id);
+          localStorage.setItem('discoalto_username', res.data.username);
+          if (res.data.avatar_url) localStorage.setItem('discoalto_avatar_url', res.data.avatar_url);
           const socket = initSocket(token);
           p2pEngine.initSocketListeners();
           loadSettings(); // Restore saved preferences from server
         } catch (err) {
           console.error("Token verification failed:", err);
-          localStorage.removeItem('discord_token');
-          localStorage.removeItem('discord_user_id');
-          localStorage.removeItem('discord_username');
-          localStorage.removeItem('discord_avatar_url');
+          localStorage.removeItem('discoalto_token');
+          localStorage.removeItem('discoalto_user_id');
+          localStorage.removeItem('discoalto_username');
+          localStorage.removeItem('discoalto_avatar_url');
         }
       }
       setLoading(false);
@@ -39,10 +39,10 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const res = await authAPI.login({ email, password });
     const { access_token, user: userData } = res.data;
-    localStorage.setItem('discord_token', access_token);
-    localStorage.setItem('discord_user_id', userData.id);
-    localStorage.setItem('discord_username', userData.username);
-    if (userData.avatar_url) localStorage.setItem('discord_avatar_url', userData.avatar_url);
+    localStorage.setItem('discoalto_token', access_token);
+    localStorage.setItem('discoalto_user_id', userData.id);
+    localStorage.setItem('discoalto_username', userData.username);
+    if (userData.avatar_url) localStorage.setItem('discoalto_avatar_url', userData.avatar_url);
     setUser(userData);
     initSocket(access_token);
     p2pEngine.initSocketListeners();
@@ -53,10 +53,10 @@ export const AuthProvider = ({ children }) => {
   const register = async (username, email, password, avatar_url) => {
     const res = await authAPI.register({ username, email, password, avatar_url });
     const { access_token, user: userData } = res.data;
-    localStorage.setItem('discord_token', access_token);
-    localStorage.setItem('discord_user_id', userData.id);
-    localStorage.setItem('discord_username', userData.username);
-    if (userData.avatar_url) localStorage.setItem('discord_avatar_url', userData.avatar_url);
+    localStorage.setItem('discoalto_token', access_token);
+    localStorage.setItem('discoalto_user_id', userData.id);
+    localStorage.setItem('discoalto_username', userData.username);
+    if (userData.avatar_url) localStorage.setItem('discoalto_avatar_url', userData.avatar_url);
     setUser(userData);
     initSocket(access_token);
     p2pEngine.initSocketListeners();
@@ -65,10 +65,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('discord_token');
-    localStorage.removeItem('discord_user_id');
-    localStorage.removeItem('discord_username');
-    localStorage.removeItem('discord_avatar_url');
+    localStorage.removeItem('discoalto_token');
+    localStorage.removeItem('discoalto_user_id');
+    localStorage.removeItem('discoalto_username');
+    localStorage.removeItem('discoalto_avatar_url');
     disconnectSocket();
     setUser(null);
   };

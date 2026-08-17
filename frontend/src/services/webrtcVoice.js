@@ -59,13 +59,13 @@ class WebRTCVoiceManager {
     this.camVideoEl.playsInline = true;
 
     // Advanced Voice Settings
-    this.inputMode = localStorage.getItem('discord_input_mode') || 'vad'; // 'vad' | 'ptt'
-    this.pttKey = localStorage.getItem('discord_ptt_key') || 'ControlLeft';
+    this.inputMode = localStorage.getItem('discoalto_input_mode') || 'vad'; // 'vad' | 'ptt'
+    this.pttKey = localStorage.getItem('discoalto_ptt_key') || 'ControlLeft';
     this.pttActive = false;
-    this.echoCancellation = localStorage.getItem('discord_echo_cancellation') !== 'false';
-    this.noiseSuppression = localStorage.getItem('discord_noise_suppression') !== 'false';
-    this.autoGainControl = localStorage.getItem('discord_auto_gain') !== 'false';
-    this.vadSensitivity = Number(localStorage.getItem('discord_vad_sensitivity')) || 20;
+    this.echoCancellation = localStorage.getItem('discoalto_echo_cancellation') !== 'false';
+    this.noiseSuppression = localStorage.getItem('discoalto_noise_suppression') !== 'false';
+    this.autoGainControl = localStorage.getItem('discoalto_auto_gain') !== 'false';
+    this.vadSensitivity = Number(localStorage.getItem('discoalto_vad_sensitivity')) || 20;
 
     this.listeners = new Set();
 
@@ -112,33 +112,33 @@ class WebRTCVoiceManager {
 
   setInputMode(mode) {
     this.inputMode = mode;
-    localStorage.setItem('discord_input_mode', mode);
+    localStorage.setItem('discoalto_input_mode', mode);
     this._applyMicState();
     this.notify();
   }
 
   setPttKey(key) {
     this.pttKey = key;
-    localStorage.setItem('discord_ptt_key', key);
+    localStorage.setItem('discoalto_ptt_key', key);
     this.notify();
   }
 
   setAudioProcessing({ echoCancellation, noiseSuppression, autoGainControl, vadSensitivity }) {
     if (echoCancellation !== undefined) {
       this.echoCancellation = echoCancellation;
-      localStorage.setItem('discord_echo_cancellation', echoCancellation);
+      localStorage.setItem('discoalto_echo_cancellation', echoCancellation);
     }
     if (noiseSuppression !== undefined) {
       this.noiseSuppression = noiseSuppression;
-      localStorage.setItem('discord_noise_suppression', noiseSuppression);
+      localStorage.setItem('discoalto_noise_suppression', noiseSuppression);
     }
     if (autoGainControl !== undefined) {
       this.autoGainControl = autoGainControl;
-      localStorage.setItem('discord_auto_gain', autoGainControl);
+      localStorage.setItem('discoalto_auto_gain', autoGainControl);
     }
     if (vadSensitivity !== undefined) {
       this.vadSensitivity = vadSensitivity;
-      localStorage.setItem('discord_vad_sensitivity', vadSensitivity);
+      localStorage.setItem('discoalto_vad_sensitivity', vadSensitivity);
     }
 
     if (this.currentChannelId) {
@@ -165,9 +165,9 @@ class WebRTCVoiceManager {
 
     // Local stream representation
     if (this.localAudioStream || this.localScreenStream || this.localCameraStream) {
-      const localUsername = this.currentUser?.username || localStorage.getItem('discord_username') || 'You';
-      const localAvatar = this.currentUser?.avatar_url || localStorage.getItem('discord_avatar_url') || null;
-      const localUserId = this.currentUser?.id || Number(localStorage.getItem('discord_user_id')) || 'local';
+      const localUsername = this.currentUser?.username || localStorage.getItem('discoalto_username') || 'You';
+      const localAvatar = this.currentUser?.avatar_url || localStorage.getItem('discoalto_avatar_url') || null;
+      const localUserId = this.currentUser?.id || Number(localStorage.getItem('discoalto_user_id')) || 'local';
 
       streamsList.push({
         user_id: 'local',
@@ -243,7 +243,7 @@ class WebRTCVoiceManager {
     }
 
     try {
-      const savedAudioInput = localStorage.getItem('discord_audio_input');
+      const savedAudioInput = localStorage.getItem('discoalto_audio_input');
       const audioConstraints = {
         echoCancellation: this.echoCancellation,
         noiseSuppression: this.noiseSuppression,
@@ -295,7 +295,7 @@ class WebRTCVoiceManager {
     this._setupSocketListeners();
 
     try {
-      const savedAudioInput = localStorage.getItem('discord_audio_input');
+      const savedAudioInput = localStorage.getItem('discoalto_audio_input');
       const audioConstraints = {
         echoCancellation: this.echoCancellation,
         noiseSuppression: this.noiseSuppression,
@@ -675,7 +675,7 @@ class WebRTCVoiceManager {
       // Only do WebRTC peer mesh management for the channel we're currently in
       if (data.channel_id !== this.currentChannelId) return;
 
-      const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discord_user_id'));
+      const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discoalto_user_id'));
       const activeUsers = data.users.filter(u => Number(u.id) !== Number(currentUserId));
 
       for (const u of activeUsers) {
@@ -709,7 +709,7 @@ class WebRTCVoiceManager {
       }
       
       try {
-        const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discord_user_id'));
+        const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discoalto_user_id'));
         const isPolite = String(currentUserId) < String(sender_id);
         const offerCollision = pc.signalingState !== 'stable';
         
@@ -766,7 +766,7 @@ class WebRTCVoiceManager {
       const { user_id, username, avatar_url, channel_id, chunk } = data;
       if (channel_id !== this.currentChannelId) return;
 
-      const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discord_user_id'));
+      const currentUserId = this.currentUser?.id || Number(localStorage.getItem('discoalto_user_id'));
       if (Number(user_id) === Number(currentUserId)) return;
 
       this.remoteParticipantsMeta.set(String(user_id), { username, avatar_url });

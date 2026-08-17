@@ -12,7 +12,7 @@ from app.models import User
 
 import bcrypt
 
-SECRET_KEY = "super-secret-discord-clone-jwt-key-antigravity"
+SECRET_KEY = "super-secret-discoalto-clone-jwt-key-antigravity"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 

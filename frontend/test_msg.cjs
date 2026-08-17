@@ -8,7 +8,6 @@ async function test() {
       password: 'password123'
     });
     const token = res.data.access_token;
-    console.log('Logged in successfully');
     
     const socket = io('https://my-chat-backend-suva.onrender.com', {
       auth: { token },
@@ -18,15 +17,27 @@ async function test() {
     
     socket.on('connect', () => {
       console.log('Socket connected successfully, ID:', socket.id);
-      socket.disconnect();
+      
+      // Join channel 7 (general for tester_1786913554051)
+      socket.emit('join_channel', { channel_id: 7 });
+      
+      // Send message
+      setTimeout(() => {
+        socket.emit('send_message', {
+          channel_id: 7,
+          content: 'Hello World from Test'
+        });
+        console.log('Message sent');
+      }, 1000);
     });
     
-    socket.on('connect_error', (err) => {
-      console.error('Socket connect error:', err.message);
+    socket.on('new_message', (msg) => {
+      console.log('Received new_message:', msg.content);
+      socket.disconnect();
     });
 
   } catch (err) {
-    console.error('REST API error:', err.response ? err.response.data : err.message);
+    console.error('Error:', err);
   }
 }
 test();
