@@ -65,6 +65,16 @@ export const ServerProvider = ({ children }) => {
   // Online users tracking
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
+  // Session UI state
+  const [membersListOpen, setMembersListOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return window.innerWidth >= 1024;
+  });
+
+  const toggleMembersList = useCallback(() => {
+    setMembersListOpen(prev => !prev);
+  }, []);
+
   // Sound preference
   const [soundEnabled, setSoundEnabledState] = useState(true);
 
@@ -549,6 +559,8 @@ export const ServerProvider = ({ children }) => {
       activeThreadMessage,
       setActiveThreadMessage,
       onlineUsers,
+      membersListOpen,
+      toggleMembersList,
 
       toggleSoundEnabled,
       selectServer,

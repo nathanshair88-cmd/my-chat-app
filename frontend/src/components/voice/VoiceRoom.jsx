@@ -5,10 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 import { watchTogetherService } from '../../services/watchTogetherService';
 import WatchTogetherPlayer from './WatchTogetherPlayer';
 import UserContextMenu from '../modals/UserContextMenu';
-import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, Maximize, X, Tv2 } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, Maximize, X, Tv2, Users } from 'lucide-react';
 
 export default function VoiceRoom() {
-  const { currentChannel } = useServer();
+  const { currentChannel, membersListOpen, toggleMembersList } = useServer();
   const { user } = useAuth();
   const [fullscreenItem, setFullscreenItem] = useState(null);
   const [showWatchTogether, setShowWatchTogether] = useState(false);
@@ -91,11 +91,25 @@ export default function VoiceRoom() {
           </span>
         </div>
 
-        {voiceState.isScreenSharing && (
-          <div className="flex items-center space-x-1.5 bg-accent-primary/20 border border-accent-primary/40 px-2.5 py-1 rounded-md text-xs font-mono text-accent-primary font-semibold">
-            <span>LIVE 60FPS</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          {voiceState.isScreenSharing && (
+            <div className="flex items-center space-x-1.5 bg-accent-primary/20 border border-accent-primary/40 px-2.5 py-1 rounded-md text-xs font-mono text-accent-primary font-semibold">
+              <span>LIVE 60FPS</span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={toggleMembersList}
+            className={`p-2 rounded-md transition-colors border border-surface-border shadow-sm mobile-touch-target sm:min-w-0 sm:min-h-0 ${
+              membersListOpen ? 'bg-accent-primary text-text-primary' : 'bg-surface-active hover:bg-surface-hover hover:text-accent-primary'
+            }`}
+            title={membersListOpen ? 'Hide Member List' : 'Show Member List'}
+            aria-label={membersListOpen ? 'Hide members' : 'Show members'}
+          >
+            <Users className="w-4 h-4 text-text-primary" />
+          </button>
+        </div>
       </div>
 
       {/* Multi-Stream Video Tile Grid + Watch Together Theater Mode */}

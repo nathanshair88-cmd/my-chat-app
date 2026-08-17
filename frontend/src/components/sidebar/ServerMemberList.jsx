@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useServer } from '../../context/ServerContext';
 import UserContextMenu from '../modals/UserContextMenu';
+import { X } from 'lucide-react';
 
-export default function ServerMemberList() {
+export default function ServerMemberList({ onClose }) {
   const { currentServer, onlineUsers } = useServer();
   const [contextMenu, setContextMenu] = useState(null);
 
@@ -69,7 +70,19 @@ export default function ServerMemberList() {
   };
 
   return (
-    <div className="w-56 xl:w-60 bg-surface-active/30 border-l border-surface-border flex flex-col h-full overflow-hidden shrink-0 select-none hidden lg:flex">
+    <div className="fixed inset-y-0 right-0 z-50 w-[min(82vw,18rem)] bg-surface-active/95 border-l border-surface-border flex flex-col h-dvh overflow-hidden shrink-0 select-none shadow-2xl lg:relative lg:inset-auto lg:z-auto lg:w-56 xl:w-60 lg:h-full lg:bg-surface-active/30 lg:shadow-none">
+      <div className="lg:hidden min-h-12 px-3 border-b border-surface-border bg-surface-panel/95 flex items-center justify-between gap-3">
+        <span className="text-sm font-bold text-text-primary">Members</span>
+        <button
+          type="button"
+          aria-label="Hide members"
+          onClick={onClose}
+          className="mobile-touch-target rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover flex items-center justify-center"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-3 xl:p-4 space-y-6 no-scrollbar responsive-safe-scroll">
         {onlineMembers.length > 0 && (
           <div>

@@ -8,10 +8,19 @@ import { Hash, Volume2, Video, Share2, Search, X, UploadCloud, MessageSquare, Mo
 import { useTheme } from '../../context/ThemeContext';
 
 export default function ChatArea({ onOpenP2PModal, showMemberList = true, compact = false }) {
-  const { viewMode, currentChannel, currentDM, messages, typingUsers, showVoiceGrid, toggleVoiceGrid } = useServer();
+  const {
+    viewMode,
+    currentChannel,
+    currentDM,
+    messages,
+    typingUsers,
+    showVoiceGrid,
+    toggleVoiceGrid,
+    membersListOpen,
+    toggleMembersList,
+  } = useServer();
   const { isDarkMode, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
-  const [showMembers, setShowMembers] = useState(true);
 
   const [isDragging, setIsDragging] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState([]);
@@ -145,7 +154,7 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
                 title={showVoiceGrid ? "Switch to Dedicated Text Chat" : "View Voice & Video Grid"}
               >
                 <Video className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{showVoiceGrid ? 'Text Chat' : 'Voice Grid'}</span>
+                <span className={compact ? 'hidden' : 'hidden sm:inline'}>{showVoiceGrid ? 'Text Chat' : 'Voice Grid'}</span>
               </button>
             )}
 
@@ -189,11 +198,11 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
 
             {!isDM && showMemberList && (
               <button
-                onClick={() => setShowMembers(!showMembers)}
+                onClick={toggleMembersList}
                 className={`p-2 sm:p-1.5 rounded-md transition-colors border border-surface-border shadow-sm mobile-touch-target sm:min-w-0 sm:min-h-0 ${
-                  showMembers ? 'bg-accent-primary text-text-primary' : 'bg-surface-active hover:bg-surface-hover hover:text-accent-primary'
+                  membersListOpen ? 'bg-accent-primary text-text-primary' : 'bg-surface-active hover:bg-surface-hover hover:text-accent-primary'
                 }`}
-                title={showMembers ? "Hide Member List" : "Show Member List"}
+                title={membersListOpen ? "Hide Member List" : "Show Member List"}
               >
                 <Users className="w-4 h-4 text-text-primary" />
               </button>
@@ -262,8 +271,15 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
       <ThreadPanel />
 
       {/* Member List (Split Pane) */}
-      {!isDM && showMemberList && showMembers && (
-        <ServerMemberList />
+      {!isDM && showMemberList && membersListOpen && (
+        <>
+          <button
+            aria-label="Hide members"
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            onClick={toggleMembersList}
+          />
+          <ServerMemberList onClose={toggleMembersList} />
+        </>
       )}
     </div>
   );
