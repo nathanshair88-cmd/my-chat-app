@@ -205,9 +205,9 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
         height: '100%',
         playerVars: {
           autoplay: watchState.isPlaying ? 1 : 0,
-          controls: 0,       // We use our own controls
-          disablekb: 1,
-          fs: 0,
+          controls: 1,       // Use native controls for quality/captions
+          disablekb: 0,      // Allow keyboard shortcuts
+          fs: 0,             // Hide native fullscreen (we use custom fullscreen)
           iv_load_policy: 3, // Disable video annotations
           rel: 0,
           modestbranding: 1,
@@ -584,7 +584,9 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
       </div>
 
       {/* ── Header bar ─────────────────────────────────────────────────── */}
-      <div className="relative z-10 flex items-center justify-between px-4 py-3 border-b border-surface-border bg-surface-active/50 backdrop-blur-md shrink-0">
+      <div className={`relative z-10 flex items-center justify-between px-4 py-3 border-b border-surface-border bg-surface-active/50 backdrop-blur-md shrink-0 transition-all duration-300 ${
+        isFullscreen && !showControlsInFullscreen ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'
+      }`}>
         <div className="flex items-center space-x-2.5">
           <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center shadow-lg shadow-red-600/30">
             <TvMinimalPlay className="w-4.5 h-4.5 text-white" />
