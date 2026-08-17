@@ -62,4 +62,10 @@ export const roleAPI = {
   assignRole: (server_id, user_id, role_id) => API.post(`/servers/${server_id}/members/${user_id}/role`, { role_id }),
 };
 
+export const webhookAPI = {
+  getWebhooks: (server_id) => API.get(`/servers/${server_id}/webhooks`),
+  createWebhook: (server_id, data) => API.post(`/servers/${server_id}/webhooks`, data),
+  deleteWebhook: (server_id, webhook_id) => API.delete(`/servers/${server_id}/webhooks/${webhook_id}`),
+};
+
 export default API;

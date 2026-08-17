@@ -82,6 +82,16 @@ class Channel(Base):
     server: Mapped["Server"] = relationship("Server", back_populates="channels")
     messages: Mapped[List["Message"]] = relationship("Message", back_populates="channel", cascade="all, delete-orphan")
 
+class Webhook(Base):
+    __tablename__ = "webhooks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    server_id: Mapped[int] = mapped_column(ForeignKey("servers.id", ondelete="CASCADE"), nullable=False)
+    channel_id: Mapped[int] = mapped_column(ForeignKey("channels.id", ondelete="CASCADE"), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    token: Mapped[str] = mapped_column(String(100), unique=True, index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
 class Message(Base):
     __tablename__ = "messages"
 
@@ -91,6 +101,9 @@ class Message(Base):
     content: Mapped[str] = mapped_column(Text, nullable=False)
     attachments_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string of attachments
     parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("messages.id", ondelete="CASCADE"), nullable=True)
+    webhook_id: Mapped[Optional[int]] = mapped_column(ForeignKey("webhooks.id", ondelete="SET NULL"), nullable=True)
+    custom_username: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    custom_avatar_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 

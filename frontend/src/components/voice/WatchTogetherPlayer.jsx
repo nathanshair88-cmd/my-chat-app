@@ -19,6 +19,7 @@ import {
   Clock,
   Maximize2,
   Minimize2,
+  ListVideo,
 } from 'lucide-react';
 import { watchTogetherService } from '../../services/watchTogetherService';
 
@@ -134,6 +135,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
   const [notification, setNotification] = useState(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControlsInFullscreen, setShowControlsInFullscreen] = useState(true);
+  const [showQueue, setShowQueue] = useState(false);
 
   const playerRef = useRef(null);       // YT.Player instance
   const iframeContainerRef = useRef(null); // div to mount player in
@@ -245,6 +247,13 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
               if (!ignoreRemoteRef.current) {
                 const t = e.target.getCurrentTime();
                 watchTogetherService.pause(channelIdRef.current, t);
+              }
+            } else if (e.data === YTState.ENDED) {
+              // When the video ends, the host (or anyone really) can trigger next.
+              // To prevent multiple emits, we'll just let the backend handle popping.
+              // Actually, simplest is just emit playNext.
+              if (!ignoreRemoteRef.current) {
+                watchTogetherService.playNext(channelIdRef.current);
               }
             }
           },
@@ -713,13 +722,85 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
         </div>
       ) : (
         <>
-          {/* ── YouTube Player ──────────────────────────────────────────── */}
-          <div className="relative z-10 flex-1 min-h-0 bg-black flex flex-col">
+          {/* ── YouTube Player & Queue Sidebar ────────────────────────────── */}
+          <div className="relative z-10 flex-1 min-h-0 bg-black flex flex-row overflow-hidden">
             <div
               ref={iframeContainerRef}
-              className="flex-1 w-full"
+              className="flex-1 w-full relative"
               style={{ aspectRatio: 'unset' }}
             />
+            
+            {showQueue && (
+              <div className="w-80 bg-surface-base border-l border-surface-border flex flex-col z-20">
+                <div className="p-3 border-b border-surface-border flex items-center justify-between bg-surface-active">
+                  <h3 className="text-text-primary font-bold text-sm flex items-center space-x-2">
+                    <ListVideo className="w-4 h-4" />
+                    <span>Up Next</span>
+                  </h3>
+                  <div className="text-xs text-text-muted font-mono">{watchState.queue?.length || 0} videos</div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                  {watchState.queue && watchState.queue.length > 0 ? (
+                    watchState.queue.map((item, idx) => (
+                      <div key={idx} className="bg-surface-panel border border-surface-border p-2 rounded-md flex items-start justify-between group">
+                        <div className="flex-1 min-w-0 mr-2">
+                          <div className="text-text-primary text-xs font-semibold truncate" title={item.title || item.video_id}>
+                            {item.title || `Video ${item.video_id}`}
+                          </div>
+                          <div className="text-[10px] text-text-muted mt-0.5">Added by {item.added_by}</div>
+                        </div>
+                        <button
+                          onClick={() => watchTogetherService.dequeueVideo(channelId, idx)}
+                          className="text-text-muted hover:text-danger p-1 rounded hover:bg-danger/10 opacity-0 group-hover:opacity-100 transition-all"
+                          title="Remove from queue"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-text-muted p-4 text-center space-y-2">
+                      <ListVideo className="w-8 h-8 opacity-20" />
+                      <p className="text-xs">The queue is empty.</p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-3 border-t border-surface-border bg-surface-active flex flex-col space-y-2">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const url = e.target.elements.qurl.value;
+                      const vid = watchTogetherService.constructor.extractVideoId(url);
+                      if (vid) {
+                        watchTogetherService.enqueueVideo(channelId, vid, '');
+                        e.target.reset();
+                      }
+                    }}
+                    className="flex space-x-2"
+                  >
+                    <input
+                      name="qurl"
+                      type="text"
+                      placeholder="Paste URL to queue..."
+                      className="flex-1 min-w-0 bg-surface-panel border border-surface-border rounded-md px-2 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent-primary"
+                    />
+                    <button type="submit" className="px-3 py-1.5 bg-accent-primary hover:bg-accent-hover text-white text-xs font-bold rounded-md transition-all">
+                      Add
+                    </button>
+                  </form>
+                  <button
+                    onClick={() => watchTogetherService.playNext(channelId)}
+                    disabled={!watchState.queue || watchState.queue.length === 0}
+                    className="w-full py-2 bg-surface-panel border border-surface-border hover:bg-surface-hover text-text-primary text-xs font-bold rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                  >
+                    <SkipForward className="w-3.5 h-3.5" />
+                    <span>Skip to Next</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* ── Control bar — floats as overlay in fullscreen, docked normally ── */}
@@ -849,6 +930,17 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
                   className="p-2 rounded-md bg-surface-hover hover:bg-white/10 text-text-muted hover:text-white transition-all"
                 >
                   {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
+
+                {/* Queue toggle button */}
+                <button
+                  onClick={() => setShowQueue(!showQueue)}
+                  title="Toggle Queue"
+                  className={`p-2 rounded-md transition-all ${
+                    showQueue ? 'bg-accent-primary/20 text-accent-primary' : 'bg-surface-hover text-text-muted hover:text-white'
+                  }`}
+                >
+                  <ListVideo className="w-4 h-4" />
                 </button>
               </div>
             </div>

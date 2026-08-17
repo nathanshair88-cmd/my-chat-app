@@ -615,14 +615,27 @@ async def watch_set_video(sid, data):
     if not channel_id or not video_id:
         return
 
-    watch_room_state[channel_id] = {
-        "video_id": video_id,
-        "title": title,
-        "is_playing": False,
-        "current_time": 0.0,
-        "last_updated": datetime.datetime.utcnow().isoformat(),
-        "set_by": user_data["username"]
-    }
+    # If it's a new room, initialize the queue. If it's an existing room, setting a video
+    # directly just plays it immediately and clears the queue (or keeps it, let's keep it).
+    if channel_id not in watch_room_state:
+        watch_room_state[channel_id] = {
+            "video_id": video_id,
+            "title": title,
+            "is_playing": False,
+            "current_time": 0.0,
+            "last_updated": datetime.datetime.utcnow().isoformat(),
+            "set_by": user_data["username"],
+            "queue": []
+        }
+    else:
+        watch_room_state[channel_id].update({
+            "video_id": video_id,
+            "title": title,
+            "is_playing": False,
+            "current_time": 0.0,
+            "last_updated": datetime.datetime.utcnow().isoformat(),
+            "set_by": user_data["username"]
+        })
 
     await sio.emit("watch_sync", {
         "channel_id": channel_id,
@@ -631,8 +644,92 @@ async def watch_set_video(sid, data):
         "title": title,
         "is_playing": False,
         "current_time": 0.0,
-        "set_by": user_data["username"]
+        "set_by": user_data["username"],
+        "queue": watch_room_state[channel_id]["queue"]
     }, room=f"voice_{channel_id}")
+
+
+@sio.event
+async def watch_enqueue(sid, data):
+    """Add a video to the queue."""
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+    channel_id = data.get("channel_id")
+    video_id = data.get("video_id", "").strip()
+    title = data.get("title", "")
+    if not channel_id or not video_id:
+        return
+
+    if channel_id in watch_room_state:
+        watch_room_state[channel_id].setdefault("queue", []).append({
+            "video_id": video_id,
+            "title": title,
+            "added_by": user_data["username"]
+        })
+
+        await sio.emit("watch_sync", {
+            "channel_id": channel_id,
+            "type": "queue_update",
+            "queue": watch_room_state[channel_id]["queue"]
+        }, room=f"voice_{channel_id}")
+
+
+@sio.event
+async def watch_dequeue(sid, data):
+    """Remove a video from the queue by index."""
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+    channel_id = data.get("channel_id")
+    index = data.get("index")
+    if not channel_id or index is None:
+        return
+
+    if channel_id in watch_room_state and "queue" in watch_room_state[channel_id]:
+        queue = watch_room_state[channel_id]["queue"]
+        if 0 <= index < len(queue):
+            queue.pop(index)
+            await sio.emit("watch_sync", {
+                "channel_id": channel_id,
+                "type": "queue_update",
+                "queue": queue
+            }, room=f"voice_{channel_id}")
+
+
+@sio.event
+async def watch_play_next(sid, data):
+    """Pop the next video from the queue and play it."""
+    user_data = sid_to_user.get(sid)
+    if not user_data:
+        return
+    channel_id = data.get("channel_id")
+    if not channel_id:
+        return
+
+    if channel_id in watch_room_state:
+        queue = watch_room_state[channel_id].get("queue", [])
+        if queue:
+            next_video = queue.pop(0)
+            watch_room_state[channel_id].update({
+                "video_id": next_video["video_id"],
+                "title": next_video["title"],
+                "is_playing": True,
+                "current_time": 0.0,
+                "last_updated": datetime.datetime.utcnow().isoformat(),
+                "set_by": next_video["added_by"]
+            })
+
+            await sio.emit("watch_sync", {
+                "channel_id": channel_id,
+                "type": "set_video",
+                "video_id": next_video["video_id"],
+                "title": next_video["title"],
+                "is_playing": True,
+                "current_time": 0.0,
+                "set_by": next_video["added_by"],
+                "queue": queue
+            }, room=f"voice_{channel_id}")
 
 
 @sio.event

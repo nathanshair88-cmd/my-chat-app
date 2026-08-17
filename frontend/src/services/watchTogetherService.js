@@ -15,6 +15,7 @@ const initialState = {
   channelId: null,
   setBy: null,
   lastActivity: null,
+  queue: [],
 };
 
 class WatchTogetherService {
@@ -70,6 +71,13 @@ class WatchTogetherService {
             channelId: data.channel_id,
             setBy: data.set_by || null,
             lastActivity: data.set_by ? `${data.set_by} set the video` : null,
+            queue: data.queue || this._state.queue,
+          });
+          break;
+
+        case 'queue_update':
+          this._setState({
+            queue: data.queue || [],
           });
           break;
 
@@ -168,6 +176,24 @@ class WatchTogetherService {
       currentTime: 0,
       channelId,
     });
+  }
+
+  enqueueVideo(channelId, videoId, title = '') {
+    const socket = getSocket();
+    if (!socket || !videoId) return;
+    socket.emit('watch_enqueue', { channel_id: channelId, video_id: videoId, title });
+  }
+
+  dequeueVideo(channelId, index) {
+    const socket = getSocket();
+    if (!socket || index === undefined) return;
+    socket.emit('watch_dequeue', { channel_id: channelId, index });
+  }
+
+  playNext(channelId) {
+    const socket = getSocket();
+    if (!socket) return;
+    socket.emit('watch_play_next', { channel_id: channelId });
   }
 
   play(channelId, currentTime) {

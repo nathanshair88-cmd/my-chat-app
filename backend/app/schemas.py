@@ -70,6 +70,9 @@ class MessageResponse(BaseModel):
     content: str
     attachments_json: Optional[str] = None
     parent_id: Optional[int] = None
+    webhook_id: Optional[int] = None
+    custom_username: Optional[str] = None
+    custom_avatar_url: Optional[str] = None
     created_at: datetime
     author: UserResponse
     reactions: List[ReactionResponse] = []
