@@ -209,6 +209,13 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                             }
                             const avatarUrl = u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${displayUsername}`;
 
+                            const member = currentServer.members?.find(m => m.user_id === parseInt(uId));
+                            let roleColor = null;
+                            if (member && member.custom_role_id) {
+                              const role = currentServer.roles?.find(r => r.id === member.custom_role_id);
+                              if (role) roleColor = role.color;
+                            }
+
                             return (
                               <div 
                                 key={uId} 
@@ -232,7 +239,10 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                                   <img src={avatarUrl} alt={displayUsername} className="w-full h-full rounded-full object-cover" />
                                 </div>
 
-                                <span className={`text-xs truncate font-medium ${isUserSpeaking ? 'text-emerald-400 font-semibold' : 'text-text-muted group-hover:text-text-primary'}`}>
+                                <span 
+                                  className={`text-xs truncate font-medium ${isUserSpeaking ? 'text-emerald-400 font-semibold' : 'text-text-muted group-hover:brightness-125'}`}
+                                  style={roleColor && !isUserSpeaking ? { color: roleColor } : {}}
+                                >
                                   {displayUsername}
                                 </span>
 

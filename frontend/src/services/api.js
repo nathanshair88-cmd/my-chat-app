@@ -52,4 +52,12 @@ export const friendsAPI = {
   removeFriend: (id) => API.delete(`/friends/${id}`),
 };
 
+export const roleAPI = {
+  getRoles: (server_id) => API.get(`/servers/${server_id}/roles`),
+  createRole: (server_id, data) => API.post(`/servers/${server_id}/roles`, data),
+  updateRole: (server_id, role_id, data) => API.put(`/servers/${server_id}/roles/${role_id}`, data),
+  deleteRole: (server_id, role_id) => API.delete(`/servers/${server_id}/roles/${role_id}`),
+  assignRole: (server_id, user_id, role_id) => API.post(`/servers/${server_id}/members/${user_id}/role`, { role_id }),
+};
+
 export default API;

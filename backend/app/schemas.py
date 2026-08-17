@@ -98,6 +98,7 @@ class ServerMemberResponse(BaseModel):
     server_id: int
     user_id: int
     role: str
+    custom_role_id: Optional[int] = None
     joined_at: datetime
     user: UserResponse
 
@@ -108,6 +109,16 @@ class ServerCreate(BaseModel):
     name: str
     icon_url: Optional[str] = None
 
+class RoleResponse(BaseModel):
+    id: int
+    server_id: int
+    name: str
+    color: str
+    permissions: int
+    
+    class Config:
+        from_attributes = True
+
 class ServerResponse(BaseModel):
     id: int
     name: str
@@ -117,6 +128,7 @@ class ServerResponse(BaseModel):
     created_at: datetime
     channels: List[ChannelResponse] = []
     members: List[ServerMemberResponse] = []
+    roles: List[RoleResponse] = []
 
     class Config:
         from_attributes = True

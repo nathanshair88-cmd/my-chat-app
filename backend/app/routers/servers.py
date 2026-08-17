@@ -44,6 +44,7 @@ async def create_server(
         select(Server)
         .options(
             selectinload(Server.channels),
+            selectinload(Server.roles),
             selectinload(Server.members).selectinload(ServerMember.user)
         )
         .where(Server.id == new_server.id)
@@ -62,6 +63,7 @@ async def get_my_servers(
         .where(ServerMember.user_id == current_user.id)
         .options(
             selectinload(Server.channels),
+            selectinload(Server.roles),
             selectinload(Server.members).selectinload(ServerMember.user)
         )
     )
@@ -78,6 +80,7 @@ async def get_server(
         select(Server)
         .options(
             selectinload(Server.channels),
+            selectinload(Server.roles),
             selectinload(Server.members).selectinload(ServerMember.user)
         )
         .where(Server.id == server_id)
@@ -104,6 +107,7 @@ async def join_server(
         select(Server)
         .options(
             selectinload(Server.channels),
+            selectinload(Server.roles),
             selectinload(Server.members).selectinload(ServerMember.user)
         )
         .where(Server.invite_code == code)
@@ -122,6 +126,7 @@ async def join_server(
             select(Server)
             .options(
                 selectinload(Server.channels),
+                selectinload(Server.roles),
                 selectinload(Server.members).selectinload(ServerMember.user)
             )
             .where(Server.id == server.id)
@@ -167,6 +172,7 @@ async def update_server(
         select(Server)
         .options(
             selectinload(Server.channels),
+            selectinload(Server.roles),
             selectinload(Server.members).selectinload(ServerMember.user)
         )
         .where(Server.id == server_id)

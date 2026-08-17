@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.database import init_db
-from app.routers import auth, servers, channels, dms, friends
+from app.routers import auth, servers, channels, dms, friends, roles
 from app.socket_events import sio
 
 @asynccontextmanager
@@ -38,6 +38,7 @@ fastapi_app.include_router(servers.router)
 fastapi_app.include_router(channels.router)
 fastapi_app.include_router(dms.router)
 fastapi_app.include_router(friends.router)
+fastapi_app.include_router(roles.router)
 
 # Mount Socket.IO ASGI app on /socket.io route
 sio_app = socketio.ASGIApp(sio, socketio_path="")

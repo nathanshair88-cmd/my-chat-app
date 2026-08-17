@@ -8,6 +8,7 @@ import MessageContextMenu from '../modals/MessageContextMenu';
 import { Smile, FileText, Download, Play, Image as ImageIcon } from 'lucide-react';
 import { getSocket } from '../../services/socket';
 import { useAuth } from '../../context/AuthContext';
+import { useServer } from '../../context/ServerContext';
 
 export default function MessageItem({ message, searchQuery }) {
   const { user } = useAuth();
@@ -20,6 +21,16 @@ export default function MessageItem({ message, searchQuery }) {
 
   const author = message.author || message.sender;
   const isOwnMessage = author?.id === user?.id;
+
+  const { currentServer } = useServer();
+  let roleColor = null;
+  if (currentServer && author) {
+    const member = currentServer.members?.find(m => m.user_id === author.id);
+    if (member && member.custom_role_id) {
+      const role = currentServer.roles?.find(r => r.id === member.custom_role_id);
+      if (role) roleColor = role.color;
+    }
+  }
 
   const handleToggleReaction = (emoji) => {
     if (!socket) return;
@@ -97,7 +108,8 @@ export default function MessageItem({ message, searchQuery }) {
         {/* Header line */}
         <div className="flex items-baseline space-x-2">
           <span
-            className="font-semibold text-text-primary text-sm hover:underline cursor-pointer"
+            className="font-semibold text-sm hover:underline cursor-pointer"
+            style={roleColor ? { color: roleColor } : { color: 'var(--text-primary, #ffffff)' }}
             onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY }); }}
           >
             {author?.username || 'Unknown User'}

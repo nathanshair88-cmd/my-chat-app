@@ -36,6 +36,7 @@ class Server(Base):
     owner: Mapped["User"] = relationship("User", back_populates="owned_servers")
     members: Mapped[List["ServerMember"]] = relationship("ServerMember", back_populates="server", cascade="all, delete-orphan")
     channels: Mapped[List["Channel"]] = relationship("Channel", back_populates="server", cascade="all, delete-orphan")
+    roles: Mapped[List["ServerRole"]] = relationship("ServerRole", back_populates="server", cascade="all, delete-orphan")
 
 class ServerMember(Base):
     __tablename__ = "server_members"
@@ -44,6 +45,7 @@ class ServerMember(Base):
     server_id: Mapped[int] = mapped_column(ForeignKey("servers.id", ondelete="CASCADE"), nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     role: Mapped[str] = mapped_column(String(50), default="member")  # owner, admin, member
+    custom_role_id: Mapped[Optional[int]] = mapped_column(ForeignKey("server_roles.id", ondelete="SET NULL"), nullable=True)
     joined_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     __table_args__ = (
@@ -53,6 +55,18 @@ class ServerMember(Base):
     # Relationships
     server: Mapped["Server"] = relationship("Server", back_populates="members")
     user: Mapped["User"] = relationship("User", back_populates="memberships")
+    custom_role: Mapped[Optional["ServerRole"]] = relationship("ServerRole")
+
+class ServerRole(Base):
+    __tablename__ = "server_roles"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    server_id: Mapped[int] = mapped_column(ForeignKey("servers.id", ondelete="CASCADE"), nullable=False)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    color: Mapped[str] = mapped_column(String(7), default="#99aab5")  # Hex color
+    permissions: Mapped[int] = mapped_column(Integer, default=0) # Bitmask
+    
+    server: Mapped["Server"] = relationship("Server", back_populates="roles")
 
 class Channel(Base):
     __tablename__ = "channels"
