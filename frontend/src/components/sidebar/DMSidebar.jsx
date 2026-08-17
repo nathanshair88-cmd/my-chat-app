@@ -71,6 +71,20 @@ export default function DMSidebar({ onOpenSettings }) {
         </button>
       </div>
 
+      <div className="px-2 pt-2 pb-1">
+        <button
+          onClick={() => selectDM(null)} // Null sets viewMode to 'dm' and currentDM to null, showing FriendsArea
+          className={`w-full flex items-center space-x-3 px-2 py-2 rounded-md group transition ${
+            !currentDM ? 'bg-surface-active text-text-primary shadow-sm' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
+          }`}
+        >
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-surface-panel/50 group-hover:bg-surface-active border border-surface-border transition-colors">
+            <User className="w-4 h-4 text-text-primary" />
+          </div>
+          <span className="font-semibold text-sm">Friends</span>
+        </button>
+      </div>
+
       {/* Direct Messages List */}
       <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1 custom-scrollbar">
         <div className="px-2 mb-2 flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider">

@@ -45,5 +45,11 @@ export const dmAPI = {
   searchUsers: (q) => API.get('/dms/users/search', { params: { q } }),
 };
 
-export default API;
+export const friendsAPI = {
+  getFriends: () => API.get('/friends/'),
+  sendRequest: (username) => API.post('/friends/request', { username }),
+  acceptRequest: (id) => API.put(`/friends/${id}/accept`),
+  removeFriend: (id) => API.delete(`/friends/${id}`),
+};
 
+export default API;

@@ -126,7 +126,23 @@ class DirectMessage(Base):
     attachments_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-    # Relationships
     conversation: Mapped["DMConversation"] = relationship("DMConversation", back_populates="messages")
     sender: Mapped["User"] = relationship("User", foreign_keys=[sender_id])
+
+class Friendship(Base):
+    __tablename__ = "friendships"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    friend_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending, accepted
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'friend_id', name='_user_friend_uc'),
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship("User", foreign_keys=[user_id])
+    friend: Mapped["User"] = relationship("User", foreign_keys=[friend_id])
 

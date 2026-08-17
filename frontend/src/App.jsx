@@ -6,6 +6,7 @@ import ServerSidebar from './components/sidebar/ServerSidebar';
 import ChannelSidebar from './components/sidebar/ChannelSidebar';
 import DMSidebar from './components/sidebar/DMSidebar';
 import ChatArea from './components/chat/ChatArea';
+import FriendsArea from './components/chat/FriendsArea';
 import VoiceRoom from './components/voice/VoiceRoom';
 import GlobalVoiceAudioPlayer from './components/voice/GlobalVoiceAudioPlayer';
 import AuthModal from './components/modals/AuthModal';
@@ -18,7 +19,7 @@ import UserSettingsModal from './components/modals/UserSettingsModal';
 
 function MainDashboard() {
   const { user, loading } = useAuth();
-  const { viewMode, showVoiceGrid } = useServer();
+  const { viewMode, showVoiceGrid, currentDM } = useServer();
 
   const [serverModalMode, setServerModalMode] = useState(null); // 'create' | 'join' | null
   const [showChannelModal, setShowChannelModal] = useState(false);
@@ -92,6 +93,8 @@ function MainDashboard() {
                 <ChatArea onOpenP2PModal={() => setShowP2PModal(true)} />
               </div>
             </div>
+          ) : viewMode === 'dm' && !currentDM ? (
+            <FriendsArea />
           ) : (
             <ChatArea onOpenP2PModal={() => setShowP2PModal(true)} />
           )}
