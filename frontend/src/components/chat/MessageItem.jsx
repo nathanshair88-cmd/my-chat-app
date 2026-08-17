@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import EmojiPicker from './EmojiPicker';
 import MediaLightboxModal from '../modals/MediaLightboxModal';
 import UserContextMenu from '../modals/UserContextMenu';
+import MessageContextMenu from '../modals/MessageContextMenu';
 import { Smile, FileText, Download, Play, Image as ImageIcon } from 'lucide-react';
 import { getSocket } from '../../services/socket';
 import { useAuth } from '../../context/AuthContext';
@@ -13,6 +14,7 @@ export default function MessageItem({ message, searchQuery }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeMediaPreview, setActiveMediaPreview] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
+  const [msgContextMenu, setMsgContextMenu] = useState(null);
 
   const socket = getSocket();
 
@@ -104,7 +106,10 @@ export default function MessageItem({ message, searchQuery }) {
         </div>
 
         {/* Markdown Content Body */}
-        <div className="text-sm text-text-primary mt-1 leading-relaxed break-words space-y-1">
+        <div 
+          className="text-sm text-text-primary mt-1 leading-relaxed break-words space-y-1"
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setMsgContextMenu({ x: e.clientX, y: e.clientY }); }}
+        >
           {searchQuery ? (
             <div className="whitespace-pre-wrap">{renderContent(message.content)}</div>
           ) : (
@@ -271,6 +276,20 @@ export default function MessageItem({ message, searchQuery }) {
           contextType="chat"
           isLocalUser={isOwnMessage}
           onClose={() => setContextMenu(null)}
+        />
+      )}
+
+      {/* Message Context Menu */}
+      {msgContextMenu && (
+        <MessageContextMenu
+          x={msgContextMenu.x}
+          y={msgContextMenu.y}
+          message={message}
+          isOwnMessage={isOwnMessage}
+          onClose={() => setMsgContextMenu(null)}
+          onAddReaction={() => setShowEmojiPicker(true)}
+          onReply={() => window.dispatchEvent(new CustomEvent('reply-message', { detail: { message } }))}
+          onEdit={() => window.dispatchEvent(new CustomEvent('edit-message', { detail: { message } }))}
         />
       )}
     </div>

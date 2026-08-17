@@ -3,6 +3,7 @@ import { useServer } from '../../context/ServerContext';
 import { useAuth } from '../../context/AuthContext';
 import { dmAPI } from '../../services/api';
 import UserWidget from './UserWidget';
+import UserContextMenu from '../modals/UserContextMenu';
 import { MessageSquare, Plus, Volume2, VolumeX, User, Search, Check, Circle } from 'lucide-react';
 
 
@@ -15,6 +16,7 @@ export default function DMSidebar({ onOpenSettings }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
 
   const handleSearch = async (e) => {
     const q = e.target.value;
@@ -96,6 +98,10 @@ export default function DMSidebar({ onOpenSettings }) {
               <button
                 key={conv.id}
                 onClick={() => selectDM(conv)}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setContextMenu({ x: e.clientX, y: e.clientY, user: other });
+                }}
                 className={`w-full flex items-center space-x-3 px-2 py-2 rounded-md group transition ${
                   isSelected ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
                 }`}
@@ -132,8 +138,19 @@ export default function DMSidebar({ onOpenSettings }) {
 
       <UserWidget onOpenSettings={onOpenSettings} />
 
-      {/* Search Users Modal */}
+      {/* User Context Menu */}
+      {contextMenu && (
+        <UserContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          user={contextMenu.user}
+          contextType="dm"
+          isLocalUser={false}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
 
+      {/* Search Users Modal */}
       {showSearchModal && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
           <div className="bg-surface-base w-full max-w-md rounded-sm p-5 shadow-2xl border border-surface-border">

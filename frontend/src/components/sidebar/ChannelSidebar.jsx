@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useServer } from '../../context/ServerContext';
 import UserWidget from './UserWidget';
+import UserContextMenu from '../modals/UserContextMenu';
 import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio, PhoneOff } from 'lucide-react';
 import { voiceManager } from '../../services/webrtcVoice';
 
@@ -280,131 +281,11 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
           x={contextMenu.x} 
           y={contextMenu.y} 
           user={contextMenu.user} 
+          contextType="voice"
           isLocalUser={String(contextMenu.user.id || contextMenu.user.user_id) === String(localStorage.getItem('discoalto_user_id'))}
           onClose={() => setContextMenu(null)} 
-          voiceManager={voiceManager}
         />
       )}
-    </div>
-  );
-}
-
-function UserContextMenu({ x, y, user, onClose, isLocalUser, voiceManager }) {
-  const { startDM, setViewMode } = useServer();
-  const [volume, setVolume] = useState(() => voiceManager.getUserVolume(user.id || user.user_id));
-  const [isMuted, setIsMuted] = useState(() => voiceManager.getUserVolume(user.id || user.user_id) === 0);
-  const menuRef = useRef(null);
-  const [pos, setPos] = useState({ top: y, left: x });
-
-  useEffect(() => {
-    if (menuRef.current) {
-      const rect = menuRef.current.getBoundingClientRect();
-      let newTop = y;
-      let newLeft = x;
-      if (y + rect.height > window.innerHeight) {
-        newTop = Math.max(0, y - rect.height);
-      }
-      if (x + rect.width > window.innerWidth) {
-        newLeft = Math.max(0, x - rect.width);
-      }
-      setPos({ top: newTop, left: newLeft });
-    }
-  }, [x, y]);
-
-  useEffect(() => {
-    const handleClick = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        onClose();
-      }
-    };
-    window.addEventListener('mousedown', handleClick);
-    return () => window.removeEventListener('mousedown', handleClick);
-  }, [onClose]);
-
-  const handleVolumeChange = (e) => {
-    const v = parseInt(e.target.value);
-    setVolume(v);
-    setIsMuted(v === 0);
-    voiceManager.setUserVolume(user.id || user.user_id, v);
-  };
-
-  const handleToggleMute = () => {
-    const uid = user.id || user.user_id;
-    if (isMuted) {
-      // Restore to 100% volume
-      voiceManager.setUserVolume(uid, 100);
-      setVolume(100);
-      setIsMuted(false);
-    } else {
-      // Mute = set volume to 0
-      voiceManager.setUserVolume(uid, 0);
-      setVolume(0);
-      setIsMuted(true);
-    }
-  };
-
-  const handleMessage = async () => {
-    try {
-      await startDM({ user_id: user.id || user.user_id, username: user.username });
-      setViewMode('dm');
-    } catch (e) {
-      console.error('Failed to start DM:', e);
-    }
-    onClose();
-  };
-
-  const handleMention = () => {
-    // Dispatch a custom event that MessageInput listens to
-    window.dispatchEvent(new CustomEvent('mention-user', { detail: { username: user.username } }));
-    onClose();
-  };
-
-  return (
-    <div 
-      ref={menuRef}
-      className="fixed z-[9999] bg-surface-active border border-surface-border rounded-md shadow-2xl w-56 flex flex-col p-2 text-text-primary font-medium text-[13px] animate-in fade-in zoom-in-95 duration-100"
-      style={{ left: pos.left, top: pos.top }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="px-2 py-1.5 mb-1">
-        <div className="font-bold text-text-primary">{user.username}</div>
-        {user.status_message && <div className="text-[11px] text-text-muted truncate">{user.status_message}</div>}
-      </div>
-      <div className="h-px bg-surface-border my-1 mx-1" />
-      {!isLocalUser && (
-        <>
-          <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={handleMessage}>Message</div>
-          <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={handleMention}>Mention</div>
-          <div className="h-px bg-surface-border my-1 mx-1" />
-          <div className="px-2 py-1">
-            <div className="flex justify-between items-center mb-1">
-              <span>User Volume</span>
-              <span className="text-xs text-text-muted">{volume}%</span>
-            </div>
-            <input 
-              type="range" 
-              min="0" 
-              max="200" 
-              value={volume} 
-              onChange={handleVolumeChange}
-              className="w-full h-1.5 bg-surface-border rounded-sm appearance-none cursor-pointer accent-accent-primary"
-            />
-          </div>
-          <div className="h-px bg-surface-border my-1 mx-1" />
-          <div 
-            className="flex items-center justify-between hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors"
-            onClick={handleToggleMute}
-          >
-            <span>{isMuted ? 'Unmute' : 'Mute'}</span>
-            <div className={`w-4 h-4 rounded-sm border flex items-center justify-center transition-colors ${isMuted ? 'bg-accent-primary border-accent-primary' : 'border-surface-border'}`}>
-              {isMuted && <Check className="w-3 h-3 text-white" />}
-            </div>
-          </div>
-        </>
-      )}
-
-      <div className="h-px bg-surface-border my-1 mx-1" />
-      <div className="hover:bg-danger hover:text-text-primary text-danger px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Block</div>
     </div>
   );
 }

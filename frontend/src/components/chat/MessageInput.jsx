@@ -7,6 +7,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
   const { viewMode, currentChannel, currentDM } = useServer();
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState([]);
+  const [replyingTo, setReplyingTo] = useState(null);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingRef = useRef(false);
@@ -22,16 +23,26 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
     }
   }, [droppedFiles]);
 
-  // Listen for @mention events from the UserContextMenu
+  // Listen for @mention and reply events
   useEffect(() => {
     const handleMentionEvent = (e) => {
       const { username } = e.detail;
       setContent(prev => `${prev}@${username} `);
-      // Focus the input
       setTimeout(() => inputRef.current?.focus(), 50);
     };
+
+    const handleReplyEvent = (e) => {
+      const { message } = e.detail;
+      setReplyingTo(message);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
     window.addEventListener('mention-user', handleMentionEvent);
-    return () => window.removeEventListener('mention-user', handleMentionEvent);
+    window.addEventListener('reply-message', handleReplyEvent);
+    return () => {
+      window.removeEventListener('mention-user', handleMentionEvent);
+      window.removeEventListener('reply-message', handleReplyEvent);
+    };
   }, []);
 
 
@@ -96,18 +107,25 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
     const trimmed = content.trim();
     if ((!trimmed && attachments.length === 0) || !socket) return;
 
+    let finalContent = trimmed;
+    if (replyingTo) {
+      const author = replyingTo.author || replyingTo.sender;
+      const quote = replyingTo.content.split('\n').map(line => `> ${line}`).join('\n');
+      finalContent = `> **@${author?.username || 'user'}**\n${quote}\n\n${finalContent}`;
+    }
+
     const attachments_json = attachments.length > 0 ? JSON.stringify(attachments) : null;
 
     if (viewMode === 'dm' && currentDM) {
       socket.emit('send_dm_message', {
         conversation_id: currentDM.id,
-        content: trimmed || (attachments.length > 0 ? '[Attachment]' : ''),
+        content: finalContent || (attachments.length > 0 ? '[Attachment]' : ''),
         attachments_json
       });
     } else if (viewMode === 'server' && currentChannel) {
       socket.emit('send_message', {
         channel_id: currentChannel.id,
-        content: trimmed || (attachments.length > 0 ? '[Attachment]' : ''),
+        content: finalContent || (attachments.length > 0 ? '[Attachment]' : ''),
         attachments_json
       });
 
@@ -119,6 +137,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
 
     setContent('');
     setAttachments([]);
+    setReplyingTo(null);
   };
 
   const handleKeyDown = (e) => {
@@ -139,6 +158,19 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
   return (
     <div className="px-4 pb-4 bg-transparent">
       <div className="bg-surface-panel/40 backdrop-blur-md rounded-md border border-surface-border p-2 flex flex-col space-y-2 shadow-lg">
+        {/* Reply Preview Bar */}
+        {replyingTo && (
+          <div className="flex items-center justify-between bg-surface-active/50 rounded-sm px-3 py-1.5 border border-surface-border mb-1 text-xs text-text-muted">
+            <div className="flex items-center space-x-2 truncate">
+              <span className="font-bold">Replying to @{(replyingTo.author || replyingTo.sender)?.username || 'user'}:</span>
+              <span className="truncate">{replyingTo.content}</span>
+            </div>
+            <button onClick={() => setReplyingTo(null)} className="hover:text-text-primary p-0.5 rounded transition">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
         {/* Attachment Previews Chip Bar */}
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-2 p-2 bg-surface-active/50 rounded-sm border border-surface-border">
