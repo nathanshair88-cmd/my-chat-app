@@ -73,6 +73,31 @@ export const ServerProvider = ({ children }) => {
     });
   };
 
+  const setUnreadDMCount = useCallback((conversationId, count) => {
+    if (!conversationId) return;
+    const unreadCount = Math.max(0, Number(count) || 0);
+    setUnreadDMs(prev => {
+      const next = { ...prev };
+      if (unreadCount > 0) {
+        next[conversationId] = unreadCount;
+      } else {
+        delete next[conversationId];
+      }
+      return next;
+    });
+  }, []);
+
+  const syncUnreadDMCounts = useCallback((items = []) => {
+    const next = {};
+    items.forEach(conv => {
+      const unreadCount = Math.max(0, Number(conv?.unread_count) || 0);
+      if (conv?.id && unreadCount > 0) {
+        next[conv.id] = unreadCount;
+      }
+    });
+    setUnreadDMs(next);
+  }, []);
+
   // Fetch servers
   const fetchServers = useCallback(async () => {
     if (!user) return;
@@ -92,11 +117,13 @@ export const ServerProvider = ({ children }) => {
     if (!user) return;
     try {
       const res = await dmAPI.getConversations();
-      setConversations(dedupeConversations(res.data));
+      const nextConversations = dedupeConversations(res.data);
+      setConversations(nextConversations);
+      syncUnreadDMCounts(nextConversations);
     } catch (err) {
       console.error("Error fetching DM conversations:", err);
     }
-  }, [user]);
+  }, [user, syncUnreadDMCounts]);
 
   useEffect(() => {
     fetchServers();
@@ -105,6 +132,10 @@ export const ServerProvider = ({ children }) => {
 
   const selectServer = (server) => {
     setViewMode('server');
+    const socket = getSocket();
+    if (currentDM && socket) {
+      socket.emit('leave_dm', { conversation_id: currentDM.id });
+    }
     setCurrentDM(null);
     setCurrentServer(server);
     if (server && server.channels && server.channels.length > 0) {
@@ -131,6 +162,9 @@ export const ServerProvider = ({ children }) => {
 
     if (currentChannel && socket) {
       socket.emit('leave_channel', { channel_id: currentChannel.id });
+    }
+    if (currentDM && socket) {
+      socket.emit('leave_dm', { conversation_id: currentDM.id });
     }
 
     // Connect WebRTC audio if it's a voice/media channel and user explicitly clicked it
@@ -169,6 +203,7 @@ export const ServerProvider = ({ children }) => {
 
   const selectDM = async (conversation) => {
     setViewMode('dm');
+    setShowVoiceGrid(false);
     const socket = getSocket();
 
     if (currentChannel && socket) {
@@ -182,12 +217,17 @@ export const ServerProvider = ({ children }) => {
     setCurrentChannel(null);
     setMessages([]);
     setTypingUsers(new Map());
+    setActiveThreadMessage(null);
 
     if (conversation) {
-      setUnreadDMs(prev => ({ ...prev, [conversation.id]: 0 }));
+      setUnreadDMCount(conversation.id, 0);
       if (socket) {
         socket.emit('join_dm', { conversation_id: conversation.id });
-        socket.emit('mark_dms_read', { conversation_id: conversation.id });
+        socket.timeout(5000).emit('mark_dms_read', { conversation_id: conversation.id }, (err, response) => {
+          if (!err && response?.ok) {
+            setUnreadDMCount(conversation.id, response.unread_count);
+          }
+        });
       }
 
       try {
@@ -245,22 +285,31 @@ export const ServerProvider = ({ children }) => {
       const handleNewDMMessage = (msg) => {
         if (viewModeRef.current === 'dm' && currentDMRef.current && msg.conversation_id === currentDMRef.current.id) {
           setMessages(prev => [...prev, msg]);
-        } else {
+          if (msg.sender_id !== user?.id) {
+            setUnreadDMCount(msg.conversation_id, 0);
+            socket.emit('mark_dms_read', { conversation_id: msg.conversation_id });
+          }
+        } else if (msg.sender_id !== user?.id) {
           setUnreadDMs(prev => ({
             ...prev,
             [msg.conversation_id]: (prev[msg.conversation_id] || 0) + 1
           }));
-          if (msg.sender_id !== user?.id) {
-            notificationService.playNotificationChime();
-          }
+          notificationService.playNotificationChime();
         }
       };
 
       const handleNewDMNotification = (msg) => {
+        if (viewModeRef.current === 'dm' && currentDMRef.current && msg.conversation_id === currentDMRef.current.id) {
+          return;
+        }
         fetchConversations();
         if (msg.sender_id !== user?.id) {
           notificationService.playNotificationChime();
         }
+      };
+
+      const handleDMUnreadCount = (data) => {
+        setUnreadDMCount(data?.conversation_id, data?.unread_count);
       };
 
       const handleReactionUpdated = (data) => {
@@ -328,6 +377,7 @@ export const ServerProvider = ({ children }) => {
       socket.on('new_message', handleNewMessage);
       socket.on('new_dm_message', handleNewDMMessage);
       socket.on('new_dm_notification', handleNewDMNotification);
+      socket.on('dm_unread_count', handleDMUnreadCount);
       socket.on('reaction_updated', handleReactionUpdated);
       socket.on('message_edited', handleMessageEdited);
       socket.on('message_deleted', handleMessageDeleted);
@@ -341,6 +391,7 @@ export const ServerProvider = ({ children }) => {
         socket.off('new_message', handleNewMessage);
         socket.off('new_dm_message', handleNewDMMessage);
         socket.off('new_dm_notification', handleNewDMNotification);
+        socket.off('dm_unread_count', handleDMUnreadCount);
         socket.off('reaction_updated', handleReactionUpdated);
         socket.off('message_edited', handleMessageEdited);
         socket.off('message_deleted', handleMessageDeleted);
@@ -375,7 +426,7 @@ export const ServerProvider = ({ children }) => {
       cleanupFns.forEach(fn => fn());
     };
 
-  }, [user, fetchConversations]);
+  }, [user, fetchConversations, setUnreadDMCount]);
 
   const addServer = async (name, icon_url) => {
     const res = await serverAPI.createServer({ name, icon_url });

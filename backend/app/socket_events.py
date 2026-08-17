@@ -787,16 +787,16 @@ async def send_dm_message(sid, data):
 async def mark_dms_read(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
-        return
+        return {"ok": False, "error": "Not authenticated"}
 
     conversation_id = to_int(data.get("conversation_id"))
     if not conversation_id:
-        return
+        return {"ok": False, "error": "Missing conversation"}
 
     async with AsyncSessionLocal() as db:
         conv = await user_dm_conversation(db, user_data["id"], conversation_id)
         if not conv:
-            return
+            return {"ok": False, "error": "Conversation not found"}
 
         res = await db.execute(
             select(DirectMessage).where(
@@ -806,25 +806,36 @@ async def mark_dms_read(sid, data):
             )
         )
         unread_msgs = res.scalars().all()
-        
+
         if not unread_msgs:
-            return
+            await sio.emit("dm_unread_count", {
+                "conversation_id": conversation_id,
+                "unread_count": 0
+            }, to=sid)
+            return {"ok": True, "conversation_id": conversation_id, "unread_count": 0}
 
         for msg in unread_msgs:
             msg.is_read = 1
-        
+
         await db.commit()
-        
+
+        await sio.emit("dm_unread_count", {
+            "conversation_id": conversation_id,
+            "unread_count": 0
+        }, to=sid)
+
         # Who was the sender of these messages?
         # We need to notify them that their messages were read.
         sender_id = unread_msgs[0].sender_id
-        
+
         target_sids = user_to_sids.get(sender_id, set())
         for tsid in target_sids:
             await sio.emit("dms_read_receipt", {
                 "conversation_id": conversation_id,
                 "read_by": user_data["id"]
             }, to=tsid)
+
+        return {"ok": True, "conversation_id": conversation_id, "unread_count": 0}
 
 
 # --- Watch Together Activity ---

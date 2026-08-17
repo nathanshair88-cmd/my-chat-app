@@ -179,6 +179,7 @@ class DMConversationResponse(BaseModel):
     user2_id: int
     created_at: datetime
     other_user: UserPublicResponse
+    unread_count: int = 0
 
     class Config:
         from_attributes = True

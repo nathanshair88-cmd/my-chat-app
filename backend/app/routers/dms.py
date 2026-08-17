@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, and_
+from sqlalchemy import select, or_, and_, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from app.database import get_db
 from app.models import User, DMConversation, DirectMessage
@@ -13,15 +13,36 @@ from app.auth import get_current_user
 router = APIRouter(prefix="/api/dms", tags=["Direct Messages"])
 
 
-def _conversation_response(conv: DMConversation, current_user_id: int) -> DMConversationResponse:
+def _conversation_response(conv: DMConversation, current_user_id: int, unread_count: int = 0) -> DMConversationResponse:
     other_user = conv.user2 if conv.user1_id == current_user_id else conv.user1
     return DMConversationResponse(
         id=conv.id,
         user1_id=conv.user1_id,
         user2_id=conv.user2_id,
         created_at=conv.created_at,
-        other_user=UserPublicResponse.model_validate(other_user)
+        other_user=UserPublicResponse.model_validate(other_user),
+        unread_count=unread_count
     )
+
+
+async def _unread_counts_for_conversations(
+    db: AsyncSession,
+    current_user_id: int,
+    conversation_ids: List[int]
+) -> Dict[int, int]:
+    if not conversation_ids:
+        return {}
+
+    res = await db.execute(
+        select(DirectMessage.conversation_id, func.count(DirectMessage.id))
+        .where(
+            DirectMessage.conversation_id.in_(conversation_ids),
+            DirectMessage.sender_id != current_user_id,
+            DirectMessage.is_read == 0
+        )
+        .group_by(DirectMessage.conversation_id)
+    )
+    return {conversation_id: int(count) for conversation_id, count in res.all()}
 
 
 async def _load_conversation(db: AsyncSession, conversation_id: int) -> DMConversation:
@@ -82,10 +103,19 @@ async def get_conversations(
         .order_by(DMConversation.created_at.desc())
     )
     conversations = res.scalars().all()
+    unread_counts = await _unread_counts_for_conversations(
+        db,
+        current_user.id,
+        [conv.id for conv in conversations]
+    )
 
     result = []
     for conv in conversations:
-        result.append(_conversation_response(conv, current_user.id))
+        result.append(_conversation_response(
+            conv,
+            current_user.id,
+            unread_counts.get(conv.id, 0)
+        ))
     return result
 
 @router.post("/start", response_model=DMConversationResponse)
@@ -160,7 +190,8 @@ async def start_conversation(
 
         conv = await _load_conversation(db, conv.id)
 
-    return _conversation_response(conv, current_user.id)
+    unread_counts = await _unread_counts_for_conversations(db, current_user.id, [conv.id])
+    return _conversation_response(conv, current_user.id, unread_counts.get(conv.id, 0))
 
 @router.get("/{conversation_id}/messages", response_model=List[DirectMessageResponse])
 async def get_dm_messages(
@@ -181,6 +212,19 @@ async def get_dm_messages(
     conv = res.scalar_one_or_none()
     if not conv:
         raise HTTPException(status_code=404, detail="DM Conversation not found or access denied")
+
+    unread_res = await db.execute(
+        select(DirectMessage).where(
+            DirectMessage.conversation_id == conversation_id,
+            DirectMessage.sender_id != current_user.id,
+            DirectMessage.is_read == 0
+        )
+    )
+    unread_messages = unread_res.scalars().all()
+    for message in unread_messages:
+        message.is_read = 1
+    if unread_messages:
+        await db.commit()
 
     res = await db.execute(
         select(DirectMessage)
