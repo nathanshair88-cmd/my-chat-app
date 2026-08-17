@@ -10,21 +10,16 @@ from app.database import AsyncSessionLocal
 from app.models import User, Message, Reaction, Channel, ServerMember, DMConversation, DirectMessage, Server
 from app.auth import decode_token
 from app.permissions import can_signal_user, to_int, user_channel, user_dm_conversation
+from app.cors import is_allowed_origin
 
-DEFAULT_CORS_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173,https://disco-alto.vercel.app"
 logger = logging.getLogger("discoalto.socket")
 
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=[
-        origin.strip()
-        for origin in (
-            os.getenv("SOCKET_CORS_ORIGINS")
-            or os.getenv("CORS_ORIGINS")
-            or DEFAULT_CORS_ORIGINS
-        ).split(",")
-        if origin.strip()
-    ],
+    # FastAPI's CORSMiddleware wraps this mounted app and writes the polling CORS
+    # headers. Disable Engine.IO's CORS writer so browsers do not receive a
+    # duplicated Access-Control-Allow-Origin header.
+    cors_allowed_origins=[],
     max_http_buffer_size=10_000_000  # 10 MB limit for file attachments
 )
 
@@ -165,6 +160,9 @@ async def _user_in_voice_room(user_id: int, channel_id) -> bool:
 
 @sio.event
 async def connect(sid, environ, auth=None):
+    if not is_allowed_origin(environ.get("HTTP_ORIGIN"), "CORS_ORIGINS", "SOCKET_CORS_ORIGINS"):
+        return False
+
     token = None
     if auth and isinstance(auth, dict) and "token" in auth:
         token = auth["token"]

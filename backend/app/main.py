@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from app.database import init_db
 from app.routers import auth, servers, channels, dms, friends, roles, webhooks
 from app.socket_events import sio
+from app.cors import VERCEL_ORIGIN_REGEX, get_cors_origins
 
 logger = logging.getLogger("discoalto")
 
@@ -37,16 +38,10 @@ fastapi_app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS setup
-default_cors_origins = "http://localhost:5173,http://127.0.0.1:5173,https://disco-alto.vercel.app"
-cors_origins = [
-    origin.strip()
-    for origin in (os.getenv("CORS_ORIGINS") or default_cors_origins).split(",")
-    if origin.strip()
-]
 fastapi_app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=get_cors_origins("CORS_ORIGINS"),
+    allow_origin_regex=VERCEL_ORIGIN_REGEX,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
