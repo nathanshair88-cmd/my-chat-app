@@ -1,13 +1,29 @@
 import os
+import logging
+import traceback
 
 import socketio
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.database import init_db
 from app.routers import auth, servers, channels, dms, friends, roles, webhooks
 from app.socket_events import sio
+
+logger = logging.getLogger("discoalto")
+
+
+def env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+DEBUG_EXCEPTIONS = env_flag("DEBUG_EXCEPTIONS", True)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,6 +55,36 @@ fastapi_app.add_middleware(
 @fastapi_app.get("/")
 async def root():
     return {"status": "online", "message": "Disco Alto Clone API Backend is running"}
+
+
+@fastapi_app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.error(
+        "Unhandled exception for %s %s",
+        request.method,
+        request.url.path,
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
+
+    if DEBUG_EXCEPTIONS:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Unhandled server exception",
+                "debug": True,
+                "method": request.method,
+                "path": request.url.path,
+                "exception_type": type(exc).__name__,
+                "exception": str(exc),
+                "traceback": "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)),
+            },
+        )
+
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error"},
+    )
+
 
 # Include Routers
 fastapi_app.include_router(auth.router)
