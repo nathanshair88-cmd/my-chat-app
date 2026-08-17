@@ -115,24 +115,24 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
     : `Message #${currentChannel ? currentChannel.name : 'channel'}`;
 
   return (
-    <div className="px-4 pb-4 bg-[#313338]">
-      <div className="bg-[#383a40] rounded-xl border border-[#2b2d31] p-2 flex flex-col space-y-2">
+    <div className="px-4 pb-4 bg-transparent">
+      <div className="bg-surface-panel/40 backdrop-blur-md rounded-2xl border border-surface-border p-2 flex flex-col space-y-2 shadow-lg">
         {/* Attachment Previews Chip Bar */}
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 p-2 bg-[#2b2d31] rounded-lg border border-[#35373c]">
+          <div className="flex flex-wrap gap-2 p-2 bg-surface-active/50 rounded-lg border border-surface-border">
             {attachments.map((att, idx) => {
               const isImage = att.type?.startsWith('image/');
               return (
-                <div key={idx} className="relative group flex items-center space-x-2 bg-[#1e1f22] px-3 py-1.5 rounded-md border border-[#35373c]">
+                <div key={idx} className="relative group flex items-center space-x-2 bg-surface-panel px-3 py-1.5 rounded-md border border-surface-border shadow-sm">
                   {isImage ? (
                     <img src={att.url} alt={att.name} className="w-6 h-6 object-cover rounded" />
                   ) : (
-                    <FileText className="w-5 h-5 text-[#5865f2]" />
+                    <FileText className="w-5 h-5 text-accent-primary" />
                   )}
-                  <span className="text-xs text-white max-w-[120px] truncate">{att.name}</span>
+                  <span className="text-xs text-text-primary max-w-[120px] truncate">{att.name}</span>
                   <button
                     onClick={() => removeAttachment(idx)}
-                    className="text-[#949ba4] hover:text-rose-400 p-0.5 rounded transition"
+                    className="text-text-muted hover:text-danger p-0.5 rounded transition"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -143,25 +143,25 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
         )}
 
         {/* Formatting & Action Bar */}
-        <div className="flex items-center justify-between border-b border-[#2b2d31] pb-1.5 px-1 text-[#b5bac1]">
+        <div className="flex items-center justify-between border-b border-surface-border pb-1.5 px-1 text-text-muted">
           <div className="flex items-center space-x-1">
             <button 
               onClick={() => insertFormatting('**')} 
-              className="p-1 hover:text-white hover:bg-[#404249] rounded transition-colors"
+              className="p-1 hover:text-text-primary hover:bg-surface-hover rounded transition-colors"
               title="Bold (**text**)"
             >
               <Bold className="w-4 h-4" />
             </button>
             <button 
               onClick={() => insertFormatting('*')} 
-              className="p-1 hover:text-white hover:bg-[#404249] rounded transition-colors"
+              className="p-1 hover:text-text-primary hover:bg-surface-hover rounded transition-colors"
               title="Italic (*text*)"
             >
               <Italic className="w-4 h-4" />
             </button>
             <button 
               onClick={() => insertFormatting('```\n', '\n```')} 
-              className="p-1 hover:text-white hover:bg-[#404249] rounded transition-colors"
+              className="p-1 hover:text-text-primary hover:bg-surface-hover rounded transition-colors"
               title="Code Block (```code```)"
             >
               <Code className="w-4 h-4" />
@@ -170,7 +170,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
             {/* File Attachment Button */}
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-1 hover:text-white hover:bg-[#404249] rounded transition-colors text-[#5865f2]"
+              className="p-1 hover:text-accent-hover hover:bg-surface-hover rounded transition-colors text-accent-primary"
               title="Attach File / Image"
             >
               <Paperclip className="w-4 h-4" />
@@ -188,7 +188,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
             {/* P2P WebRTC DataChannel Share Button */}
             <button
               onClick={onOpenP2PModal}
-              className="flex items-center space-x-1 px-2.5 py-1 bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs font-semibold rounded-md shadow transition-colors"
+              className="flex items-center space-x-1 px-2.5 py-1 bg-accent-primary hover:bg-accent-hover text-text-primary text-xs font-semibold rounded-md shadow transition-colors"
               title="Send Direct P2P File (Unlimited GBs, Zero Server Storage)"
             >
               <Share2 className="w-3.5 h-3.5" />
@@ -205,14 +205,14 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
             onKeyDown={handleKeyDown}
             placeholder={placeholderText}
             rows={1}
-            className="w-full bg-transparent text-sm text-[#dbdee1] placeholder-[#80848e] focus:outline-none resize-none no-scrollbar px-1 py-1 max-h-32"
+            className="w-full bg-transparent text-sm text-text-primary placeholder-text-muted focus:outline-none resize-none no-scrollbar px-1 py-1 max-h-32"
           />
 
           <button
             onClick={handleSendMessage}
             disabled={!content.trim() && attachments.length === 0}
-            className={`p-2 rounded-lg transition-colors flex-shrink-0 ${
-              content.trim() || attachments.length > 0 ? 'bg-[#5865f2] text-white hover:bg-[#4752c4]' : 'bg-[#404249] text-[#80848e] cursor-not-allowed'
+            className={`p-2 rounded-lg transition-colors flex-shrink-0 shadow-sm ${
+              content.trim() || attachments.length > 0 ? 'bg-accent-primary text-text-primary hover:bg-accent-hover' : 'bg-surface-active text-text-muted cursor-not-allowed border border-surface-border'
             }`}
           >
             <Send className="w-4 h-4" />

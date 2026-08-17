@@ -432,11 +432,11 @@ export default function UserSettingsModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#1e1f22] flex select-none overflow-hidden animate-fadeIn">
+    <div className="fixed inset-0 z-50 bg-surface-active flex select-none overflow-hidden animate-fadeIn">
       {/* Left Sidebar Navigation */}
-      <div className="w-60 bg-[#2b2d31] flex flex-col justify-between p-6 border-r border-[#1f2023]">
+      <div className="w-60 bg-surface-panel flex flex-col justify-between p-6 border-r border-surface-border">
         <div className="space-y-6">
-          <div className="text-xs font-bold text-[#949ba4] uppercase tracking-wider px-2">
+          <div className="text-xs font-bold text-text-muted uppercase tracking-wider px-2">
             User Settings
           </div>
 
@@ -444,27 +444,27 @@ export default function UserSettingsModal({ onClose }) {
             <button
               onClick={() => setActiveTab('voice')}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-semibold transition ${
-                activeTab === 'voice' ? 'bg-[#404249] text-white' : 'text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1]'
+                activeTab === 'voice' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
-              <Mic className="w-4 h-4 text-[#5865f2]" />
+              <Mic className="w-4 h-4 text-accent-primary" />
               <span>Voice & Video</span>
             </button>
 
             <button
               onClick={() => setActiveTab('account')}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-semibold transition ${
-                activeTab === 'account' ? 'bg-[#404249] text-white' : 'text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1]'
+                activeTab === 'account' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
-              <User className="w-4 h-4 text-[#23a55a]" />
+              <User className="w-4 h-4 text-success" />
               <span>My Account</span>
             </button>
 
             <button
               onClick={() => setActiveTab('appearance')}
               className={`w-full flex items-center space-x-3 px-3 py-2 rounded-md text-sm font-semibold transition ${
-                activeTab === 'appearance' ? 'bg-[#404249] text-white' : 'text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1]'
+                activeTab === 'appearance' ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
               }`}
             >
               <Palette className="w-4 h-4 text-amber-400" />
@@ -483,12 +483,12 @@ export default function UserSettingsModal({ onClose }) {
       </div>
 
       {/* Main Right Content Panel */}
-      <div className="flex-1 bg-[#313338] flex flex-col h-full overflow-y-auto p-8 relative custom-scrollbar">
+      <div className="flex-1 bg-surface-base flex flex-col h-full overflow-y-auto p-8 relative custom-scrollbar">
         {/* Close Button Top Right */}
         <div className="absolute top-6 right-8 flex items-center space-x-2">
           <button
             onClick={onClose}
-            className="flex items-center space-x-1 p-2 bg-[#2b2d31] hover:bg-[#35373c] text-[#949ba4] hover:text-white rounded-full transition border border-[#3f4147]"
+            className="flex items-center space-x-1 p-2 bg-surface-panel hover:bg-surface-hover text-text-muted hover:text-text-primary rounded-full transition border border-surface-border"
             title="Close Settings (ESC)"
           >
             <X className="w-5 h-5" />
@@ -499,18 +499,18 @@ export default function UserSettingsModal({ onClose }) {
         {activeTab === 'voice' && (
           <div className="max-w-2xl space-y-8 animate-fadeIn">
             <div>
-              <h2 className="text-xl font-bold text-white mb-1">Voice & Video Settings</h2>
-              <p className="text-xs text-[#949ba4]">Configure microphone input, speaker output, and video camera preview.</p>
+              <h2 className="text-xl font-bold text-text-primary mb-1">Voice & Video Settings</h2>
+              <p className="text-xs text-text-muted">Configure microphone input, speaker output, and video camera preview.</p>
             </div>
 
             {/* Permission Prompt Banner */}
             {(!permissionGranted || permissionError) && (
-              <div className="bg-[#5865f2]/10 border border-[#5865f2]/40 p-4 rounded-xl flex items-center justify-between">
+              <div className="bg-accent-primary/10 border border-accent-primary/40 p-4 rounded-xl flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <ShieldAlert className="w-6 h-6 text-[#5865f2] flex-shrink-0" />
+                  <ShieldAlert className="w-6 h-6 text-accent-primary flex-shrink-0" />
                   <div>
-                    <div className="text-sm font-bold text-white">Browser Media Permissions Required</div>
-                    <div className="text-xs text-[#949ba4]">
+                    <div className="text-sm font-bold text-text-primary">Browser Media Permissions Required</div>
+                    <div className="text-xs text-text-muted">
                       {permissionError || "Grant permission to unlock hardware microphone, speaker & webcam labels."}
                     </div>
                   </div>
@@ -519,7 +519,7 @@ export default function UserSettingsModal({ onClose }) {
                 <button
                   onClick={requestMediaPermissions}
                   disabled={permissionLoading}
-                  className="px-4 py-2 bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs font-bold rounded-lg shadow flex items-center space-x-2 transition"
+                  className="px-4 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary text-xs font-bold rounded-lg shadow flex items-center space-x-2 transition"
                 >
                   {permissionLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
                   <span>{permissionLoading ? 'Requesting...' : 'Grant Permissions'}</span>
@@ -531,17 +531,17 @@ export default function UserSettingsModal({ onClose }) {
 
               {/* Input Device */}
               <div>
-                <label className="block text-xs font-bold text-[#b5bac1] uppercase mb-2 flex items-center justify-between">
+                <label className="block text-xs font-bold text-text-muted uppercase mb-2 flex items-center justify-between">
                   <span className="flex items-center space-x-1.5">
-                    <Mic className="w-4 h-4 text-[#5865f2]" />
+                    <Mic className="w-4 h-4 text-accent-primary" />
                     <span>Input Device (Microphone)</span>
                   </span>
-                  <span className="text-[10px] text-[#949ba4] lowercase">({audioInputDevices.length} found)</span>
+                  <span className="text-[10px] text-text-muted lowercase">({audioInputDevices.length} found)</span>
                 </label>
                 <select
                   value={selectedInputDevice}
                   onChange={(e) => handleSelectInputDevice(e.target.value)}
-                  className="w-full bg-[#1e1f22] border border-[#2b2d31] text-white text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                  className="w-full bg-surface-active border border-surface-border text-text-primary text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
                 >
                   {getDeviceOptions(audioInputDevices, 'Microphone').map((opt) => (
                     <option key={opt.id} value={opt.id}>
@@ -553,17 +553,17 @@ export default function UserSettingsModal({ onClose }) {
 
               {/* Output Device */}
               <div>
-                <label className="block text-xs font-bold text-[#b5bac1] uppercase mb-2 flex items-center justify-between">
+                <label className="block text-xs font-bold text-text-muted uppercase mb-2 flex items-center justify-between">
                   <span className="flex items-center space-x-1.5">
-                    <Volume2 className="w-4 h-4 text-[#23a55a]" />
+                    <Volume2 className="w-4 h-4 text-success" />
                     <span>Output Device (Speakers)</span>
                   </span>
-                  <span className="text-[10px] text-[#949ba4] lowercase">({audioOutputDevices.length} found)</span>
+                  <span className="text-[10px] text-text-muted lowercase">({audioOutputDevices.length} found)</span>
                 </label>
                 <select
                   value={selectedOutputDevice}
                   onChange={(e) => handleSelectOutputDevice(e.target.value)}
-                  className="w-full bg-[#1e1f22] border border-[#2b2d31] text-white text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                  className="w-full bg-surface-active border border-surface-border text-text-primary text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
                 >
                   {getDeviceOptions(audioOutputDevices, 'Speakers').map((opt) => (
                     <option key={opt.id} value={opt.id}>
@@ -576,50 +576,50 @@ export default function UserSettingsModal({ onClose }) {
             </div>
 
             {/* Input Mode (Voice Activity vs Push to Talk) */}
-            <div className="bg-[#2b2d31] p-5 rounded-xl border border-[#1f2023] space-y-4">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Input Mode</h3>
+            <div className="bg-surface-panel p-5 rounded-xl border border-surface-border space-y-4">
+              <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Input Mode</h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label 
                   onClick={() => handleInputModeChange('vad')}
                   className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition ${
-                    inputMode === 'vad' ? 'bg-[#5865f2]/20 border-[#5865f2] text-white' : 'bg-[#1e1f22] border-[#3f4147] text-[#949ba4] hover:bg-[#35373c]'
+                    inputMode === 'vad' ? 'bg-accent-primary/20 border-accent-primary text-text-primary' : 'bg-surface-active border-surface-border text-text-muted hover:bg-surface-hover'
                   }`}
                 >
-                  <input type="radio" name="input_mode" checked={inputMode === 'vad'} onChange={() => {}} className="accent-[#5865f2]" />
+                  <input type="radio" name="input_mode" checked={inputMode === 'vad'} onChange={() => {}} className="accent-accent-primary" />
                   <div>
-                    <div className="text-xs font-bold text-white">Voice Activity</div>
-                    <div className="text-[10px] text-[#949ba4]">Automatically transmits when speaking</div>
+                    <div className="text-xs font-bold text-text-primary">Voice Activity</div>
+                    <div className="text-[10px] text-text-muted">Automatically transmits when speaking</div>
                   </div>
                 </label>
 
                 <label 
                   onClick={() => handleInputModeChange('ptt')}
                   className={`flex items-center space-x-3 p-3 rounded-lg border cursor-pointer transition ${
-                    inputMode === 'ptt' ? 'bg-[#5865f2]/20 border-[#5865f2] text-white' : 'bg-[#1e1f22] border-[#3f4147] text-[#949ba4] hover:bg-[#35373c]'
+                    inputMode === 'ptt' ? 'bg-accent-primary/20 border-accent-primary text-text-primary' : 'bg-surface-active border-surface-border text-text-muted hover:bg-surface-hover'
                   }`}
                 >
-                  <input type="radio" name="input_mode" checked={inputMode === 'ptt'} onChange={() => {}} className="accent-[#5865f2]" />
+                  <input type="radio" name="input_mode" checked={inputMode === 'ptt'} onChange={() => {}} className="accent-accent-primary" />
                   <div>
-                    <div className="text-xs font-bold text-white">Push-to-Talk</div>
-                    <div className="text-[10px] text-[#949ba4]">Hold assigned key to transmit mic</div>
+                    <div className="text-xs font-bold text-text-primary">Push-to-Talk</div>
+                    <div className="text-[10px] text-text-muted">Hold assigned key to transmit mic</div>
                   </div>
                 </label>
               </div>
 
               {/* Push-to-Talk Keybinder */}
               {inputMode === 'ptt' && (
-                <div className="bg-[#1e1f22] p-4 rounded-lg border border-[#3f4147] flex items-center justify-between animate-fadeIn">
+                <div className="bg-surface-active p-4 rounded-lg border border-surface-border flex items-center justify-between animate-fadeIn">
                   <div>
-                    <div className="text-xs font-bold text-white">Push-to-Talk Key Shortcut</div>
-                    <div className="text-[10px] text-[#949ba4]">Click below and press your preferred PTT key</div>
+                    <div className="text-xs font-bold text-text-primary">Push-to-Talk Key Shortcut</div>
+                    <div className="text-[10px] text-text-muted">Click below and press your preferred PTT key</div>
                   </div>
 
                   <button
                     onKeyDown={isRecordingKey ? handlePttKeyRecord : undefined}
                     onClick={() => setIsRecordingKey(true)}
                     className={`px-4 py-2 text-xs font-mono font-bold rounded-lg border transition ${
-                      isRecordingKey ? 'bg-amber-500/20 border-amber-500 text-amber-300 animate-pulse' : 'bg-[#2b2d31] border-[#3f4147] text-white hover:bg-[#35373c]'
+                      isRecordingKey ? 'bg-amber-500/20 border-amber-500 text-amber-300 animate-pulse' : 'bg-surface-panel border-surface-border text-text-primary hover:bg-surface-hover'
                     }`}
                   >
                     {isRecordingKey ? 'Press any key now...' : `Shortcut: [ ${pttKey} ]`}
@@ -629,10 +629,10 @@ export default function UserSettingsModal({ onClose }) {
 
               {/* VAD Sensitivity Threshold Slider */}
               {inputMode === 'vad' && (
-                <div className="bg-[#1e1f22] p-4 rounded-lg border border-[#3f4147] space-y-2 animate-fadeIn">
-                  <div className="flex justify-between text-xs font-semibold text-[#b5bac1]">
+                <div className="bg-surface-active p-4 rounded-lg border border-surface-border space-y-2 animate-fadeIn">
+                  <div className="flex justify-between text-xs font-semibold text-text-muted">
                     <span>Voice Activity Sensitivity Threshold</span>
-                    <span className="font-mono text-white">{vadSensitivity} dB</span>
+                    <span className="font-mono text-text-primary">{vadSensitivity} dB</span>
                   </div>
                   <input
                     type="range"
@@ -640,9 +640,9 @@ export default function UserSettingsModal({ onClose }) {
                     max="60"
                     value={vadSensitivity}
                     onChange={(e) => handleVadSensitivityChange(Number(e.target.value))}
-                    className="w-full accent-[#5865f2]"
+                    className="w-full accent-accent-primary"
                   />
-                  <div className="flex justify-between text-[10px] text-[#949ba4]">
+                  <div className="flex justify-between text-[10px] text-text-muted">
                     <span>High Sensitivity (05 dB)</span>
                     <span>Low Sensitivity (60 dB)</span>
                   </div>
@@ -651,20 +651,20 @@ export default function UserSettingsModal({ onClose }) {
             </div>
 
             {/* Advanced Audio Processing DSP Toggles */}
-            <div className="bg-[#2b2d31] p-5 rounded-xl border border-[#1f2023] space-y-4">
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider">Advanced Voice Processing</h3>
+            <div className="bg-surface-panel p-5 rounded-xl border border-surface-border space-y-4">
+              <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Advanced Voice Processing</h3>
 
               <div className="space-y-3">
                 {/* Echo Cancellation */}
-                <div className="flex items-center justify-between bg-[#1e1f22] p-3 rounded-lg border border-[#3f4147]">
+                <div className="flex items-center justify-between bg-surface-active p-3 rounded-lg border border-surface-border">
                   <div>
-                    <div className="text-xs font-bold text-white">Echo Cancellation</div>
-                    <div className="text-[10px] text-[#949ba4]">Prevents speaker audio feedback into your mic</div>
+                    <div className="text-xs font-bold text-text-primary">Echo Cancellation</div>
+                    <div className="text-[10px] text-text-muted">Prevents speaker audio feedback into your mic</div>
                   </div>
                   <button
                     onClick={handleToggleEchoCancellation}
                     className={`w-10 h-5 rounded-full transition-colors p-0.5 flex items-center ${
-                      echoCancellation ? 'bg-[#23a55a] justify-end' : 'bg-[#404249] justify-start'
+                      echoCancellation ? 'bg-success justify-end' : 'bg-surface-hover justify-start'
                     }`}
                   >
                     <div className="w-4 h-4 rounded-full bg-white shadow" />
@@ -672,15 +672,15 @@ export default function UserSettingsModal({ onClose }) {
                 </div>
 
                 {/* Noise Suppression */}
-                <div className="flex items-center justify-between bg-[#1e1f22] p-3 rounded-lg border border-[#3f4147]">
+                <div className="flex items-center justify-between bg-surface-active p-3 rounded-lg border border-surface-border">
                   <div>
-                    <div className="text-xs font-bold text-white">Noise Suppression</div>
-                    <div className="text-[10px] text-[#949ba4]">Filters background fan, typing, and room noise</div>
+                    <div className="text-xs font-bold text-text-primary">Noise Suppression</div>
+                    <div className="text-[10px] text-text-muted">Filters background fan, typing, and room noise</div>
                   </div>
                   <button
                     onClick={handleToggleNoiseSuppression}
                     className={`w-10 h-5 rounded-full transition-colors p-0.5 flex items-center ${
-                      noiseSuppression ? 'bg-[#23a55a] justify-end' : 'bg-[#404249] justify-start'
+                      noiseSuppression ? 'bg-success justify-end' : 'bg-surface-hover justify-start'
                     }`}
                   >
                     <div className="w-4 h-4 rounded-full bg-white shadow" />
@@ -688,15 +688,15 @@ export default function UserSettingsModal({ onClose }) {
                 </div>
 
                 {/* Automatic Gain Control */}
-                <div className="flex items-center justify-between bg-[#1e1f22] p-3 rounded-lg border border-[#3f4147]">
+                <div className="flex items-center justify-between bg-surface-active p-3 rounded-lg border border-surface-border">
                   <div>
-                    <div className="text-xs font-bold text-white">Automatic Gain Control (AGC)</div>
-                    <div className="text-[10px] text-[#949ba4]">Automatically balances quiet and loud voice levels</div>
+                    <div className="text-xs font-bold text-text-primary">Automatic Gain Control (AGC)</div>
+                    <div className="text-[10px] text-text-muted">Automatically balances quiet and loud voice levels</div>
                   </div>
                   <button
                     onClick={handleToggleAutoGainControl}
                     className={`w-10 h-5 rounded-full transition-colors p-0.5 flex items-center ${
-                      autoGainControl ? 'bg-[#23a55a] justify-end' : 'bg-[#404249] justify-start'
+                      autoGainControl ? 'bg-success justify-end' : 'bg-surface-hover justify-start'
                     }`}
                   >
                     <div className="w-4 h-4 rounded-full bg-white shadow" />
@@ -706,11 +706,11 @@ export default function UserSettingsModal({ onClose }) {
 
               {/* Audio Bitrate Selector */}
               <div className="pt-2">
-                <label className="block text-xs font-bold text-[#b5bac1] uppercase mb-1.5">Audio Quality & Bitrate</label>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-1.5">Audio Quality & Bitrate</label>
                 <select
                   value={audioBitrate}
                   onChange={(e) => handleBitrateChange(e.target.value)}
-                  className="w-full bg-[#1e1f22] border border-[#3f4147] text-white text-xs rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                  className="w-full bg-surface-active border border-surface-border text-text-primary text-xs rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
                 >
                   <option value="64">Standard Voice (64 kbps)</option>
                   <option value="128">High-Fidelity Audio (128 kbps)</option>
@@ -720,11 +720,11 @@ export default function UserSettingsModal({ onClose }) {
             </div>
 
             {/* Volume Sliders */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-[#2b2d31] p-5 rounded-xl border border-[#1f2023]">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-surface-panel p-5 rounded-xl border border-surface-border">
               <div>
-                <div className="flex justify-between text-xs font-semibold text-[#b5bac1] mb-2">
+                <div className="flex justify-between text-xs font-semibold text-text-muted mb-2">
                   <span>Input Volume Gain</span>
-                  <span className="font-mono text-white">{inputVolume}%</span>
+                  <span className="font-mono text-text-primary">{inputVolume}%</span>
                 </div>
                 <input
                   type="range"
@@ -732,14 +732,14 @@ export default function UserSettingsModal({ onClose }) {
                   max="200"
                   value={inputVolume}
                   onChange={(e) => handleInputVolumeChange(Number(e.target.value))}
-                  className="w-full accent-[#5865f2]"
+                  className="w-full accent-accent-primary"
                 />
               </div>
 
               <div>
-                <div className="flex justify-between text-xs font-semibold text-[#b5bac1] mb-2">
+                <div className="flex justify-between text-xs font-semibold text-text-muted mb-2">
                   <span>Output Volume</span>
-                  <span className="font-mono text-white">{outputVolume}%</span>
+                  <span className="font-mono text-text-primary">{outputVolume}%</span>
                 </div>
                 <input
                   type="range"
@@ -747,26 +747,26 @@ export default function UserSettingsModal({ onClose }) {
                   max="100"
                   value={outputVolume}
                   onChange={(e) => handleOutputVolumeChange(Number(e.target.value))}
-                  className="w-full accent-[#23a55a]"
+                  className="w-full accent-success"
                 />
               </div>
             </div>
 
             {/* Mic Testing Box with Hear Self Loopback */}
-            <div className="bg-[#2b2d31] p-5 rounded-xl border border-[#1f2023] space-y-4">
+            <div className="bg-surface-panel p-5 rounded-xl border border-surface-border space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                  <h3 className="text-sm font-bold text-text-primary flex items-center space-x-2">
                     <span>Mic Test</span>
                     {isTestingMic && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />}
                   </h3>
-                  <p className="text-xs text-[#949ba4]">Test your mic level in real-time as you speak into your microphone.</p>
+                  <p className="text-xs text-text-muted">Test your mic level in real-time as you speak into your microphone.</p>
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={playTestSound}
-                    className="px-3 py-1.5 bg-[#1e1f22] hover:bg-[#35373c] text-xs font-semibold text-white rounded-md border border-[#3f4147] flex items-center space-x-1.5 transition"
+                    className="px-3 py-1.5 bg-surface-active hover:bg-surface-hover text-xs font-semibold text-text-primary rounded-md border border-surface-border flex items-center space-x-1.5 transition"
                   >
                     <Play className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Play Test Sound</span>
@@ -774,8 +774,8 @@ export default function UserSettingsModal({ onClose }) {
 
                   <button
                     onClick={toggleMicTest}
-                    className={`px-4 py-1.5 text-xs font-bold text-white rounded-md transition shadow ${
-                      isTestingMic ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#5865f2] hover:bg-[#4752c4]'
+                    className={`px-4 py-1.5 text-xs font-bold text-text-primary rounded-md transition shadow ${
+                      isTestingMic ? 'bg-rose-600 hover:bg-rose-700' : 'bg-accent-primary hover:bg-accent-hover'
                     }`}
                   >
                     {isTestingMic ? 'Stop Testing' : 'Let\'s Check'}
@@ -784,12 +784,12 @@ export default function UserSettingsModal({ onClose }) {
               </div>
 
               {/* Hear Self Toggle */}
-              <div className="flex items-center justify-between bg-[#1e1f22] px-3 py-2 rounded-lg border border-[#3f4147]">
-                <span className="text-xs text-[#dbdee1]">Hear Yourself (Audio Loopback Test)</span>
+              <div className="flex items-center justify-between bg-surface-active px-3 py-2 rounded-lg border border-surface-border">
+                <span className="text-xs text-text-primary">Hear Yourself (Audio Loopback Test)</span>
                 <button
                   onClick={toggleHearSelf}
                   className={`w-10 h-5 rounded-full transition-colors p-0.5 flex items-center ${
-                    hearSelf ? 'bg-[#23a55a] justify-end' : 'bg-[#404249] justify-start'
+                    hearSelf ? 'bg-success justify-end' : 'bg-surface-hover justify-start'
                   }`}
                 >
                   <div className="w-4 h-4 rounded-full bg-white shadow" />
@@ -797,7 +797,7 @@ export default function UserSettingsModal({ onClose }) {
               </div>
 
               {/* Volume Meter Bar */}
-              <div className="w-full bg-[#1e1f22] h-4 rounded-full overflow-hidden p-0.5 border border-[#3f4147] relative">
+              <div className="w-full bg-surface-active h-4 rounded-full overflow-hidden p-0.5 border border-surface-border relative">
                 <div 
                   className="h-full bg-gradient-to-r from-emerald-500 via-amber-400 to-rose-500 rounded-full transition-all duration-75"
                   style={{ width: `${micLevel}%` }}
@@ -806,20 +806,20 @@ export default function UserSettingsModal({ onClose }) {
             </div>
 
             {/* Video Camera Preview Section */}
-            <div className="bg-[#2b2d31] p-5 rounded-xl border border-[#1f2023] space-y-4">
+            <div className="bg-surface-panel p-5 rounded-xl border border-surface-border space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-xs font-bold text-[#b5bac1] uppercase flex items-center space-x-1.5">
+                  <label className="block text-xs font-bold text-text-muted uppercase flex items-center space-x-1.5">
                     <Camera className="w-4 h-4 text-amber-400" />
                     <span>Video Camera</span>
                   </label>
-                  <p className="text-xs text-[#949ba4] mt-0.5">Select a camera and test live webcam preview.</p>
+                  <p className="text-xs text-text-muted mt-0.5">Select a camera and test live webcam preview.</p>
                 </div>
 
                 <button
                   onClick={toggleCameraPreview}
-                  className={`px-4 py-1.5 text-xs font-bold text-white rounded-md transition shadow flex items-center space-x-1.5 ${
-                    isPreviewingCamera ? 'bg-rose-600 hover:bg-rose-700' : 'bg-[#23a55a] hover:bg-[#1db853]'
+                  className={`px-4 py-1.5 text-xs font-bold text-text-primary rounded-md transition shadow flex items-center space-x-1.5 ${
+                    isPreviewingCamera ? 'bg-rose-600 hover:bg-rose-700' : 'bg-success hover:bg-success/80'
                   }`}
                 >
                   {isPreviewingCamera ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -830,7 +830,7 @@ export default function UserSettingsModal({ onClose }) {
               <select
                 value={selectedVideoDevice}
                 onChange={(e) => handleSelectVideoDevice(e.target.value)}
-                className="w-full bg-[#1e1f22] border border-[#2b2d31] text-white text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                className="w-full bg-surface-active border border-surface-border text-text-primary text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
               >
                 {getDeviceOptions(videoInputDevices, 'Camera').map((opt) => (
                   <option key={opt.id} value={opt.id}>
@@ -841,7 +841,7 @@ export default function UserSettingsModal({ onClose }) {
 
 
               {/* Live Camera Feed Tile */}
-              <div className="relative w-full h-64 bg-[#111214] rounded-lg overflow-hidden border border-[#3f4147] flex items-center justify-center">
+              <div className="relative w-full h-64 bg-surface-active rounded-lg overflow-hidden border border-surface-border flex items-center justify-center">
                 <video
                   ref={videoPreviewRef}
                   autoPlay
@@ -850,8 +850,8 @@ export default function UserSettingsModal({ onClose }) {
                   className={`w-full h-full object-cover ${isPreviewingCamera ? 'block' : 'hidden'}`}
                 />
                 {!isPreviewingCamera && (
-                  <div className="flex flex-col items-center text-[#949ba4] space-y-2">
-                    <Camera className="w-12 h-12 text-[#404249]" />
+                  <div className="flex flex-col items-center text-text-muted space-y-2">
+                    <Camera className="w-12 h-12 text-text-muted" />
                     <span className="text-xs">Click "Test Camera" above to enable live video preview</span>
                   </div>
                 )}
@@ -864,8 +864,8 @@ export default function UserSettingsModal({ onClose }) {
         {activeTab === 'account' && (
           <div className="max-w-2xl space-y-6 animate-fadeIn">
             <div>
-              <h2 className="text-xl font-bold text-white mb-1">My Account</h2>
-              <p className="text-xs text-[#949ba4]">Update your profile picture, username, email, and security credentials.</p>
+              <h2 className="text-xl font-bold text-text-primary mb-1">My Account</h2>
+              <p className="text-xs text-text-muted">Update your profile picture, username, email, and security credentials.</p>
             </div>
 
             {profileMsg && (
@@ -879,71 +879,71 @@ export default function UserSettingsModal({ onClose }) {
               </div>
             )}
 
-            <form onSubmit={handleSaveProfile} className="space-y-4 bg-[#2b2d31] p-6 rounded-xl border border-[#1f2023]">
+            <form onSubmit={handleSaveProfile} className="space-y-4 bg-surface-panel p-6 rounded-xl border border-surface-border">
               <div>
-                <label className="block text-xs font-bold text-[#b5bac1] uppercase mb-1">Username</label>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-1">Username</label>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full bg-[#1e1f22] border border-[#3f4147] text-white text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                  className="w-full bg-surface-active border border-surface-border text-text-primary text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#b5bac1] uppercase mb-1">Email Address</label>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-1">Email Address</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-[#1e1f22] border border-[#3f4147] text-white text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                  className="w-full bg-surface-active border border-surface-border text-text-primary text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#b5bac1] uppercase mb-1">Avatar Image URL</label>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-1">Avatar Image URL</label>
                 <input
                   type="url"
                   placeholder="https://example.com/avatar.jpg"
                   value={avatarUrl}
                   onChange={(e) => setAvatarUrl(e.target.value)}
-                  className="w-full bg-[#1e1f22] border border-[#3f4147] text-white text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                  className="w-full bg-surface-active border border-surface-border text-text-primary text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#b5bac1] uppercase mb-1">Custom Status Message</label>
+                <label className="block text-xs font-bold text-text-muted uppercase mb-1">Custom Status Message</label>
                 <input
                   type="text"
                   placeholder="Coding high-performance WebRTC app..."
                   value={statusMessage}
                   onChange={(e) => setStatusMessage(e.target.value)}
-                  className="w-full bg-[#1e1f22] border border-[#3f4147] text-white text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                  className="w-full bg-surface-active border border-surface-border text-text-primary text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
                 />
               </div>
 
-              <div className="pt-4 border-t border-[#3f4147] grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="pt-4 border-t border-surface-border grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-[#b5bac1] uppercase mb-1">Current Password</label>
+                  <label className="block text-xs font-bold text-text-muted uppercase mb-1">Current Password</label>
                   <input
                     type="password"
                     placeholder="••••••••"
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full bg-[#1e1f22] border border-[#3f4147] text-white text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                    className="w-full bg-surface-active border border-surface-border text-text-primary text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-[#b5bac1] uppercase mb-1">New Password</label>
+                  <label className="block text-xs font-bold text-text-muted uppercase mb-1">New Password</label>
                   <input
                     type="password"
                     placeholder="••••••••"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full bg-[#1e1f22] border border-[#3f4147] text-white text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+                    className="w-full bg-surface-active border border-surface-border text-text-primary text-sm rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-accent-primary"
                   />
                 </div>
               </div>
@@ -951,7 +951,7 @@ export default function UserSettingsModal({ onClose }) {
               <div className="pt-4 flex justify-end">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-[#5865f2] hover:bg-[#4752c4] text-white text-sm font-bold rounded-lg transition shadow-lg"
+                  className="px-6 py-2.5 bg-accent-primary hover:bg-accent-hover text-text-primary text-sm font-bold rounded-lg transition shadow-lg"
                 >
                   Save Changes
                 </button>
@@ -964,25 +964,25 @@ export default function UserSettingsModal({ onClose }) {
         {activeTab === 'appearance' && (
           <div className="max-w-2xl space-y-6 animate-fadeIn">
             <div>
-              <h2 className="text-xl font-bold text-white mb-1">App Appearance & Sounds</h2>
-              <p className="text-xs text-[#949ba4]">Customize notifications, sound chimes, and theme styling.</p>
+              <h2 className="text-xl font-bold text-text-primary mb-1">App Appearance & Sounds</h2>
+              <p className="text-xs text-text-muted">Customize notifications, sound chimes, and theme styling.</p>
             </div>
 
-            <div className="bg-[#2b2d31] p-6 rounded-xl border border-[#1f2023] space-y-6">
+            <div className="bg-surface-panel p-6 rounded-xl border border-surface-border space-y-6">
               {/* Notification Chime Switch */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <Bell className="w-5 h-5 text-[#5865f2]" />
+                  <Bell className="w-5 h-5 text-accent-primary" />
                   <div>
-                    <div className="text-sm font-bold text-white">Incoming Message Notification Chimes</div>
-                    <div className="text-xs text-[#949ba4]">Play dynamic Web Audio API chord chime when receiving messages.</div>
+                    <div className="text-sm font-bold text-text-primary">Incoming Message Notification Chimes</div>
+                    <div className="text-xs text-text-muted">Play dynamic Web Audio API chord chime when receiving messages.</div>
                   </div>
                 </div>
 
                 <button
                   onClick={toggleSoundEnabled}
                   className={`w-12 h-6 rounded-full transition-colors p-1 flex items-center ${
-                    soundEnabled ? 'bg-[#23a55a] justify-end' : 'bg-[#404249] justify-start'
+                    soundEnabled ? 'bg-success justify-end' : 'bg-surface-hover justify-start'
                   }`}
                 >
                   <div className="w-4 h-4 rounded-full bg-white shadow-md" />
@@ -990,20 +990,20 @@ export default function UserSettingsModal({ onClose }) {
               </div>
 
               {/* Theme Selector */}
-              <div className="border-t border-[#3f4147] pt-6">
-                <h3 className="text-sm font-bold text-white mb-3">Theme Theme Palette</h3>
+              <div className="border-t border-surface-border pt-6">
+                <h3 className="text-sm font-bold text-text-primary mb-3">Theme Theme Palette</h3>
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="p-3 bg-[#313338] border-2 border-[#5865f2] rounded-xl text-center cursor-pointer">
-                    <div className="text-xs font-bold text-white">Discord Dark</div>
-                    <div className="text-[10px] text-[#949ba4]">Classic Slate</div>
+                  <div className="p-3 bg-surface-base border-2 border-accent-primary rounded-xl text-center cursor-pointer">
+                    <div className="text-xs font-bold text-text-primary">Discord Dark</div>
+                    <div className="text-[10px] text-text-muted">Classic Slate</div>
                   </div>
-                  <div className="p-3 bg-[#111214] border border-[#3f4147] rounded-xl text-center opacity-60 cursor-not-allowed">
-                    <div className="text-xs font-bold text-white">Midnight AMOLED</div>
-                    <div className="text-[10px] text-[#949ba4]">Pure Pitch Black</div>
+                  <div className="p-3 bg-surface-active border border-surface-border rounded-xl text-center opacity-60 cursor-not-allowed">
+                    <div className="text-xs font-bold text-text-primary">Midnight AMOLED</div>
+                    <div className="text-[10px] text-text-muted">Pure Pitch Black</div>
                   </div>
-                  <div className="p-3 bg-[#2b2d31] border border-[#3f4147] rounded-xl text-center opacity-60 cursor-not-allowed">
-                    <div className="text-xs font-bold text-white">Ashen Grey</div>
-                    <div className="text-[10px] text-[#949ba4]">Subtle Contrast</div>
+                  <div className="p-3 bg-surface-panel border border-surface-border rounded-xl text-center opacity-60 cursor-not-allowed">
+                    <div className="text-xs font-bold text-text-primary">Ashen Grey</div>
+                    <div className="text-[10px] text-text-muted">Subtle Contrast</div>
                   </div>
                 </div>
               </div>

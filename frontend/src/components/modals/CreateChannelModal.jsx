@@ -31,17 +31,17 @@ export default function CreateChannelModal({ onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
-      <div className="bg-[#313338] border border-[#2b2d31] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="p-6 flex items-center justify-between border-b border-[#2b2d31]">
-          <h2 className="text-xl font-bold text-white">Create Channel</h2>
-          <button onClick={onClose} className="text-[#949ba4] hover:text-white">
+      <div className="bg-surface-base border border-surface-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="p-6 flex items-center justify-between border-b border-surface-border">
+          <h2 className="text-xl font-bold text-text-primary">Create Channel</h2>
+          <button onClick={onClose} className="text-text-muted hover:text-text-primary">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
               Channel Type
             </label>
             <div className="space-y-2">
@@ -54,13 +54,13 @@ export default function CreateChannelModal({ onClose }) {
                     key={t.id}
                     onClick={() => setChannelType(t.id)}
                     className={`flex items-center space-x-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                      isSelected ? 'bg-[#404249] border-[#5865f2]' : 'bg-[#2b2d31] border-transparent hover:bg-[#35373c]'
+                      isSelected ? 'bg-surface-hover border-accent-primary' : 'bg-surface-panel border-transparent hover:bg-surface-hover'
                     }`}
                   >
-                    <Icon className={`w-6 h-6 ${isSelected ? 'text-[#5865f2]' : 'text-[#949ba4]'}`} />
+                    <Icon className={`w-6 h-6 ${isSelected ? 'text-accent-primary' : 'text-text-muted'}`} />
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-bold text-white leading-tight">{t.title}</div>
-                      <div className="text-xs text-[#949ba4] leading-tight mt-0.5">{t.desc}</div>
+                      <div className="text-sm font-bold text-text-primary leading-tight">{t.title}</div>
+                      <div className="text-xs text-text-muted leading-tight mt-0.5">{t.desc}</div>
                     </div>
                   </div>
                 );
@@ -69,7 +69,7 @@ export default function CreateChannelModal({ onClose }) {
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
               Channel Name
             </label>
             <input
@@ -78,12 +78,12 @@ export default function CreateChannelModal({ onClose }) {
               value={channelName}
               onChange={(e) => setChannelName(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
               placeholder="new-channel"
-              className="w-full bg-[#1e1f22] text-white text-sm rounded-lg px-3 py-2.5 border border-[#2b2d31] focus:outline-none focus:border-[#5865f2]"
+              className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-1">
+            <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
               Category
             </label>
             <input
@@ -91,18 +91,18 @@ export default function CreateChannelModal({ onClose }) {
               value={category}
               onChange={(e) => setCategory(e.target.value)}
               placeholder="Text Channels"
-              className="w-full bg-[#1e1f22] text-white text-sm rounded-lg px-3 py-2.5 border border-[#2b2d31] focus:outline-none focus:border-[#5865f2]"
+              className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
             />
           </div>
 
-          <div className="bg-[#2b2d31] -mx-6 -mb-6 p-4 flex items-center justify-between mt-6">
-            <button type="button" onClick={onClose} className="text-xs font-semibold text-white hover:underline">
+          <div className="bg-surface-panel -mx-6 -mb-6 p-4 flex items-center justify-between mt-6">
+            <button type="button" onClick={onClose} className="text-xs font-semibold text-text-primary hover:underline">
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold text-sm rounded-lg transition-colors"
+              className="px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-lg transition-colors"
             >
               {loading ? 'Creating...' : 'Create Channel'}
             </button>

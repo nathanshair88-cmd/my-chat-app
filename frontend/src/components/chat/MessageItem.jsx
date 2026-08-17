@@ -66,7 +66,7 @@ export default function MessageItem({ message, searchQuery }) {
       <span>
         {parts.map((part, i) =>
           part.toLowerCase() === searchQuery.toLowerCase() ? (
-            <mark key={i} className="bg-[#f0b232]/40 text-amber-200 px-0.5 rounded font-bold">
+            <mark key={i} className="bg-amber-500/40 text-amber-200 px-0.5 rounded font-bold">
               {part}
             </mark>
           ) : (
@@ -78,25 +78,25 @@ export default function MessageItem({ message, searchQuery }) {
   };
 
   return (
-    <div className="group relative flex space-x-4 px-4 py-2 hover:bg-[#2e3035] transition-colors rounded-lg my-0.5">
+    <div className="group relative flex space-x-4 px-4 py-2 hover:bg-surface-hover transition-colors rounded-lg my-0.5">
       {/* Author Avatar */}
       <img
         src={author?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${author?.username || 'User'}`}
         alt={author?.username}
-        className="w-10 h-10 rounded-full bg-[#1e1f22] object-cover flex-shrink-0 mt-0.5 border border-[#2b2d31]"
+        className="w-10 h-10 rounded-full bg-surface-panel object-cover flex-shrink-0 mt-0.5 border border-surface-border shadow-sm"
       />
 
       <div className="flex-1 min-w-0">
         {/* Header line */}
         <div className="flex items-baseline space-x-2">
-          <span className="font-semibold text-white text-sm hover:underline cursor-pointer">
+          <span className="font-semibold text-text-primary text-sm hover:underline cursor-pointer">
             {author?.username || 'Unknown User'}
           </span>
-          <span className="text-[11px] text-[#949ba4] font-medium">{formattedDate}</span>
+          <span className="text-[11px] text-text-muted font-medium">{formattedDate}</span>
         </div>
 
         {/* Markdown Content Body */}
-        <div className="text-sm text-[#dbdee1] mt-1 leading-relaxed break-words space-y-1">
+        <div className="text-sm text-text-primary mt-1 leading-relaxed break-words space-y-1">
           {searchQuery ? (
             <div className="whitespace-pre-wrap">{renderContent(message.content)}</div>
           ) : (
@@ -105,18 +105,18 @@ export default function MessageItem({ message, searchQuery }) {
               components={{
                 code({ node, inline, className, children, ...props }) {
                   return inline ? (
-                    <code className="bg-[#1e1f22] text-[#f23f43] px-1.5 py-0.5 rounded font-mono text-xs" {...props}>
+                    <code className="bg-surface-active text-danger px-1.5 py-0.5 rounded font-mono text-xs border border-surface-border" {...props}>
                       {children}
                     </code>
                   ) : (
-                    <pre className="bg-[#1e1f22] p-3 rounded-lg border border-[#2b2d31] font-mono text-xs text-[#5865f2] overflow-x-auto my-2">
+                    <pre className="bg-surface-active p-3 rounded-lg border border-surface-border font-mono text-xs text-accent-primary overflow-x-auto my-2 shadow-inner">
                       <code {...props}>{children}</code>
                     </pre>
                   );
                 },
                 a({ href, children }) {
                   return (
-                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-[#00a8fc] hover:underline">
+                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:underline">
                       {children}
                     </a>
                   );
@@ -137,18 +137,18 @@ export default function MessageItem({ message, searchQuery }) {
 
               if (isImage && att.url) {
                 return (
-                  <div key={idx} className="relative group/att max-w-sm rounded-lg overflow-hidden border border-[#2b2d31] bg-[#1e1f22]">
+                  <div key={idx} className="relative group/att max-w-sm rounded-lg overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
                     <img 
                       src={att.url} 
                       alt={att.name || 'Attachment'}
                       onClick={() => setActiveMediaPreview(att)}
                       className="max-h-60 w-auto object-cover cursor-pointer hover:opacity-90 transition" 
                     />
-                    <div className="p-1.5 bg-[#111214]/80 text-[11px] text-[#dbdee1] flex items-center justify-between">
+                    <div className="p-1.5 bg-surface-active/80 backdrop-blur-sm text-[11px] text-text-primary flex items-center justify-between border-t border-surface-border">
                       <span className="truncate max-w-[200px]">{att.name}</span>
                       <button
                         onClick={() => setActiveMediaPreview(att)}
-                        className="text-[#00a8fc] hover:underline font-semibold"
+                        className="text-accent-primary hover:underline font-semibold"
                       >
                         Expand
                       </button>
@@ -159,17 +159,17 @@ export default function MessageItem({ message, searchQuery }) {
 
               if (isVideo && att.url) {
                 return (
-                  <div key={idx} className="max-w-sm rounded-lg overflow-hidden border border-[#2b2d31] bg-[#1e1f22]">
+                  <div key={idx} className="max-w-sm rounded-lg overflow-hidden border border-surface-border bg-surface-panel shadow-sm">
                     <video 
                       src={att.url} 
                       controls 
                       className="max-h-60 w-full object-cover" 
                     />
-                    <div className="p-1.5 bg-[#111214]/80 text-[11px] text-[#dbdee1] flex items-center justify-between">
+                    <div className="p-1.5 bg-surface-active/80 backdrop-blur-sm text-[11px] text-text-primary flex items-center justify-between border-t border-surface-border">
                       <span className="truncate max-w-[200px]">{att.name}</span>
                       <button
                         onClick={() => setActiveMediaPreview(att)}
-                        className="text-[#00a8fc] hover:underline font-semibold"
+                        className="text-accent-primary hover:underline font-semibold"
                       >
                         Fullscreen
                       </button>
@@ -179,11 +179,11 @@ export default function MessageItem({ message, searchQuery }) {
               }
 
               return (
-                <div key={idx} className="flex items-center space-x-3 bg-[#1e1f22] p-2.5 rounded-lg border border-[#2b2d31] max-w-xs">
-                  <FileText className="w-8 h-8 text-[#5865f2] flex-shrink-0" />
+                <div key={idx} className="flex items-center space-x-3 bg-surface-panel p-2.5 rounded-lg border border-surface-border max-w-xs shadow-sm">
+                  <FileText className="w-8 h-8 text-accent-primary flex-shrink-0" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-white truncate">{att.name}</div>
-                    <div className="text-[11px] text-[#949ba4]">
+                    <div className="text-xs font-semibold text-text-primary truncate">{att.name}</div>
+                    <div className="text-[11px] text-text-muted">
                       {att.size ? `${(att.size / 1024).toFixed(1)} KB` : 'File'}
                     </div>
                   </div>
@@ -193,7 +193,7 @@ export default function MessageItem({ message, searchQuery }) {
                       download={att.name}
                       target="_blank"
                       rel="noreferrer"
-                      className="p-1.5 hover:bg-[#35373c] text-[#949ba4] hover:text-white rounded transition"
+                      className="p-1.5 hover:bg-surface-hover text-text-muted hover:text-text-primary rounded transition"
                       title="Download File"
                     >
                       <Download className="w-4 h-4" />
@@ -212,10 +212,10 @@ export default function MessageItem({ message, searchQuery }) {
               <button
                 key={emoji}
                 onClick={() => handleToggleReaction(emoji)}
-                className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-md border text-xs font-semibold transition-all ${
+                className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-md border text-xs font-semibold transition-all shadow-sm ${
                   data.hasUserReacted
-                    ? 'bg-[#3c4270] border-[#5865f2] text-[#5865f2]'
-                    : 'bg-[#2b2d31] border-[#35373c] text-[#b5bac1] hover:bg-[#35373c]'
+                    ? 'bg-accent-primary/20 border-accent-primary text-accent-primary'
+                    : 'bg-surface-panel border-surface-border text-text-muted hover:bg-surface-hover'
                 }`}
               >
                 <span>{emoji}</span>
@@ -228,10 +228,10 @@ export default function MessageItem({ message, searchQuery }) {
 
       {/* Floating Hover Toolbar */}
       {(message.channel_id || message.conversation_id) && (
-        <div className="absolute right-4 -top-3 hidden group-hover:flex items-center bg-[#313338] border border-[#2b2d31] rounded-md shadow-lg p-0.5 z-10 space-x-1">
+        <div className="absolute right-4 -top-3 hidden group-hover:flex items-center bg-surface-active/90 backdrop-blur-sm border border-surface-border rounded-md shadow-lg p-0.5 z-10 space-x-1">
           <button
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="p-1.5 text-[#b5bac1] hover:text-white hover:bg-[#35373c] rounded transition-colors"
+            className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded transition-colors"
             title="Add Reaction"
           >
             <Smile className="w-4 h-4" />

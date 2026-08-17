@@ -18,14 +18,14 @@ export default function MediaLightboxModal({ media, onClose }) {
           download={media.name || 'attachment'}
           target="_blank"
           rel="noreferrer"
-          className="p-2 bg-[#2b2d31]/80 hover:bg-[#35373c] text-white rounded-full transition shadow-lg flex items-center justify-center"
+          className="p-2 bg-surface-panel/80 hover:bg-surface-hover text-text-primary rounded-full transition shadow-lg flex items-center justify-center"
           title="Download original"
         >
           <Download className="w-5 h-5" />
         </a>
         <button
           onClick={onClose}
-          className="p-2 bg-[#2b2d31]/80 hover:bg-rose-600 text-white rounded-full transition shadow-lg flex items-center justify-center"
+          className="p-2 bg-surface-panel/80 hover:bg-rose-600 text-text-primary rounded-full transition shadow-lg flex items-center justify-center"
           title="Close preview"
         >
           <X className="w-5 h-5" />
@@ -42,18 +42,18 @@ export default function MediaLightboxModal({ media, onClose }) {
             src={media.url} 
             controls 
             autoPlay 
-            className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain border border-[#2b2d31]"
+            className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain border border-surface-border"
           />
         ) : (
           <img 
             src={media.url} 
             alt={media.name || 'Preview'} 
-            className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain border border-[#2b2d31]"
+            className="max-w-full max-h-[80vh] rounded-lg shadow-2xl object-contain border border-surface-border"
           />
         )}
 
         {media.name && (
-          <div className="mt-3 text-xs font-semibold text-[#dbdee1] bg-[#111214]/80 px-4 py-1.5 rounded-full border border-[#2b2d31]">
+          <div className="mt-3 text-xs font-semibold text-text-primary bg-surface-active/80 px-4 py-1.5 rounded-full border border-surface-border">
             {media.name} {media.size ? `(${(media.size / 1024).toFixed(1)} KB)` : ''}
           </div>
         )}

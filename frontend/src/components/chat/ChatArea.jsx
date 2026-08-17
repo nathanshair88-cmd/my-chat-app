@@ -48,33 +48,33 @@ export default function ChatArea({ onOpenP2PModal }) {
 
   if (!isDM && !currentChannel) {
     return (
-      <div className="flex-1 bg-[#313338] flex flex-col items-center justify-center text-[#949ba4]">
-        <div className="w-16 h-16 rounded-full bg-[#2b2d31] flex items-center justify-center mb-4">
-          <Hash className="w-8 h-8 text-[#80848e]" />
+      <div className="flex-1 bg-surface-base flex flex-col items-center justify-center text-text-muted">
+        <div className="w-16 h-16 rounded-full bg-surface-panel flex items-center justify-center mb-4">
+          <Hash className="w-8 h-8 text-text-muted" />
         </div>
-        <p className="text-lg font-semibold text-white">No Channel Selected</p>
-        <p className="text-sm text-[#949ba4] mt-1">Select a text or voice channel from the sidebar to start chatting.</p>
+        <p className="text-lg font-semibold text-text-primary">No Workspace Selected</p>
+        <p className="text-sm text-text-muted mt-1">Select a text or voice channel from the sidebar to start collaborating.</p>
       </div>
     );
   }
 
   if (isDM && !currentDM) {
     return (
-      <div className="flex-1 bg-[#313338] flex flex-col items-center justify-center text-[#949ba4]">
-        <div className="w-16 h-16 rounded-full bg-[#2b2d31] flex items-center justify-center mb-4">
-          <MessageSquare className="w-8 h-8 text-[#5865f2]" />
+      <div className="flex-1 bg-surface-base flex flex-col items-center justify-center text-text-muted">
+        <div className="w-16 h-16 rounded-full bg-surface-panel flex items-center justify-center mb-4">
+          <MessageSquare className="w-8 h-8 text-accent-primary" />
         </div>
-        <p className="text-lg font-semibold text-white">Direct Messages</p>
-        <p className="text-sm text-[#949ba4] mt-1">Select a conversation or click + in the sidebar to start a new DM.</p>
+        <p className="text-lg font-semibold text-text-primary">Direct Messages</p>
+        <p className="text-sm text-text-muted mt-1">Select a conversation or click + in the sidebar to start a new DM.</p>
       </div>
     );
   }
 
   const getChannelIcon = (type) => {
     switch (type) {
-      case 'voice': return <Volume2 className="w-6 h-6 text-[#949ba4] mr-2" />;
-      case 'media': return <Video className="w-6 h-6 text-[#949ba4] mr-2" />;
-      default: return <Hash className="w-6 h-6 text-[#949ba4] mr-2" />;
+      case 'voice': return <Volume2 className="w-6 h-6 text-text-muted mr-2" />;
+      case 'media': return <Video className="w-6 h-6 text-text-muted mr-2" />;
+      default: return <Hash className="w-6 h-6 text-text-muted mr-2" />;
     }
   };
 
@@ -89,34 +89,34 @@ export default function ChatArea({ onOpenP2PModal }) {
 
   return (
     <div 
-      className="flex-1 bg-[#313338] flex flex-col min-w-0 h-full relative"
+      className="flex-1 bg-transparent flex flex-col min-w-0 h-full relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Drag & Drop Visual Overlay */}
       {isDragging && (
-        <div className="absolute inset-0 z-40 bg-[#5865f2]/90 flex flex-col items-center justify-center text-white backdrop-blur-sm pointer-events-none animate-fadeIn">
+        <div className="absolute inset-0 z-40 bg-accent-primary/90 flex flex-col items-center justify-center text-text-primary backdrop-blur-sm pointer-events-none animate-fadeIn rounded-2xl">
           <UploadCloud className="w-20 h-20 mb-3 animate-bounce" />
           <h2 className="text-2xl font-bold">Upload to {isDM ? `@${otherUser?.username}` : `#${currentChannel?.name}`}</h2>
-          <p className="text-sm text-white/80 mt-1">Drop files anywhere to attach to your message</p>
+          <p className="text-sm text-text-primary/80 mt-1">Drop files anywhere to attach to your message</p>
         </div>
       )}
 
       {/* Header Bar */}
-      <div className="h-12 px-4 border-b border-[#1f2023] flex items-center justify-between shadow-sm bg-[#313338] z-10">
+      <div className="h-12 px-4 border-b border-surface-border flex items-center justify-between shadow-sm bg-surface-panel/40 backdrop-blur-md z-10">
         <div className="flex items-center min-w-0 pr-2">
           {isDM ? (
             <div className="flex items-center space-x-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-[#5865f2] flex items-center justify-center text-white font-bold text-xs">
+              <div className="w-7 h-7 rounded-full bg-accent-primary flex items-center justify-center text-text-primary font-bold text-xs shadow-sm">
                 {otherUser?.username?.[0]?.toUpperCase() || 'U'}
               </div>
-              <span className="font-bold text-white text-md truncate">@{otherUser?.username}</span>
+              <span className="font-bold text-text-primary text-md truncate">@{otherUser?.username}</span>
             </div>
           ) : (
             <div className="flex items-center min-w-0">
               {getChannelIcon(currentChannel.type)}
-              <span className="font-bold text-white text-md truncate">{currentChannel.name}</span>
+              <span className="font-bold text-text-primary text-md truncate">{currentChannel.name}</span>
             </div>
           )}
         </div>
@@ -127,8 +127,8 @@ export default function ChatArea({ onOpenP2PModal }) {
           {currentChannel && (currentChannel.type === 'voice' || currentChannel.type === 'media') && (
             <button
               onClick={toggleVoiceGrid}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition ${
-                showVoiceGrid ? 'bg-[#5865f2] text-white' : 'bg-[#1e1f22] text-[#949ba4] hover:text-white hover:bg-[#35373c]'
+              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition shadow-sm ${
+                showVoiceGrid ? 'bg-accent-primary text-text-primary' : 'bg-surface-active text-text-muted hover:text-text-primary hover:bg-surface-hover'
               }`}
               title={showVoiceGrid ? "Switch to Dedicated Text Chat" : "View Voice & Video Grid"}
             >
@@ -145,13 +145,13 @@ export default function ChatArea({ onOpenP2PModal }) {
               placeholder="Search messages..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-[#1e1f22] text-white text-xs px-3 py-1.5 pl-8 pr-7 rounded-md w-36 sm:w-48 focus:w-64 focus:outline-none focus:ring-1 focus:ring-[#5865f2] transition-all"
+              className="bg-surface-active text-text-primary text-xs px-3 py-1.5 pl-8 pr-7 rounded-md w-36 sm:w-48 focus:w-64 focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all border border-surface-border"
             />
-            <Search className="w-3.5 h-3.5 text-[#949ba4] absolute left-2.5 pointer-events-none" />
+            <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 pointer-events-none" />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 text-[#949ba4] hover:text-white"
+                className="absolute right-2 text-text-muted hover:text-text-primary"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -160,44 +160,44 @@ export default function ChatArea({ onOpenP2PModal }) {
 
           <button
             onClick={onOpenP2PModal}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#2b2d31] hover:bg-[#35373c] text-[#dbdee1] text-xs font-semibold rounded-md transition-colors border border-[#3f4147]"
+            className="flex items-center space-x-1.5 px-3 py-1.5 bg-surface-active hover:bg-surface-hover text-text-primary text-xs font-semibold rounded-md transition-colors border border-surface-border shadow-sm"
           >
-            <Share2 className="w-3.5 h-3.5 text-[#5865f2]" />
+            <Share2 className="w-3.5 h-3.5 text-accent-primary" />
             <span className="hidden sm:inline">P2P Transfer</span>
           </button>
         </div>
       </div>
 
       {/* Messages Scrollable Stream */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar bg-transparent">
         {/* Welcome Banner */}
-        <div className="mb-6 pt-4 border-b border-[#35373c] pb-6">
+        <div className="mb-6 pt-4 border-b border-surface-border pb-6">
           {isDM ? (
             <div>
-              <div className="w-16 h-16 rounded-full bg-[#5865f2] flex items-center justify-center text-white text-2xl font-bold mb-3">
+              <div className="w-16 h-16 rounded-full bg-accent-primary flex items-center justify-center text-text-primary text-2xl font-bold mb-3 shadow-md">
                 {otherUser?.username?.[0]?.toUpperCase() || 'U'}
               </div>
-              <h2 className="text-2xl font-bold text-white">@{otherUser?.username}</h2>
-              <p className="text-sm text-[#949ba4] mt-1">This is the beginning of your direct message history with @{otherUser?.username}.</p>
+              <h2 className="text-2xl font-bold text-text-primary">@{otherUser?.username}</h2>
+              <p className="text-sm text-text-muted mt-1">This is the beginning of your direct message history with @{otherUser?.username}.</p>
             </div>
           ) : (
             <div>
-              <div className="w-16 h-16 rounded-full bg-[#404249] flex items-center justify-center mb-3">
+              <div className="w-16 h-16 rounded-full bg-surface-active flex items-center justify-center mb-3 border border-surface-border shadow-sm">
                 {getChannelIcon(currentChannel.type)}
               </div>
-              <h2 className="text-2xl font-bold text-white">Welcome to #{currentChannel.name}!</h2>
-              <p className="text-sm text-[#949ba4] mt-1">This is the start of the #{currentChannel.name} channel.</p>
+              <h2 className="text-2xl font-bold text-text-primary">Welcome to #{currentChannel.name}!</h2>
+              <p className="text-sm text-text-muted mt-1">This is the start of the #{currentChannel.name} channel.</p>
             </div>
           )}
         </div>
 
         {/* Search Results Notice */}
         {searchQuery.trim() && (
-          <div className="bg-[#2b2d31] p-2.5 rounded-lg border border-[#5865f2] text-xs text-[#dbdee1] flex items-center justify-between mb-4">
+          <div className="bg-surface-panel p-2.5 rounded-lg border border-accent-primary text-xs text-text-primary flex items-center justify-between mb-4 shadow-sm backdrop-blur-sm">
             <span>
-              Showing {filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'} matching "<strong className="text-white">{searchQuery}</strong>"
+              Showing {filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'} matching "<strong className="text-accent-primary">{searchQuery}</strong>"
             </span>
-            <button onClick={() => setSearchQuery('')} className="text-[#5865f2] hover:underline font-semibold">
+            <button onClick={() => setSearchQuery('')} className="text-accent-primary hover:underline font-semibold">
               Clear filter
             </button>
           </div>
@@ -211,11 +211,11 @@ export default function ChatArea({ onOpenP2PModal }) {
 
       {/* Typing Indicator Bar */}
       {typingArray.length > 0 && !isDM && (
-        <div className="px-4 py-1 text-xs text-[#949ba4] italic flex items-center space-x-1.5 bg-[#313338]">
+        <div className="px-4 py-1 text-xs text-text-muted italic flex items-center space-x-1.5 bg-transparent backdrop-blur-sm">
           <span className="flex space-x-1">
-            <span className="w-1.5 h-1.5 bg-[#949ba4] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1.5 h-1.5 bg-[#949ba4] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1.5 h-1.5 bg-[#949ba4] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
           </span>
           <span>{typingArray.join(', ')} {typingArray.length === 1 ? 'is' : 'are'} typing...</span>
         </div>

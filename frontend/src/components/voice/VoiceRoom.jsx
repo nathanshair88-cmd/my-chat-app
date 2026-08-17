@@ -30,17 +30,17 @@ export default function VoiceRoom() {
 
   if (!isConnected) {
     return (
-      <div className="flex-1 bg-[#1e1f22] flex flex-col items-center justify-center p-8 text-center select-none">
-        <div className="w-20 h-20 rounded-full bg-[#2b2d31] flex items-center justify-center mb-4 border border-[#3f4147]">
-          <Radio className="w-10 h-10 text-[#5865f2]" />
+      <div className="flex-1 bg-surface-base flex flex-col items-center justify-center p-8 text-center select-none">
+        <div className="w-20 h-20 rounded-full bg-surface-panel flex items-center justify-center mb-4 border border-surface-border shadow-md">
+          <Radio className="w-10 h-10 text-accent-primary" />
         </div>
-        <h3 className="text-xl font-bold text-white mb-2">Voice & Video Room: #{currentChannel.name}</h3>
-        <p className="text-sm text-[#949ba4] max-w-md mb-6">
+        <h3 className="text-xl font-bold text-text-primary mb-2">Voice & Video Room: #{currentChannel.name}</h3>
+        <p className="text-sm text-text-muted max-w-md mb-6">
           Connect to start crystal-clear audio chat, active speaker detection, and full 60FPS screen sharing.
         </p>
         <button
           onClick={() => voiceManager.joinVoiceChannel(currentChannel.id, user)}
-          className="px-6 py-3 bg-[#23a55a] hover:bg-[#1db853] text-white font-bold rounded-xl shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
+          className="px-6 py-3 bg-success hover:bg-success/80 text-text-primary font-bold rounded-xl shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
         >
           <Radio className="w-5 h-5 animate-pulse" />
           <span>Connect to Voice</span>
@@ -50,19 +50,19 @@ export default function VoiceRoom() {
   }
 
   return (
-    <div className="flex-1 bg-[#111214] flex flex-col justify-between p-4 relative min-h-0 overflow-hidden select-none">
+    <div className="flex-1 bg-transparent flex flex-col justify-between p-4 relative min-h-0 overflow-hidden select-none">
       {/* Top Header Bar */}
-      <div className="flex items-center justify-between bg-[#1e1f22]/80 backdrop-blur px-4 py-2.5 rounded-xl border border-[#2b2d31] mb-4 z-10">
-        <div className="flex items-center space-x-2 text-white font-bold text-sm">
-          <Radio className="w-4 h-4 text-emerald-400 animate-pulse" />
+      <div className="flex items-center justify-between bg-surface-active/80 backdrop-blur-md px-4 py-2.5 rounded-xl border border-surface-border mb-4 z-10 shadow-sm">
+        <div className="flex items-center space-x-2 text-text-primary font-bold text-sm">
+          <Radio className="w-4 h-4 text-success animate-pulse" />
           <span>#{currentChannel.name}</span>
-          <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-md font-mono">
+          <span className="text-xs bg-success/20 text-success px-2 py-0.5 rounded-md font-mono border border-success/30">
             {voiceState.streams.length} Connected
           </span>
         </div>
 
         {voiceState.isScreenSharing && (
-          <div className="flex items-center space-x-1.5 bg-[#5865f2]/20 border border-[#5865f2]/40 px-2.5 py-1 rounded-md text-xs font-mono text-[#5865f2] font-semibold">
+          <div className="flex items-center space-x-1.5 bg-accent-primary/20 border border-accent-primary/40 px-2.5 py-1 rounded-md text-xs font-mono text-accent-primary font-semibold">
             <span>LIVE 60FPS</span>
           </div>
         )}
@@ -81,12 +81,12 @@ export default function VoiceRoom() {
       </div>
 
       {/* Control Action Toolbar */}
-      <div className="flex items-center justify-center space-x-4 bg-[#1e1f22]/90 backdrop-blur py-3 px-6 rounded-2xl border border-[#2b2d31] mt-4 self-center shadow-2xl z-10">
+      <div className="flex items-center justify-center space-x-4 bg-surface-active/80 backdrop-blur-md py-3 px-6 rounded-2xl border border-surface-border mt-4 self-center shadow-2xl z-10">
         {/* Mute Mic */}
         <button
           onClick={() => voiceManager.toggleMute()}
-          className={`p-3.5 rounded-full transition-all transform active:scale-95 ${
-            voiceState.isMuted ? 'bg-rose-500 text-white shadow-rose-500/30' : 'bg-[#2b2d31] hover:bg-[#35373c] text-white'
+          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm ${
+            voiceState.isMuted ? 'bg-danger text-text-primary shadow-danger/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
           title={voiceState.isMuted ? "Unmute Mic" : "Mute Mic"}
         >
@@ -96,8 +96,8 @@ export default function VoiceRoom() {
         {/* Deafen Audio */}
         <button
           onClick={() => voiceManager.toggleDeafen()}
-          className={`p-3.5 rounded-full transition-all transform active:scale-95 ${
-            voiceState.isDeafened ? 'bg-rose-500 text-white shadow-rose-500/30' : 'bg-[#2b2d31] hover:bg-[#35373c] text-white'
+          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm ${
+            voiceState.isDeafened ? 'bg-danger text-text-primary shadow-danger/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
           title={voiceState.isDeafened ? "Undeafen Audio" : "Deafen Audio"}
         >
@@ -113,8 +113,8 @@ export default function VoiceRoom() {
               voiceManager.startScreenShare();
             }
           }}
-          className={`p-3.5 rounded-full transition-all transform active:scale-95 ${
-            voiceState.isScreenSharing ? 'bg-[#5865f2] text-white shadow-indigo-500/30' : 'bg-[#2b2d31] hover:bg-[#35373c] text-white'
+          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm ${
+            voiceState.isScreenSharing ? 'bg-accent-primary text-text-primary shadow-accent-primary/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
           title={voiceState.isScreenSharing ? "Stop Screen Share" : "Share Screen (Full Res @ 60FPS)"}
         >
@@ -124,8 +124,8 @@ export default function VoiceRoom() {
         {/* Camera (Webcam) Button */}
         <button
           onClick={() => voiceManager.toggleCamera()}
-          className={`p-3.5 rounded-full transition-all transform active:scale-95 ${
-            voiceState.isCameraOn ? 'bg-[#23a55a] text-white shadow-emerald-500/30' : 'bg-[#2b2d31] hover:bg-[#35373c] text-white'
+          className={`p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm ${
+            voiceState.isCameraOn ? 'bg-success text-text-primary shadow-success/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
           title={voiceState.isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
         >
@@ -135,7 +135,7 @@ export default function VoiceRoom() {
         {/* Disconnect Voice */}
         <button
           onClick={() => voiceManager.leaveVoiceChannel()}
-          className="p-3.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition-all transform active:scale-95 shadow-lg shadow-rose-600/30"
+          className="p-3.5 bg-danger hover:bg-danger-hover text-text-primary rounded-full transition-all transform active:scale-95 shadow-lg shadow-danger/30"
           title="Disconnect Voice"
         >
           <PhoneOff className="w-5 h-5" />
@@ -152,13 +152,13 @@ export default function VoiceRoom() {
               });
             }
           }}
-          className="fixed inset-0 z-50 bg-[#0b0c0e] flex flex-col justify-between p-6 animate-fadeIn"
+          className="fixed inset-0 z-50 bg-black/90 flex flex-col justify-between p-6 animate-fadeIn"
         >
           <div className="flex items-center justify-between z-10 absolute top-6 left-6 right-6">
-            <div className="flex items-center space-x-3 bg-[#1e1f22]/90 border border-[#2b2d31] px-4 py-2 rounded-xl">
-              <span className="font-bold text-white text-sm">{fullscreenItem.username}'s Stream</span>
+            <div className="flex items-center space-x-3 bg-surface-active/80 border border-surface-border px-4 py-2 rounded-xl backdrop-blur-md">
+              <span className="font-bold text-text-primary text-sm">{fullscreenItem.username}'s Stream</span>
               {fullscreenItem.isScreenSharing && (
-                <span className="bg-[#5865f2] text-xs text-white px-2 py-0.5 rounded font-mono uppercase font-semibold">LIVE 60FPS</span>
+                <span className="bg-accent-primary text-xs text-text-primary px-2 py-0.5 rounded font-mono uppercase font-semibold">LIVE 60FPS</span>
               )}
             </div>
 
@@ -169,7 +169,7 @@ export default function VoiceRoom() {
                 }
                 setFullscreenItem(null);
               }}
-              className="p-2.5 bg-[#1e1f22] hover:bg-[#35373c] text-white rounded-full border border-[#3f4147] transition shadow-lg opacity-50 hover:opacity-100"
+              className="p-2.5 bg-surface-active hover:bg-surface-hover text-text-primary rounded-full border border-surface-border transition shadow-lg opacity-50 hover:opacity-100"
               title="Exit Fullscreen View (ESC)"
             >
               <X className="w-6 h-6" />
@@ -215,8 +215,8 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
   const hasVideo = item.stream && item.stream.getVideoTracks().length > 0;
 
   return (
-    <div className={`relative bg-[#1e1f22] rounded-2xl overflow-hidden border-2 flex flex-col items-center justify-center shadow-xl transition-all duration-200 aspect-video ${
-      isSpeaking ? 'speaker-active border-emerald-500' : 'border-[#2b2d31]'
+    <div className={`relative bg-surface-active/50 rounded-2xl overflow-hidden border-2 flex flex-col items-center justify-center shadow-xl transition-all duration-200 aspect-video backdrop-blur-sm ${
+      isSpeaking ? 'speaker-active' : 'border-surface-border'
     }`}>
 
       {hasVideo ? (
@@ -230,22 +230,22 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
         />
       ) : (
         <div className="flex flex-col items-center justify-center p-6">
-          <div className={`w-20 h-20 rounded-full bg-[#2b2d31] border-4 flex items-center justify-center transition-all duration-300 ${
-            isSpeaking ? 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-[#3f4147]'
+          <div className={`w-20 h-20 rounded-full bg-surface-panel border-4 flex items-center justify-center transition-all duration-300 ${
+            isSpeaking ? 'border-success shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'border-surface-border'
           }`}>
-            <span className="text-2xl font-bold text-white">{item.username.substring(0, 2).toUpperCase()}</span>
+            <span className="text-2xl font-bold text-text-primary">{item.username.substring(0, 2).toUpperCase()}</span>
           </div>
         </div>
       )}
 
       {/* Participant Name Badge Overlay & Volume / Fullscreen Controls */}
       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-auto">
-        <div className="bg-[#111214]/80 backdrop-blur px-2.5 py-1 rounded-md text-xs font-semibold text-white flex items-center space-x-1.5 border border-[#2b2d31]">
+        <div className="bg-surface-active/80 backdrop-blur px-2.5 py-1 rounded-md text-xs font-semibold text-text-primary flex items-center space-x-1.5 border border-surface-border shadow-sm">
           <span>{item.username}</span>
           {item.isScreenSharing && (
-            <span className="bg-[#5865f2] text-[10px] px-1.5 py-0.5 rounded font-mono uppercase">Screen</span>
+            <span className="bg-accent-primary text-[10px] text-text-primary px-1.5 py-0.5 rounded font-mono uppercase shadow-sm">Screen</span>
           )}
-          {item.isMuted && <MicOff className="w-3 h-3 text-rose-500" />}
+          {item.isMuted && <MicOff className="w-3 h-3 text-danger" />}
         </div>
 
         <div className="flex items-center space-x-1">
@@ -253,7 +253,7 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
           {hasVideo && (
             <button
               onClick={handleToggleFullscreen}
-              className="p-1.5 bg-[#111214]/80 hover:bg-[#2b2d31] text-white rounded-md border border-[#2b2d31] transition"
+              className="p-1.5 bg-surface-active/80 hover:bg-surface-hover text-text-primary rounded-md border border-surface-border transition shadow-sm backdrop-blur"
               title="Fullscreen Video Stream"
             >
               <Maximize className="w-3.5 h-3.5" />
@@ -265,17 +265,17 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
             <div className="relative">
               <button
                 onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-                className="p-1.5 bg-[#111214]/80 hover:bg-[#2b2d31] text-white rounded-md border border-[#2b2d31] transition"
+                className="p-1.5 bg-surface-active/80 hover:bg-surface-hover text-text-primary rounded-md border border-surface-border transition shadow-sm backdrop-blur"
                 title="User Volume Settings"
               >
-                {userVol === 0 ? <VolumeX className="w-3.5 h-3.5 text-rose-500" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+                {userVol === 0 ? <VolumeX className="w-3.5 h-3.5 text-danger" /> : <Volume2 className="w-3.5 h-3.5 text-success" />}
               </button>
 
               {showVolumeSlider && (
-                <div className="absolute bottom-9 right-0 bg-[#111214] border border-[#2b2d31] rounded-lg p-3 w-44 shadow-2xl z-50 animate-fadeIn">
-                  <div className="flex justify-between text-[11px] font-bold text-white mb-1.5">
+                <div className="absolute bottom-9 right-0 bg-surface-active border border-surface-border rounded-lg p-3 w-44 shadow-2xl z-50 animate-fadeIn backdrop-blur-md">
+                  <div className="flex justify-between text-[11px] font-bold text-text-primary mb-1.5">
                     <span>User Volume</span>
-                    <span className="font-mono text-emerald-400">{userVol}%</span>
+                    <span className="font-mono text-success">{userVol}%</span>
                   </div>
                   <input
                     type="range"
@@ -283,11 +283,11 @@ function StreamTile({ item, speakingUsers, onOpenFullscreen }) {
                     max="200"
                     value={userVol}
                     onChange={(e) => handleVolumeChange(Number(e.target.value))}
-                    className="w-full accent-[#5865f2]"
+                    className="w-full accent-accent-primary"
                   />
                   <button
                     onClick={() => handleVolumeChange(userVol === 0 ? 100 : 0)}
-                    className="mt-2 w-full py-1 text-[10px] font-bold rounded bg-[#2b2d31] hover:bg-rose-500/20 text-white transition"
+                    className="mt-2 w-full py-1 text-[10px] font-bold rounded bg-surface-panel hover:bg-danger text-text-primary hover:text-text-primary transition shadow-sm"
                   >
                     {userVol === 0 ? 'Unmute User' : 'Mute User'}
                   </button>

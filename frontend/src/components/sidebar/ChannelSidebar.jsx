@@ -22,8 +22,8 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
   if (!currentServer) {
     return (
-      <div className="w-60 bg-[#2b2d31] flex flex-col justify-between border-r border-[#1f2023]">
-        <div className="p-4 text-[#949ba4] text-sm">Select or create a server to start chatting.</div>
+      <div className="w-60 bg-surface-panel/30 backdrop-blur-md flex flex-col justify-between border-r border-surface-border">
+        <div className="p-4 text-text-muted text-sm font-medium">Select or create a workspace to start collaborating.</div>
         <UserWidget />
       </div>
     );
@@ -45,53 +45,53 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
   const getChannelIcon = (type) => {
     switch (type) {
-      case 'voice': return <Volume2 className="w-4 h-4 text-[#949ba4] mr-1.5" />;
-      case 'media': return <Video className="w-4 h-4 text-[#949ba4] mr-1.5" />;
-      default: return <Hash className="w-4 h-4 text-[#949ba4] mr-1.5" />;
+      case 'voice': return <Volume2 className="w-4 h-4 text-text-muted mr-1.5" />;
+      case 'media': return <Video className="w-4 h-4 text-text-muted mr-1.5" />;
+      default: return <Hash className="w-4 h-4 text-text-muted mr-1.5" />;
     }
   };
 
   const activeVoiceChannel = (currentServer.channels || []).find(c => c.id === voiceState.channel_id);
 
   return (
-    <div className="w-60 bg-[#2b2d31] flex flex-col justify-between select-none z-10 border-r border-[#1f2023]">
+    <div className="w-60 bg-surface-panel/30 backdrop-blur-md flex flex-col justify-between select-none z-10 border-r border-surface-border">
       <div className="flex-1 flex flex-col min-h-0">
         {/* Server Header Dropdown */}
         <div className="relative">
           <button 
             onClick={() => setShowServerMenu(!showServerMenu)}
-            className="w-full h-12 px-4 flex items-center justify-between border-b border-[#1f2023] font-bold text-white shadow-sm hover:bg-[#35373c] transition-colors"
+            className="w-full h-12 px-4 flex items-center justify-between border-b border-surface-border font-bold text-text-primary shadow-sm hover:bg-surface-hover transition-colors"
           >
             <span className="truncate">{currentServer.name}</span>
-            <ChevronDown className="w-5 h-5 text-[#949ba4]" />
+            <ChevronDown className="w-5 h-5 text-text-muted" />
           </button>
 
           {/* Server Options Popover */}
           {showServerMenu && (
-            <div className="absolute top-13 left-2 right-2 bg-[#111214] border border-[#2b2d31] rounded-lg shadow-2xl p-1.5 z-50">
+            <div className="absolute top-13 left-2 right-2 bg-surface-active border border-surface-border rounded-lg shadow-2xl p-1.5 z-50">
               <button 
                 onClick={() => {
                   copyInviteCode();
                   setShowServerMenu(false);
                 }}
-                className="w-full flex items-center justify-between px-2 py-2 rounded text-xs font-semibold text-[#5865f2] hover:bg-[#5865f2] hover:text-white transition-colors"
+                className="w-full flex items-center justify-between px-2 py-2 rounded text-xs font-semibold text-accent-primary hover:bg-accent-primary hover:text-text-primary transition-colors"
               >
                 <span>Invite People</span>
                 {copiedInvite ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </button>
 
-              <div className="text-[10px] text-[#949ba4] px-2 pt-1 font-mono">
+              <div className="text-[10px] text-text-muted px-2 pt-1 font-mono">
                 Code: {currentServer.invite_code}
               </div>
 
-              <div className="h-[1px] bg-[#2b2d31] my-1" />
+              <div className="h-[1px] bg-surface-border my-1" />
 
               <button 
                 onClick={() => {
                   onOpenCreateChannel();
                   setShowServerMenu(false);
                 }}
-                className="w-full flex items-center justify-between px-2 py-2 rounded text-xs font-semibold text-[#dbdee1] hover:bg-[#35373c] transition-colors"
+                className="w-full flex items-center justify-between px-2 py-2 rounded text-xs font-semibold text-text-primary hover:bg-surface-hover transition-colors"
               >
                 <span>Create Channel</span>
                 <Plus className="w-4 h-4" />
@@ -105,10 +105,10 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
           {Object.entries(categories).map(([catName, chList]) => (
             <div key={catName}>
               <div className="flex items-center justify-between px-2 mb-1">
-                <span className="text-[11px] font-bold text-[#949ba4] uppercase tracking-wider">{catName}</span>
+                <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{catName}</span>
                 <button 
                   onClick={onOpenCreateChannel}
-                  className="text-[#949ba4] hover:text-white transition-colors"
+                  className="text-text-muted hover:text-text-primary transition-colors"
                   title="Create Channel"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -142,7 +142,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                       <button
                         onClick={() => selectChannel(channel)}
                         className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                          isActive ? 'bg-[#404249] text-white font-semibold' : 'text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1]'
+                          isActive ? 'bg-surface-active text-text-primary font-semibold shadow-sm' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
                         }`}
                       >
                         <div className="flex items-center min-w-0 pr-1">
@@ -151,7 +151,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                         </div>
                         <div className="flex items-center space-x-1 flex-shrink-0">
                           {unreadCount > 0 && !isActive && (
-                            <span className="bg-[#f23f43] text-white text-[10px] font-bold px-1.5 py-0.2 rounded-full">
+                            <span className="bg-danger text-text-primary text-[10px] font-bold px-1.5 py-0.2 rounded-full shadow-sm">
                               {unreadCount}
                             </span>
                           )}
@@ -163,7 +163,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
                       {/* Nested Voice Channel Connected Users List */}
                       {isVoiceChannel && connectedUsers.length > 0 && (
-                        <div className="ml-5 my-1 space-y-1 pl-2 border-l border-[#3f4147] animate-fadeIn">
+                        <div className="ml-5 my-1 space-y-1 pl-2 border-l border-surface-border animate-fadeIn">
                           {connectedUsers.map((u) => {
                             const uId = u.id || u.user_id;
                             const localUserId = String(localStorage.getItem('discord_user_id') || '');
@@ -178,7 +178,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                             return (
                               <div 
                                 key={uId} 
-                                className="flex items-center space-x-2 py-1 px-1.5 rounded-md hover:bg-[#35373c]/60 transition group cursor-pointer"
+                                className="flex items-center space-x-2 py-1 px-1.5 rounded-md hover:bg-surface-hover transition group cursor-pointer"
                                 onContextMenu={(e) => {
                                   e.preventDefault();
                                   setContextMenu({ x: e.clientX, y: e.clientY, user: u });
@@ -192,20 +192,20 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                                 <div className={`
                                   w-6 h-6 rounded-full overflow-hidden shrink-0 border-2 transition-all duration-300 relative 
                                   ${isUserSpeaking 
-                                    ? 'border-[#23a559] ring-2 ring-[#23a559]/50 shadow-[0_0_8px_rgba(35,165,89,0.6)]' 
+                                    ? 'border-success ring-2 ring-success/50 shadow-success/50' 
                                     : 'border-transparent'
                                   }`}>
                                   <img src={avatarUrl} alt={displayUsername} className="w-full h-full rounded-full object-cover" />
                                 </div>
 
-                                <span className={`text-xs truncate font-medium ${isUserSpeaking ? 'text-emerald-400 font-semibold' : 'text-[#949ba4] group-hover:text-white'}`}>
+                                <span className={`text-xs truncate font-medium ${isUserSpeaking ? 'text-emerald-400 font-semibold' : 'text-text-muted group-hover:text-text-primary'}`}>
                                   {displayUsername}
                                 </span>
 
 
                                 <div className="ml-auto flex items-center space-x-1 flex-shrink-0">
                                   {u.is_screen_sharing && (
-                                    <span className="bg-[#5865f2] text-[9px] text-white px-1 rounded font-mono uppercase">LIVE</span>
+                                    <span className="bg-accent-primary text-[9px] text-text-primary px-1 rounded font-mono uppercase shadow-sm">LIVE</span>
                                   )}
                                 </div>
                               </div>
@@ -225,21 +225,21 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
         {/* Active Voice Connection Status Banner */}
         {voiceState.channel_id && (
-          <div className="bg-[#111214] px-3 py-2 border-t border-[#1f2023] flex items-center justify-between text-xs">
+          <div className="bg-surface-active/80 px-3 py-2 border-t border-surface-border flex items-center justify-between text-xs backdrop-blur-md">
             <div className="min-w-0 pr-2">
-              <div className="flex items-center text-emerald-400 font-semibold truncate">
+              <div className="flex items-center text-success font-semibold truncate">
                 <Radio className="w-3.5 h-3.5 mr-1 flex-shrink-0 animate-pulse" />
                 <span className="truncate">Voice Connected</span>
               </div>
-              <div className="text-[11px] text-[#949ba4] truncate">
+              <div className="text-[11px] text-text-muted truncate">
                 {activeVoiceChannel ? activeVoiceChannel.name : `Channel #${voiceState.channel_id}`}
               </div>
             </div>
             <div className="flex items-center space-x-1">
               <button
                 onClick={toggleVoiceGrid}
-                className={`p-1.5 rounded transition-colors ${
-                  showVoiceGrid ? 'bg-[#5865f2] text-white' : 'bg-[#2b2d31] hover:bg-[#35373c] text-[#949ba4] hover:text-white'
+                className={`p-1.5 rounded transition-colors shadow-sm ${
+                  showVoiceGrid ? 'bg-accent-primary text-text-primary' : 'bg-surface-hover text-text-muted hover:text-text-primary'
                 }`}
                 title={showVoiceGrid ? "Switch to Text Chat" : "Open Full Voice & Video Grid"}
               >
@@ -247,7 +247,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
               </button>
               <button
                 onClick={() => voiceManager.leaveVoiceChannel()}
-                className="p-1.5 bg-rose-500/20 hover:bg-rose-500 text-rose-400 hover:text-white rounded transition-colors"
+                className="p-1.5 bg-danger/10 hover:bg-danger text-danger hover:text-text-primary rounded transition-colors shadow-sm"
                 title="Disconnect Voice"
               >
                 <PhoneOff className="w-4 h-4" />
@@ -313,25 +313,25 @@ function UserContextMenu({ x, y, user, onClose, isLocalUser, voiceManager }) {
   return (
     <div 
       ref={menuRef}
-      className="fixed z-[9999] bg-[#111214] border border-[#1e1f22] rounded shadow-2xl w-56 flex flex-col p-2 text-[#dbdee1] font-medium text-[13px] animate-in fade-in zoom-in-95 duration-100"
+      className="fixed z-[9999] bg-surface-active border border-surface-border rounded-md shadow-2xl w-56 flex flex-col p-2 text-text-primary font-medium text-[13px] animate-in fade-in zoom-in-95 duration-100"
       style={{ left: pos.left, top: pos.top }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Profile</div>
-      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Mention</div>
-      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Message</div>
-      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Start a Call</div>
-      <div className="h-px bg-[#2b2d31] my-1 mx-1" />
-      <div className="text-[#949ba4] text-[11px] font-bold uppercase px-2 mt-1 mb-0.5 tracking-wide">Add Note</div>
-      <div className="hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Add Friend Nickname</div>
+      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Profile</div>
+      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Mention</div>
+      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Message</div>
+      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Start a Call</div>
+      <div className="h-px bg-surface-border my-1 mx-1" />
+      <div className="text-text-muted text-[11px] font-bold uppercase px-2 mt-1 mb-0.5 tracking-wide">Add Note</div>
+      <div className="hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Add Friend Nickname</div>
       
       {!isLocalUser && (
         <>
-          <div className="h-px bg-[#2b2d31] my-1 mx-1" />
+          <div className="h-px bg-surface-border my-1 mx-1" />
           <div className="px-2 py-1">
             <div className="flex justify-between items-center mb-1">
               <span>User Volume</span>
-              <span className="text-xs text-[#949ba4]">{volume}%</span>
+              <span className="text-xs text-text-muted">{volume}%</span>
             </div>
             <input 
               type="range" 
@@ -339,23 +339,23 @@ function UserContextMenu({ x, y, user, onClose, isLocalUser, voiceManager }) {
               max="200" 
               value={volume} 
               onChange={handleVolumeChange}
-              className="w-full h-1.5 bg-[#4e5058] rounded-lg appearance-none cursor-pointer accent-[#5865f2]"
+              className="w-full h-1.5 bg-surface-border rounded-lg appearance-none cursor-pointer accent-accent-primary"
             />
           </div>
-          <div className="h-px bg-[#2b2d31] my-1 mx-1" />
-          <div className="flex items-center justify-between hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors group" onClick={onClose}>
+          <div className="h-px bg-surface-border my-1 mx-1" />
+          <div className="flex items-center justify-between hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors group" onClick={onClose}>
             <span>Mute</span>
-            <div className="w-4 h-4 border border-[#4e5058] rounded-sm group-hover:border-white"></div>
+            <div className="w-4 h-4 border border-surface-border rounded-sm group-hover:border-white"></div>
           </div>
-          <div className="flex items-center justify-between hover:bg-[#5865f2] hover:text-white px-2 py-1.5 rounded cursor-pointer transition-colors group" onClick={onClose}>
+          <div className="flex items-center justify-between hover:bg-accent-primary hover:text-text-primary px-2 py-1.5 rounded cursor-pointer transition-colors group" onClick={onClose}>
             <span>Disable Video</span>
-            <div className="w-4 h-4 border border-[#4e5058] rounded-sm group-hover:border-white"></div>
+            <div className="w-4 h-4 border border-surface-border rounded-sm group-hover:border-white"></div>
           </div>
         </>
       )}
 
-      <div className="h-px bg-[#2b2d31] my-1 mx-1" />
-      <div className="hover:bg-[#da373c] hover:text-white text-[#da373c] px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Block</div>
+      <div className="h-px bg-surface-border my-1 mx-1" />
+      <div className="hover:bg-danger hover:text-text-primary text-danger px-2 py-1.5 rounded cursor-pointer transition-colors" onClick={onClose}>Block</div>
     </div>
   );
 }

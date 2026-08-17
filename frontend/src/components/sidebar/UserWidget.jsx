@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { voiceManager } from '../../services/webrtcVoice';
-import { Mic, MicOff, Volume2, VolumeX, Settings, ChevronUp, Check } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Settings, ChevronUp, Check, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function UserWidget({ onOpenSettings }) {
   const { user, updateStatus } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
+  
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
   const [showStatusMenu, setShowStatusMenu] = useState(false);
@@ -22,45 +25,45 @@ export default function UserWidget({ onOpenSettings }) {
   };
 
   const statuses = [
-    { id: 'online', label: 'Online', color: 'bg-emerald-500' },
+    { id: 'online', label: 'Online', color: 'bg-success' },
     { id: 'idle', label: 'Idle', color: 'bg-amber-500' },
-    { id: 'dnd', label: 'Do Not Disturb', color: 'bg-rose-500' },
-    { id: 'offline', label: 'Invisible', color: 'bg-zinc-500' },
+    { id: 'dnd', label: 'Do Not Disturb', color: 'bg-danger' },
+    { id: 'offline', label: 'Invisible', color: 'bg-slate-500' },
   ];
 
   return (
-    <div className="relative bg-[#232428] px-2 py-2.5 flex items-center justify-between border-t border-[#1f2023]">
+    <div className="relative bg-surface-active/50 backdrop-blur-lg px-2 py-2.5 flex items-center justify-between border-t border-surface-border">
       {/* User Info & Status Dropdown */}
       <div 
         onClick={() => setShowStatusMenu(!showStatusMenu)}
-        className="flex items-center space-x-2 px-1.5 py-1 rounded-md hover:bg-[#35373c] cursor-pointer flex-1 min-w-0 mr-1 transition-colors"
+        className="flex items-center space-x-2 px-1.5 py-1 rounded-md hover:bg-surface-hover cursor-pointer flex-1 min-w-0 mr-1 transition-colors"
       >
         <div className="relative flex-shrink-0">
           <img 
             src={user.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`} 
             alt={user.username} 
-            className="w-8 h-8 rounded-full bg-[#1e1f22] object-cover"
+            className="w-8 h-8 rounded-full bg-surface-panel object-cover shadow-sm"
           />
-          <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#232428] ${
-            user.status === 'online' ? 'bg-emerald-500' :
+          <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-active ${
+            user.status === 'online' ? 'bg-success' :
             user.status === 'idle' ? 'bg-amber-500' :
-            user.status === 'dnd' ? 'bg-rose-500' : 'bg-zinc-500'
+            user.status === 'dnd' ? 'bg-danger' : 'bg-slate-500'
           }`} />
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="text-xs font-semibold text-white truncate leading-tight">{user.username}</div>
-          <div className="text-[11px] text-[#949ba4] truncate leading-none mt-0.5">
+          <div className="text-xs font-semibold text-text-primary truncate leading-tight">{user.username}</div>
+          <div className="text-[11px] text-text-muted truncate leading-none mt-0.5">
             {user.status_message || `#${user.id}`}
           </div>
         </div>
       </div>
 
-      {/* Mic, Deafen & User Settings Controls */}
-      <div className="flex items-center space-x-0.5 text-[#b5bac1]">
+      {/* Action Controls */}
+      <div className="flex items-center space-x-0.5 text-text-muted">
         <button 
           onClick={handleToggleMute} 
-          className={`p-1.5 rounded hover:bg-[#35373c] hover:text-white transition-colors ${isMuted ? 'text-rose-500 hover:text-rose-400' : ''}`}
+          className={`p-1.5 rounded hover:bg-surface-hover hover:text-text-primary transition-colors ${isMuted ? 'text-danger hover:text-danger-hover' : ''}`}
           title={isMuted ? "Unmute Mic" : "Mute Mic"}
         >
           {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
@@ -68,7 +71,7 @@ export default function UserWidget({ onOpenSettings }) {
 
         <button 
           onClick={handleToggleDeafen} 
-          className={`p-1.5 rounded hover:bg-[#35373c] hover:text-white transition-colors ${isDeafened ? 'text-rose-500 hover:text-rose-400' : ''}`}
+          className={`p-1.5 rounded hover:bg-surface-hover hover:text-text-primary transition-colors ${isDeafened ? 'text-danger hover:text-danger-hover' : ''}`}
           title={isDeafened ? "Undeafen Audio" : "Deafen Audio"}
         >
           {isDeafened ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -76,18 +79,26 @@ export default function UserWidget({ onOpenSettings }) {
 
         <button
           onClick={onOpenSettings}
-          className="p-1.5 rounded hover:bg-[#35373c] hover:text-white transition-colors"
-          title="User Settings (Voice, Video & Profile)"
+          className="p-1.5 rounded hover:bg-surface-hover hover:text-text-primary transition-colors"
+          title="Settings"
         >
           <Settings className="w-4 h-4" />
+        </button>
+        
+        <button
+          onClick={toggleTheme}
+          className="p-1.5 rounded hover:bg-surface-hover hover:text-accent-primary transition-colors ml-1"
+          title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+        >
+          {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
       </div>
 
 
       {/* Status Picker Menu Overlay */}
       {showStatusMenu && (
-        <div className="absolute bottom-14 left-2 w-52 bg-[#111214] border border-[#2b2d31] rounded-lg shadow-2xl p-1.5 z-50">
-          <div className="text-[11px] font-bold text-[#949ba4] px-2 py-1 uppercase tracking-wider">Set Status</div>
+        <div className="absolute bottom-14 left-2 w-52 bg-surface-active border border-surface-border rounded-lg shadow-2xl p-1.5 z-50">
+          <div className="text-[11px] font-bold text-text-muted px-2 py-1 uppercase tracking-wider">Set Status</div>
           {statuses.map((s) => (
             <button
               key={s.id}
@@ -95,7 +106,7 @@ export default function UserWidget({ onOpenSettings }) {
                 updateStatus(s.id, user.status_message);
                 setShowStatusMenu(false);
               }}
-              className="w-full flex items-center justify-between px-2 py-1.5 rounded text-xs font-medium text-[#dbdee1] hover:bg-[#5865f2] hover:text-white transition-colors"
+              className="w-full flex items-center justify-between px-2 py-1.5 rounded text-xs font-medium text-text-primary hover:bg-accent-primary hover:text-text-primary transition-colors"
             >
               <div className="flex items-center space-x-2">
                 <span className={`w-2.5 h-2.5 rounded-full ${s.color}`} />

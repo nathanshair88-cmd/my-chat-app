@@ -33,20 +33,20 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
-      <div className="bg-[#313338] border border-[#2b2d31] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
+      <div className="bg-surface-base border border-surface-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
         <div className="p-6 text-center space-y-2 relative">
-          <button onClick={onClose} className="absolute right-4 top-4 text-[#949ba4] hover:text-white">
+          <button onClick={onClose} className="absolute right-4 top-4 text-text-muted hover:text-text-primary">
             <X className="w-5 h-5" />
           </button>
           
-          <div className="w-12 h-12 rounded-2xl bg-[#5865f2] flex items-center justify-center mx-auto mb-2">
-            {mode === 'create' ? <Plus className="w-6 h-6 text-white" /> : <Compass className="w-6 h-6 text-white" />}
+          <div className="w-12 h-12 rounded-2xl bg-accent-primary flex items-center justify-center mx-auto mb-2">
+            {mode === 'create' ? <Plus className="w-6 h-6 text-text-primary" /> : <Compass className="w-6 h-6 text-text-primary" />}
           </div>
 
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-2xl font-bold text-text-primary">
             {mode === 'create' ? 'Customize Your Server' : 'Join a Server'}
           </h2>
-          <p className="text-xs text-[#949ba4]">
+          <p className="text-xs text-text-muted">
             {mode === 'create'
               ? 'Give your new server a personality with a name and icon.'
               : 'Enter an invite code below to join an existing server.'}
@@ -61,7 +61,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
           {mode === 'create' ? (
             <>
               <div>
-                <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
                   Server Name
                 </label>
                 <input
@@ -70,12 +70,12 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
                   value={serverName}
                   onChange={(e) => setServerName(e.target.value)}
                   placeholder="My Gaming Hangout"
-                  className="w-full bg-[#1e1f22] text-white text-sm rounded-lg px-3 py-2.5 border border-[#2b2d31] focus:outline-none focus:border-[#5865f2]"
+                  className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-1">
+                <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
                   Server Icon URL (Optional)
                 </label>
                 <input
@@ -83,13 +83,13 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
                   value={iconUrl}
                   onChange={(e) => setIconUrl(e.target.value)}
                   placeholder="https://example.com/icon.png"
-                  className="w-full bg-[#1e1f22] text-white text-sm rounded-lg px-3 py-2.5 border border-[#2b2d31] focus:outline-none focus:border-[#5865f2]"
+                  className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
                 />
               </div>
             </>
           ) : (
             <div>
-              <label className="block text-xs font-bold text-[#b5bac1] uppercase tracking-wider mb-1">
+              <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
                 Invite Code
               </label>
               <input
@@ -98,23 +98,23 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
                 placeholder="e.g. h8K2pL9q"
-                className="w-full bg-[#1e1f22] text-white text-sm rounded-lg px-3 py-2.5 border border-[#2b2d31] focus:outline-none focus:border-[#5865f2]"
+                className="w-full bg-surface-active text-text-primary text-sm rounded-lg px-3 py-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
               />
             </div>
           )}
 
-          <div className="bg-[#2b2d31] -mx-6 -mb-6 p-4 flex items-center justify-between mt-6">
+          <div className="bg-surface-panel -mx-6 -mb-6 p-4 flex items-center justify-between mt-6">
             <button
               type="button"
               onClick={onClose}
-              className="text-xs font-semibold text-white hover:underline"
+              className="text-xs font-semibold text-text-primary hover:underline"
             >
               Back
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-6 py-2 bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold text-sm rounded-lg transition-colors"
+              className="px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-lg transition-colors"
             >
               {loading ? 'Working...' : mode === 'create' ? 'Create Server' : 'Join Server'}
             </button>

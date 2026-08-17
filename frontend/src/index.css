@@ -1,52 +1,120 @@
 @import "tailwindcss";
 
+@theme {
+  --color-surface-base: var(--surface-base);
+  --color-surface-panel: var(--surface-panel);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-surface-border: var(--surface-border);
+  
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  
+  --color-accent-primary: var(--accent-primary);
+  --color-accent-hover: var(--accent-hover);
+  
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  
+  --color-success: var(--success);
+}
+
+:root {
+  /* LIGHT MODE (Modern, bright, clean) */
+  --surface-base: #f1f5f9;
+  --surface-panel: rgba(255, 255, 255, 0.7);
+  --surface-hover: rgba(255, 255, 255, 0.9);
+  --surface-active: #ffffff;
+  --surface-border: rgba(148, 163, 184, 0.2);
+  
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  
+  --accent-primary: #6366f1; /* Vibrant Indigo */
+  --accent-hover: #4f46e5;
+  
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  
+  --success: #10b981;
+}
+
+.dark {
+  /* DARK MODE (Sleek, deep, vibrant glow) */
+  --surface-base: #020617; /* Very deep slate */
+  --surface-panel: rgba(15, 23, 42, 0.5); /* Glassy Slate-900 */
+  --surface-hover: rgba(30, 41, 59, 0.7);
+  --surface-active: rgba(30, 41, 59, 0.9);
+  --surface-border: rgba(51, 65, 85, 0.4);
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  
+  --accent-primary: #8b5cf6; /* Vibrant Violet */
+  --accent-hover: #7c3aed;
+  
+  --danger: #f43f5e;
+  --danger-hover: #e11d48;
+  
+  --success: #10b981;
+}
+
 @layer base {
   body {
-    @apply bg-[#1e1f22] text-[#dbdee1] antialiased select-none font-sans overflow-hidden;
+    @apply bg-surface-base text-text-primary antialiased select-none font-sans overflow-hidden transition-colors duration-500 ease-in-out;
     margin: 0;
     padding: 0;
     height: 100vh;
     width: 100vw;
+    /* In dark mode, add a subtle glowing ambient background */
+  }
+
+  body.dark {
+    background-image: radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
+                      radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.15), transparent 25%);
+    background-color: var(--surface-base);
+  }
+  
+  /* Fallback animated background for light mode */
+  body:not(.dark) {
+    background-image: radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.1), transparent 25%),
+                      radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.1), transparent 25%);
+    background-color: var(--surface-base);
   }
 }
 
-/* Custom Discord Scrollbars */
+/* Custom Scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #2b2d31;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1a1b1e;
-  border-radius: 4px;
+  @apply bg-surface-border rounded-full;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #111214;
+  @apply bg-text-muted;
 }
 
 /* Active Speaker Pulsing Glow */
 @keyframes speaker-glow {
-  0% {
-    box-shadow: 0 0 0 0px rgba(34, 197, 94, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.4);
-  }
-  100% {
-    box-shadow: 0 0 0 0px rgba(34, 197, 94, 0.7);
-  }
+  0% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.7); }
+  50% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0.4); }
+  100% { box-shadow: 0 0 0 0px rgba(16, 185, 129, 0.7); }
 }
 
 .speaker-active {
   animation: speaker-glow 1.5s infinite ease-in-out;
-  border-color: #22c55e !important;
+  border-color: var(--success) !important;
 }
 
 /* Glassmorphism overlays */
 .glass-panel {
-  background: rgba(30, 31, 34, 0.85);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  @apply bg-surface-panel border border-surface-border backdrop-blur-xl shadow-lg;
 }
+
