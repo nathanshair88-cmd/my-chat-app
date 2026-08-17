@@ -18,7 +18,7 @@ export default function UserProfileModal({ user, onClose }) {
 
   const handleMessage = async () => {
     try {
-      await startDM({ user_id: uid, username: user.username });
+      await startDM({ target_user_id: uid });
       setViewMode('dm');
     } catch (e) {
       console.error('DM error:', e);

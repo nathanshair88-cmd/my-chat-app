@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { getSocket } from '../../services/socket';
 import { useServer } from '../../context/ServerContext';
-import { Send, Bold, Code, Italic, Paperclip, Share2, X, Image as ImageIcon, FileText, PlaySquare } from 'lucide-react';
+import { Send, Bold, Code, Italic, Paperclip, Share2, X, FileText, PlaySquare } from 'lucide-react';
 import GifPicker from './GifPicker';
 
 export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parentId = null }) {
@@ -9,6 +9,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState([]);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -36,14 +37,26 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
     const handleReplyEvent = (e) => {
       const { message } = e.detail;
       setReplyingTo(message);
+      setEditingMessage(null);
+      setTimeout(() => inputRef.current?.focus(), 50);
+    };
+
+    const handleEditEvent = (e) => {
+      const { message } = e.detail;
+      setEditingMessage(message);
+      setReplyingTo(null);
+      setAttachments([]);
+      setContent(message.content || '');
       setTimeout(() => inputRef.current?.focus(), 50);
     };
 
     window.addEventListener('mention-user', handleMentionEvent);
     window.addEventListener('reply-message', handleReplyEvent);
+    window.addEventListener('edit-message', handleEditEvent);
     return () => {
       window.removeEventListener('mention-user', handleMentionEvent);
       window.removeEventListener('reply-message', handleReplyEvent);
+      window.removeEventListener('edit-message', handleEditEvent);
     };
   }, []);
 
@@ -110,6 +123,21 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
     if ((!trimmed && attachments.length === 0) || !socket) return;
 
     let finalContent = trimmed;
+    if (editingMessage) {
+      if (!finalContent) return;
+      socket.emit('edit_message', {
+        message_id: editingMessage.id,
+        content: finalContent,
+        channel_id: editingMessage.channel_id,
+        conversation_id: editingMessage.conversation_id
+      });
+      setContent('');
+      setAttachments([]);
+      setReplyingTo(null);
+      setEditingMessage(null);
+      return;
+    }
+
     if (replyingTo) {
       const author = replyingTo.author || replyingTo.sender;
       const quote = replyingTo.content.split('\n').map(line => `> ${line}`).join('\n');
@@ -156,13 +184,13 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
     if (viewMode === 'dm' && currentDM) {
       socket.emit('send_dm_message', {
         conversation_id: currentDM.id,
-        content: '',
+        content: '[GIF]',
         attachments_json
       });
     } else if (viewMode === 'server' && currentChannel) {
       socket.emit('send_message', {
         channel_id: currentChannel.id,
-        content: '',
+        content: '[GIF]',
         attachments_json,
         parent_id: parentId
       });
@@ -195,6 +223,18 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
               <span className="truncate">{replyingTo.content}</span>
             </div>
             <button onClick={() => setReplyingTo(null)} className="hover:text-text-primary p-0.5 rounded transition">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {editingMessage && (
+          <div className="flex items-center justify-between bg-surface-active/50 rounded-sm px-3 py-1.5 border border-surface-border mb-1 text-xs text-text-muted">
+            <div className="flex items-center space-x-2 truncate">
+              <span className="font-bold">Editing message</span>
+              <span className="truncate">{editingMessage.content}</span>
+            </div>
+            <button onClick={() => { setEditingMessage(null); setContent(''); }} className="hover:text-text-primary p-0.5 rounded transition">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>

@@ -5,7 +5,7 @@ import EmojiPicker from './EmojiPicker';
 import MediaLightboxModal from '../modals/MediaLightboxModal';
 import UserContextMenu from '../modals/UserContextMenu';
 import MessageContextMenu from '../modals/MessageContextMenu';
-import { Smile, FileText, Download, Play, Image as ImageIcon, MoreVertical, X, CheckCheck } from 'lucide-react';
+import { Smile, FileText, Download, CheckCheck } from 'lucide-react';
 import { getSocket } from '../../services/socket';
 import { useAuth } from '../../context/AuthContext';
 import { useServer } from '../../context/ServerContext';
@@ -22,7 +22,7 @@ export default function MessageItem({ message, searchQuery }) {
   const author = message.author || message.sender;
   const isOwnMessage = author?.id === user?.id;
 
-  const { currentServer, setActiveThreadMessage } = useServer();
+  const { viewMode, currentServer, setActiveThreadMessage } = useServer();
   let roleColor = null;
   if (currentServer && author) {
     const member = currentServer.members?.find(m => m.user_id === author.id);
@@ -69,7 +69,7 @@ export default function MessageItem({ message, searchQuery }) {
   if (message.attachments_json) {
     try {
       attachments = JSON.parse(message.attachments_json);
-    } catch (e) {
+    } catch {
       attachments = [];
     }
   }
@@ -147,7 +147,7 @@ export default function MessageItem({ message, searchQuery }) {
             <ReactMarkdown 
               remarkPlugins={[remarkGfm]}
               components={{
-                code({ node, inline, className, children, ...props }) {
+                code({ inline, children, ...props }) {
                   return inline ? (
                     <code className="bg-surface-active text-danger px-1.5 py-0.5 rounded font-mono text-xs border border-surface-border" {...props}>
                       {children}

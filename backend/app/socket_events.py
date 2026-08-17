@@ -1,17 +1,29 @@
 import datetime
+import os
 import socketio
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from sqlalchemy import select, delete, or_
 from sqlalchemy.orm import selectinload
 from app.database import AsyncSessionLocal
-from app.models import User, Message, Reaction, Channel, ServerMember, DMConversation, DirectMessage
+from app.models import User, Message, Reaction, Channel, ServerMember, DMConversation, DirectMessage, Server
 from app.auth import decode_token
+from app.permissions import can_signal_user, to_int, user_channel, user_dm_conversation
 
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=[],
+    cors_allowed_origins=[
+        origin.strip()
+        for origin in os.getenv(
+            "SOCKET_CORS_ORIGINS",
+            os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"),
+        ).split(",")
+        if origin.strip()
+    ],
     max_http_buffer_size=10_000_000  # 10 MB limit for file attachments
 )
+
+MAX_MESSAGE_LENGTH = 4000
+MAX_ATTACHMENTS_JSON_LENGTH = 8_000_000
 
 # In-memory mappings
 # sid -> user dict
@@ -25,6 +37,104 @@ voice_room_started_at: Dict[int, str] = {}
 # voice_channel_id -> watch together session state
 # { video_id, is_playing, current_time, last_updated, title }
 watch_room_state: Dict[int, dict] = {}
+
+
+def _clean_content(content: Any, attachments_json: Optional[str] = None) -> str:
+    content = str(content or "").strip()
+    if not content and attachments_json:
+        return "[Attachment]"
+    return content[:MAX_MESSAGE_LENGTH]
+
+
+def _valid_attachments_json(attachments_json: Any) -> Optional[str]:
+    if attachments_json is None:
+        return None
+    attachments_json = str(attachments_json)
+    if len(attachments_json) > MAX_ATTACHMENTS_JSON_LENGTH:
+        return None
+    return attachments_json
+
+
+def _message_dict(message: Message) -> dict:
+    return {
+        "id": message.id,
+        "channel_id": message.channel_id,
+        "user_id": message.user_id,
+        "content": message.content,
+        "attachments_json": message.attachments_json,
+        "parent_id": message.parent_id,
+        "webhook_id": message.webhook_id,
+        "custom_username": message.custom_username,
+        "custom_avatar_url": message.custom_avatar_url,
+        "created_at": message.created_at.isoformat(),
+        "author": {
+            "id": message.author.id,
+            "username": message.author.username,
+            "avatar_url": message.author.avatar_url,
+            "status": message.author.status,
+            "status_message": message.author.status_message,
+        },
+        "reactions": [
+            {"id": r.id, "emoji": r.emoji, "user_id": r.user_id}
+            for r in (message.reactions or [])
+        ],
+    }
+
+
+def _dm_dict(message: DirectMessage) -> dict:
+    return {
+        "id": message.id,
+        "conversation_id": message.conversation_id,
+        "sender_id": message.sender_id,
+        "content": message.content,
+        "attachments_json": message.attachments_json,
+        "is_read": bool(message.is_read),
+        "created_at": message.created_at.isoformat(),
+        "sender": {
+            "id": message.sender.id,
+            "username": message.sender.username,
+            "avatar_url": message.sender.avatar_url,
+            "status": message.sender.status,
+            "status_message": message.sender.status_message,
+        },
+    }
+
+
+async def _server_room_for_channel(db, channel_id) -> Optional[str]:
+    channel_id = to_int(channel_id)
+    if channel_id is None:
+        return None
+    res = await db.execute(select(Channel.server_id).where(Channel.id == channel_id))
+    server_id = res.scalar_one_or_none()
+    return f"server_{server_id}" if server_id is not None else None
+
+
+async def _emit_voice_room_update(channel_id, users, started_at=None):
+    if started_at is None:
+        started_at = voice_room_started_at.get(channel_id)
+    async with AsyncSessionLocal() as db:
+        server_room = await _server_room_for_channel(db, channel_id)
+    if not server_room:
+        return
+    await sio.emit(
+        "voice_room_update",
+        {
+            "channel_id": channel_id,
+            "users": users,
+            "started_at": started_at,
+        },
+        room=server_room,
+    )
+
+
+async def _user_in_voice_room(user_id: int, channel_id) -> bool:
+    channel_id = to_int(channel_id)
+    if channel_id is None:
+        return False
+    if user_id not in voice_room_users.get(channel_id, {}):
+        return False
+    async with AsyncSessionLocal() as db:
+        return await user_channel(db, user_id, channel_id, allowed_types={"voice", "media"}) is not None
 
 @sio.event
 async def connect(sid, environ, auth=None):
@@ -48,18 +158,25 @@ async def connect(sid, environ, auth=None):
         return False
 
     user_id = int(payload["sub"])
+    server_ids = []
     async with AsyncSessionLocal() as db:
         res = await db.execute(select(User).where(User.id == user_id))
         user = res.scalar_one_or_none()
         if not user:
             return False
 
+        server_res = await db.execute(
+            select(ServerMember.server_id).where(ServerMember.user_id == user_id)
+        )
+        server_ids = [row[0] for row in server_res.all()]
+
         user_data = {
             "id": user.id,
             "username": user.username,
             "avatar_url": user.avatar_url,
             "status": user.status,
-            "status_message": user.status_message
+            "status_message": user.status_message,
+            "server_ids": server_ids,
         }
 
     sid_to_user[sid] = user_data
@@ -67,26 +184,37 @@ async def connect(sid, environ, auth=None):
         user_to_sids[user_id] = set()
     user_to_sids[user_id].add(sid)
 
-    # Broadcast presence
-    await sio.emit("user_connected", user_data)
+    for server_id in server_ids:
+        await sio.enter_room(sid, f"server_{server_id}")
+
+    presence_data = {
+        "id": user_data["id"],
+        "username": user_data["username"],
+        "avatar_url": user_data["avatar_url"],
+        "status": user_data["status"],
+        "status_message": user_data["status_message"],
+    }
+    for server_id in server_ids:
+        await sio.emit("user_connected", presence_data, room=f"server_{server_id}")
 
     # Send existing voice rooms state to connecting user
-    for ch_id, users_dict in voice_room_users.items():
-        if users_dict:
-            await sio.emit("voice_room_update", {
-                "channel_id": ch_id,
-                "users": list(users_dict.values()),
-                "started_at": voice_room_started_at.get(ch_id)
-            }, to=sid)
+    async with AsyncSessionLocal() as db:
+        for ch_id, users_dict in voice_room_users.items():
+            if users_dict and await user_channel(db, user_id, ch_id, allowed_types={"voice", "media"}):
+                await sio.emit("voice_room_update", {
+                    "channel_id": ch_id,
+                    "users": list(users_dict.values()),
+                    "started_at": voice_room_started_at.get(ch_id)
+                }, to=sid)
 
-    # Send any active watch together session state to connecting user
-    for ch_id, watch_state in watch_room_state.items():
-        if watch_state.get("video_id"):
-            await sio.emit("watch_sync", {
-                "channel_id": ch_id,
-                "type": "state_sync",
-                **watch_state
-            }, to=sid)
+        # Send any active watch together session state to connecting user
+        for ch_id, watch_state in watch_room_state.items():
+            if watch_state.get("video_id") and await user_channel(db, user_id, ch_id, allowed_types={"voice", "media"}):
+                await sio.emit("watch_sync", {
+                    "channel_id": ch_id,
+                    "type": "state_sync",
+                    **watch_state
+                }, to=sid)
 
     return True
 
@@ -100,7 +228,8 @@ async def disconnect(sid):
             if not user_to_sids[user_id]:
                 del user_to_sids[user_id]
                 # User has no more active socket connections
-                await sio.emit("user_disconnected", {"user_id": user_id})
+                for server_id in user_data.get("server_ids", []):
+                    await sio.emit("user_disconnected", {"user_id": user_id}, room=f"server_{server_id}")
 
         # Remove from voice rooms if connected
         for ch_id, users in list(voice_room_users.items()):
@@ -112,25 +241,24 @@ async def disconnect(sid):
                         del voice_room_started_at[ch_id]
                     started_at = None
 
-                await sio.emit("voice_room_update", {
-                    "channel_id": ch_id,
-                    "users": list(users.values()),
-                    "started_at": started_at
-                })
+                await _emit_voice_room_update(ch_id, list(users.values()), started_at)
 
 @sio.event
 async def join_channel(sid, data):
-    channel_id = data.get("channel_id")
-    if channel_id:
-        room_name = f"channel_{channel_id}"
-        await sio.enter_room(sid, room_name)
+    user_data = sid_to_user.get(sid)
+    channel_id = to_int(data.get("channel_id"))
+    if not user_data or channel_id is None:
+        return
+    async with AsyncSessionLocal() as db:
+        if not await user_channel(db, user_data["id"], channel_id):
+            return
+    await sio.enter_room(sid, f"channel_{channel_id}")
 
 @sio.event
 async def leave_channel(sid, data):
-    channel_id = data.get("channel_id")
-    if channel_id:
-        room_name = f"channel_{channel_id}"
-        await sio.leave_room(sid, room_name)
+    channel_id = to_int(data.get("channel_id"))
+    if channel_id is not None:
+        await sio.leave_room(sid, f"channel_{channel_id}")
 
 @sio.event
 async def send_message(sid, data):
@@ -138,15 +266,25 @@ async def send_message(sid, data):
     if not user_data:
         return
 
-    channel_id = data.get("channel_id")
-    content = data.get("content", "").strip()
-    attachments_json = data.get("attachments_json")
-    parent_id = data.get("parent_id")
+    channel_id = to_int(data.get("channel_id"))
+    attachments_json = _valid_attachments_json(data.get("attachments_json"))
+    content = _clean_content(data.get("content"), attachments_json)
+    parent_id = to_int(data.get("parent_id"))
 
     if not channel_id or not content:
         return
 
     async with AsyncSessionLocal() as db:
+        if not await user_channel(db, user_data["id"], channel_id):
+            return
+
+        if parent_id is not None:
+            parent_res = await db.execute(
+                select(Message.id).where(Message.id == parent_id, Message.channel_id == channel_id)
+            )
+            if parent_res.scalar_one_or_none() is None:
+                return
+
         new_msg = Message(
             channel_id=channel_id,
             user_id=user_data["id"],
@@ -168,22 +306,7 @@ async def send_message(sid, data):
         )
         full_msg = res.scalar_one()
 
-        msg_dict = {
-            "id": full_msg.id,
-            "channel_id": full_msg.channel_id,
-            "user_id": full_msg.user_id,
-            "content": full_msg.content,
-            "attachments_json": full_msg.attachments_json,
-            "parent_id": full_msg.parent_id,
-            "created_at": full_msg.created_at.isoformat(),
-            "author": {
-                "id": full_msg.author.id,
-                "username": full_msg.author.username,
-                "avatar_url": full_msg.author.avatar_url,
-                "status": full_msg.author.status
-            },
-            "reactions": []
-        }
+        msg_dict = _message_dict(full_msg)
 
     await sio.emit("new_message", msg_dict, room=f"channel_{channel_id}")
 
@@ -193,14 +316,19 @@ async def add_reaction(sid, data):
     if not user_data:
         return
 
-    message_id = data.get("message_id")
+    message_id = to_int(data.get("message_id"))
     emoji = data.get("emoji")
-    channel_id = data.get("channel_id")
+    emoji = str(emoji or "")[:50]
 
     if not message_id or not emoji:
         return
 
     async with AsyncSessionLocal() as db:
+        msg_res = await db.execute(select(Message).where(Message.id == message_id))
+        msg = msg_res.scalar_one_or_none()
+        if not msg or not await user_channel(db, user_data["id"], msg.channel_id):
+            return
+
         # Check if reaction exists
         res = await db.execute(
             select(Reaction)
@@ -230,7 +358,7 @@ async def add_reaction(sid, data):
     await sio.emit("reaction_updated", {
         "message_id": message_id,
         "reactions": reactions_list
-    }, room=f"channel_{channel_id}")
+    }, room=f"channel_{msg.channel_id}")
 
 @sio.event
 async def remove_reaction(sid, data):
@@ -238,11 +366,19 @@ async def remove_reaction(sid, data):
     if not user_data:
         return
 
-    message_id = data.get("message_id")
+    message_id = to_int(data.get("message_id"))
     emoji = data.get("emoji")
-    channel_id = data.get("channel_id")
+    emoji = str(emoji or "")[:50]
+
+    if not message_id or not emoji:
+        return
 
     async with AsyncSessionLocal() as db:
+        msg_res = await db.execute(select(Message).where(Message.id == message_id))
+        msg = msg_res.scalar_one_or_none()
+        if not msg or not await user_channel(db, user_data["id"], msg.channel_id):
+            return
+
         await db.execute(
             delete(Reaction)
             .where(
@@ -262,13 +398,16 @@ async def remove_reaction(sid, data):
     await sio.emit("reaction_updated", {
         "message_id": message_id,
         "reactions": reactions_list
-    }, room=f"channel_{channel_id}")
+    }, room=f"channel_{msg.channel_id}")
 
 @sio.event
 async def typing_start(sid, data):
     user_data = sid_to_user.get(sid)
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     if user_data and channel_id:
+        async with AsyncSessionLocal() as db:
+            if not await user_channel(db, user_data["id"], channel_id):
+                return
         await sio.emit("user_typing", {
             "user_id": user_data["id"],
             "username": user_data["username"],
@@ -279,8 +418,11 @@ async def typing_start(sid, data):
 @sio.event
 async def typing_stop(sid, data):
     user_data = sid_to_user.get(sid)
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     if user_data and channel_id:
+        async with AsyncSessionLocal() as db:
+            if not await user_channel(db, user_data["id"], channel_id):
+                return
         await sio.emit("user_typing", {
             "user_id": user_data["id"],
             "username": user_data["username"],
@@ -296,12 +438,15 @@ async def join_voice(sid, data):
     if not user_data:
         return
 
-    channel_id = data.get("channel_id")
-    if not channel_id:
+    channel_id = to_int(data.get("channel_id"))
+    if channel_id is None:
         return
 
-    room_name = f"voice_{channel_id}"
-    await sio.enter_room(sid, room_name)
+    async with AsyncSessionLocal() as db:
+        if not await user_channel(db, user_data["id"], channel_id, allowed_types={"voice", "media"}):
+            return
+
+    await sio.enter_room(sid, f"voice_{channel_id}")
 
     if channel_id not in voice_room_users or len(voice_room_users[channel_id]) == 0:
         voice_room_users[channel_id] = {}
@@ -311,21 +456,21 @@ async def join_voice(sid, data):
         "id": user_data["id"],
         "username": user_data["username"],
         "avatar_url": user_data["avatar_url"],
-        "is_screen_sharing": False
+        "is_screen_sharing": False,
+        "is_camera_on": False,
     }
     voice_room_users[channel_id][user_data["id"]] = user_info
 
-    # Broadcast voice room state to ALL clients so sidebar updates
-    await sio.emit("voice_room_update", {
-        "channel_id": channel_id,
-        "users": list(voice_room_users[channel_id].values()),
-        "started_at": voice_room_started_at.get(channel_id)
-    })
+    await _emit_voice_room_update(
+        channel_id,
+        list(voice_room_users[channel_id].values()),
+        voice_room_started_at.get(channel_id),
+    )
 
 @sio.event
 async def leave_voice(sid, data):
     user_data = sid_to_user.get(sid)
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     if user_data and channel_id:
         room_name = f"voice_{channel_id}"
         await sio.leave_room(sid, room_name)
@@ -335,11 +480,11 @@ async def leave_voice(sid, data):
                 if channel_id in voice_room_started_at:
                     del voice_room_started_at[channel_id]
             started_at = voice_room_started_at.get(channel_id)
-            await sio.emit("voice_room_update", {
-                "channel_id": channel_id,
-                "users": list(voice_room_users[channel_id].values()),
-                "started_at": started_at
-            })
+            await _emit_voice_room_update(
+                channel_id,
+                list(voice_room_users[channel_id].values()),
+                started_at,
+            )
 
 def get_target_sids(target_user_id):
     if target_user_id is None:
@@ -359,63 +504,84 @@ def get_target_sids(target_user_id):
 
 @sio.event
 async def voice_offer(sid, data):
-    target_user_id = data.get("target_user_id")
+    target_user_id = to_int(data.get("target_user_id"))
+    channel_id = to_int(data.get("channel_id"))
     user_data = sid_to_user.get(sid)
-    if target_user_id and user_data:
+    if target_user_id and user_data and channel_id:
+        users = voice_room_users.get(channel_id, {})
+        if user_data["id"] not in users or target_user_id not in users:
+            return
         target_sids = get_target_sids(target_user_id)
         for tsid in target_sids:
             await sio.emit("voice_offer", {
                 "sender_id": user_data["id"],
                 "sender_username": user_data["username"],
                 "offer": data.get("offer"),
-                "channel_id": data.get("channel_id")
+                "channel_id": channel_id
             }, to=tsid)
 
 @sio.event
 async def voice_answer(sid, data):
-    target_user_id = data.get("target_user_id")
+    target_user_id = to_int(data.get("target_user_id"))
+    channel_id = to_int(data.get("channel_id"))
     user_data = sid_to_user.get(sid)
-    if target_user_id and user_data:
+    if target_user_id and user_data and channel_id:
+        users = voice_room_users.get(channel_id, {})
+        if user_data["id"] not in users or target_user_id not in users:
+            return
         target_sids = get_target_sids(target_user_id)
         for tsid in target_sids:
             await sio.emit("voice_answer", {
                 "sender_id": user_data["id"],
                 "answer": data.get("answer"),
-                "channel_id": data.get("channel_id")
+                "channel_id": channel_id
             }, to=tsid)
 
 @sio.event
 async def voice_ice_candidate(sid, data):
-    target_user_id = data.get("target_user_id")
+    target_user_id = to_int(data.get("target_user_id"))
+    channel_id = to_int(data.get("channel_id"))
     user_data = sid_to_user.get(sid)
-    if target_user_id and user_data:
+    if target_user_id and user_data and channel_id:
+        users = voice_room_users.get(channel_id, {})
+        if user_data["id"] not in users or target_user_id not in users:
+            return
         target_sids = get_target_sids(target_user_id)
         for tsid in target_sids:
             await sio.emit("voice_ice_candidate", {
                 "sender_id": user_data["id"],
                 "candidate": data.get("candidate"),
-                "channel_id": data.get("channel_id")
+                "channel_id": channel_id
             }, to=tsid)
 
 @sio.event
 async def toggle_screen_share(sid, data):
     user_data = sid_to_user.get(sid)
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     is_sharing = data.get("is_sharing", False)
     if user_data and channel_id in voice_room_users:
         if user_data["id"] in voice_room_users[channel_id]:
             voice_room_users[channel_id][user_data["id"]]["is_screen_sharing"] = is_sharing
-            await sio.emit("voice_room_update", {
-                "channel_id": channel_id,
-                "users": list(voice_room_users[channel_id].values())
-            }, room=f"voice_{channel_id}")
+            await _emit_voice_room_update(channel_id, list(voice_room_users[channel_id].values()))
+
+@sio.event
+async def toggle_camera(sid, data):
+    user_data = sid_to_user.get(sid)
+    channel_id = to_int(data.get("channel_id"))
+    is_on = data.get("is_on", False)
+    if user_data and channel_id in voice_room_users:
+        if user_data["id"] in voice_room_users[channel_id]:
+            voice_room_users[channel_id][user_data["id"]]["is_camera_on"] = bool(is_on)
+            await _emit_voice_room_update(channel_id, list(voice_room_users[channel_id].values()))
 
 @sio.event
 async def voice_audio_chunk(sid, data):
     user_data = sid_to_user.get(sid)
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     chunk = data.get("chunk")
     if user_data and channel_id and chunk:
+        if user_data["id"] not in voice_room_users.get(channel_id, {}):
+            return
         await sio.emit("voice_audio_chunk", {
             "user_id": user_data["id"],
             "username": user_data["username"],
@@ -429,24 +595,36 @@ async def voice_audio_chunk(sid, data):
 @sio.event
 async def p2p_file_offer(sid, data):
     user_data = sid_to_user.get(sid)
-    target_user_id = data.get("target_user_id")
+    target_user_id = to_int(data.get("target_user_id"))
     if user_data and target_user_id:
+        async with AsyncSessionLocal() as db:
+            if not await can_signal_user(db, user_data["id"], target_user_id):
+                return
         target_sids = get_target_sids(target_user_id)
         for tsid in target_sids:
             await sio.emit("p2p_file_offer", {
-                "sender": user_data,
+                "sender": {
+                    "id": user_data["id"],
+                    "username": user_data["username"],
+                    "avatar_url": user_data["avatar_url"],
+                    "status": user_data["status"],
+                    "status_message": user_data["status_message"],
+                },
                 "transfer_id": data.get("transfer_id"),
-                "file_name": data.get("file_name"),
+                "file_name": str(data.get("file_name") or "file")[:255],
                 "file_size": data.get("file_size"),
-                "file_type": data.get("file_type"),
+                "file_type": str(data.get("file_type") or "application/octet-stream")[:100],
                 "offer": data.get("offer")
             }, to=tsid)
 
 @sio.event
 async def p2p_file_answer(sid, data):
     user_data = sid_to_user.get(sid)
-    target_user_id = data.get("target_user_id")
+    target_user_id = to_int(data.get("target_user_id"))
     if user_data and target_user_id:
+        async with AsyncSessionLocal() as db:
+            if not await can_signal_user(db, user_data["id"], target_user_id):
+                return
         target_sids = get_target_sids(target_user_id)
         for tsid in target_sids:
             await sio.emit("p2p_file_answer", {
@@ -458,8 +636,11 @@ async def p2p_file_answer(sid, data):
 @sio.event
 async def p2p_file_ice(sid, data):
     user_data = sid_to_user.get(sid)
-    target_user_id = data.get("target_user_id")
+    target_user_id = to_int(data.get("target_user_id"))
     if user_data and target_user_id:
+        async with AsyncSessionLocal() as db:
+            if not await can_signal_user(db, user_data["id"], target_user_id):
+                return
         target_sids = get_target_sids(target_user_id)
         for tsid in target_sids:
             await sio.emit("p2p_file_ice", {
@@ -471,8 +652,11 @@ async def p2p_file_ice(sid, data):
 @sio.event
 async def p2p_file_cancel(sid, data):
     user_data = sid_to_user.get(sid)
-    target_user_id = data.get("target_user_id")
+    target_user_id = to_int(data.get("target_user_id"))
     if user_data and target_user_id:
+        async with AsyncSessionLocal() as db:
+            if not await can_signal_user(db, user_data["id"], target_user_id):
+                return
         target_sids = get_target_sids(target_user_id)
         for tsid in target_sids:
             await sio.emit("p2p_file_cancel", {
@@ -484,14 +668,19 @@ async def p2p_file_cancel(sid, data):
 
 @sio.event
 async def join_dm(sid, data):
-    conversation_id = data.get("conversation_id")
-    if conversation_id:
-        await sio.enter_room(sid, f"dm_{conversation_id}")
+    user_data = sid_to_user.get(sid)
+    conversation_id = to_int(data.get("conversation_id"))
+    if not user_data or conversation_id is None:
+        return
+    async with AsyncSessionLocal() as db:
+        if not await user_dm_conversation(db, user_data["id"], conversation_id):
+            return
+    await sio.enter_room(sid, f"dm_{conversation_id}")
 
 @sio.event
 async def leave_dm(sid, data):
-    conversation_id = data.get("conversation_id")
-    if conversation_id:
+    conversation_id = to_int(data.get("conversation_id"))
+    if conversation_id is not None:
         await sio.leave_room(sid, f"dm_{conversation_id}")
 
 @sio.event
@@ -500,24 +689,15 @@ async def send_dm_message(sid, data):
     if not user_data:
         return
 
-    conversation_id = data.get("conversation_id")
-    content = data.get("content", "").strip()
-    attachments_json = data.get("attachments_json")
+    conversation_id = to_int(data.get("conversation_id"))
+    attachments_json = _valid_attachments_json(data.get("attachments_json"))
+    content = _clean_content(data.get("content"), attachments_json)
 
     if not conversation_id or not content:
         return
 
     async with AsyncSessionLocal() as db:
-        res = await db.execute(
-            select(DMConversation).where(
-                DMConversation.id == conversation_id,
-                or_(
-                    DMConversation.user1_id == user_data["id"],
-                    DMConversation.user2_id == user_data["id"]
-                )
-            )
-        )
-        conv = res.scalar_one_or_none()
+        conv = await user_dm_conversation(db, user_data["id"], conversation_id)
         if not conv:
             return
 
@@ -539,21 +719,7 @@ async def send_dm_message(sid, data):
         )
         full_dm = res.scalar_one()
 
-        dm_dict = {
-            "id": full_dm.id,
-            "conversation_id": full_dm.conversation_id,
-            "sender_id": full_dm.sender_id,
-            "content": full_dm.content,
-            "attachments_json": full_dm.attachments_json,
-            "is_read": bool(full_dm.is_read),
-            "created_at": full_dm.created_at.isoformat(),
-            "sender": {
-                "id": full_dm.sender.id,
-                "username": full_dm.sender.username,
-                "avatar_url": full_dm.sender.avatar_url,
-                "status": full_dm.sender.status
-            }
-        }
+        dm_dict = _dm_dict(full_dm)
 
     await sio.emit("new_dm_message", dm_dict, room=f"dm_{conversation_id}")
 
@@ -567,11 +733,15 @@ async def mark_dms_read(sid, data):
     if not user_data:
         return
 
-    conversation_id = data.get("conversation_id")
+    conversation_id = to_int(data.get("conversation_id"))
     if not conversation_id:
         return
 
     async with AsyncSessionLocal() as db:
+        conv = await user_dm_conversation(db, user_data["id"], conversation_id)
+        if not conv:
+            return
+
         res = await db.execute(
             select(DirectMessage).where(
                 DirectMessage.conversation_id == conversation_id,
@@ -609,10 +779,12 @@ async def watch_set_video(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
         return
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     video_id = data.get("video_id", "").strip()
-    title = data.get("title", "")
+    title = str(data.get("title", ""))[:200]
     if not channel_id or not video_id:
+        return
+    if not await _user_in_voice_room(user_data["id"], channel_id):
         return
 
     # If it's a new room, initialize the queue. If it's an existing room, setting a video
@@ -655,10 +827,12 @@ async def watch_enqueue(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
         return
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     video_id = data.get("video_id", "").strip()
-    title = data.get("title", "")
+    title = str(data.get("title", ""))[:200]
     if not channel_id or not video_id:
+        return
+    if not await _user_in_voice_room(user_data["id"], channel_id):
         return
 
     if channel_id in watch_room_state:
@@ -681,9 +855,11 @@ async def watch_dequeue(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
         return
-    channel_id = data.get("channel_id")
-    index = data.get("index")
+    channel_id = to_int(data.get("channel_id"))
+    index = to_int(data.get("index"))
     if not channel_id or index is None:
+        return
+    if not await _user_in_voice_room(user_data["id"], channel_id):
         return
 
     if channel_id in watch_room_state and "queue" in watch_room_state[channel_id]:
@@ -703,8 +879,10 @@ async def watch_play_next(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
         return
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     if not channel_id:
+        return
+    if not await _user_in_voice_room(user_data["id"], channel_id):
         return
 
     if channel_id in watch_room_state:
@@ -738,9 +916,11 @@ async def watch_play(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
         return
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     current_time = data.get("current_time", 0.0)
     if not channel_id:
+        return
+    if not await _user_in_voice_room(user_data["id"], channel_id):
         return
 
     if channel_id in watch_room_state:
@@ -762,9 +942,11 @@ async def watch_pause(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
         return
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     current_time = data.get("current_time", 0.0)
     if not channel_id:
+        return
+    if not await _user_in_voice_room(user_data["id"], channel_id):
         return
 
     if channel_id in watch_room_state:
@@ -786,9 +968,11 @@ async def watch_seek(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
         return
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     current_time = data.get("current_time", 0.0)
     if not channel_id:
+        return
+    if not await _user_in_voice_room(user_data["id"], channel_id):
         return
 
     if channel_id in watch_room_state:
@@ -809,8 +993,10 @@ async def watch_close(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
         return
-    channel_id = data.get("channel_id")
+    channel_id = to_int(data.get("channel_id"))
     if not channel_id:
+        return
+    if not await _user_in_voice_room(user_data["id"], channel_id):
         return
 
     if channel_id in watch_room_state:
@@ -829,24 +1015,41 @@ async def edit_message(sid, data):
     if not user_data:
         return
 
-    message_id = data.get("message_id")
-    new_content = data.get("content", "").strip()
-    channel_id = data.get("channel_id")
-    conversation_id = data.get("conversation_id")
+    message_id = to_int(data.get("message_id"))
+    new_content = _clean_content(data.get("content"))
+    channel_id = to_int(data.get("channel_id"))
+    conversation_id = to_int(data.get("conversation_id"))
 
     if not message_id or not new_content:
         return
 
     async with AsyncSessionLocal() as db:
         if channel_id:
-            res = await db.execute(select(Message).where(Message.id == message_id, Message.user_id == user_data["id"]))
+            if not await user_channel(db, user_data["id"], channel_id):
+                return
+            res = await db.execute(
+                select(Message).where(
+                    Message.id == message_id,
+                    Message.user_id == user_data["id"],
+                    Message.channel_id == channel_id,
+                )
+            )
             msg = res.scalar_one_or_none()
             if msg:
                 msg.content = new_content
+                msg.updated_at = datetime.datetime.utcnow()
                 await db.commit()
                 await sio.emit("message_edited", {"message_id": message_id, "content": new_content}, room=f"channel_{channel_id}")
         elif conversation_id:
-            res = await db.execute(select(DirectMessage).where(DirectMessage.id == message_id, DirectMessage.sender_id == user_data["id"]))
+            if not await user_dm_conversation(db, user_data["id"], conversation_id):
+                return
+            res = await db.execute(
+                select(DirectMessage).where(
+                    DirectMessage.id == message_id,
+                    DirectMessage.sender_id == user_data["id"],
+                    DirectMessage.conversation_id == conversation_id,
+                )
+            )
             msg = res.scalar_one_or_none()
             if msg:
                 msg.content = new_content
@@ -859,23 +1062,39 @@ async def delete_message(sid, data):
     if not user_data:
         return
 
-    message_id = data.get("message_id")
-    channel_id = data.get("channel_id")
-    conversation_id = data.get("conversation_id")
+    message_id = to_int(data.get("message_id"))
+    channel_id = to_int(data.get("channel_id"))
+    conversation_id = to_int(data.get("conversation_id"))
 
     if not message_id:
         return
 
     async with AsyncSessionLocal() as db:
         if channel_id:
-            res = await db.execute(select(Message).where(Message.id == message_id, Message.user_id == user_data["id"]))
+            if not await user_channel(db, user_data["id"], channel_id):
+                return
+            res = await db.execute(
+                select(Message).where(
+                    Message.id == message_id,
+                    Message.user_id == user_data["id"],
+                    Message.channel_id == channel_id,
+                )
+            )
             msg = res.scalar_one_or_none()
             if msg:
                 await db.delete(msg)
                 await db.commit()
                 await sio.emit("message_deleted", {"message_id": message_id}, room=f"channel_{channel_id}")
         elif conversation_id:
-            res = await db.execute(select(DirectMessage).where(DirectMessage.id == message_id, DirectMessage.sender_id == user_data["id"]))
+            if not await user_dm_conversation(db, user_data["id"], conversation_id):
+                return
+            res = await db.execute(
+                select(DirectMessage).where(
+                    DirectMessage.id == message_id,
+                    DirectMessage.sender_id == user_data["id"],
+                    DirectMessage.conversation_id == conversation_id,
+                )
+            )
             msg = res.scalar_one_or_none()
             if msg:
                 await db.delete(msg)
@@ -885,15 +1104,24 @@ async def delete_message(sid, data):
 @sio.event
 async def kick_from_voice(sid, data):
     user_data = sid_to_user.get(sid)
-    target_user_id = data.get("target_user_id")
-    channel_id = data.get("channel_id")
+    target_user_id = to_int(data.get("target_user_id"))
+    channel_id = to_int(data.get("channel_id"))
     
     if not user_data or not target_user_id or not channel_id:
         return
 
-    # In a real app we would check if user_data["id"] has permission (server owner, admin etc)
-    # For now, we will simply kick the target from the voice room.
+    async with AsyncSessionLocal() as db:
+        channel = await user_channel(db, user_data["id"], channel_id, allowed_types={"voice", "media"})
+        if not channel:
+            return
+        res = await db.execute(select(Server).where(Server.id == channel.server_id))
+        server = res.scalar_one_or_none()
+        if not server or server.owner_id != user_data["id"]:
+            return
+
+    if target_user_id not in voice_room_users.get(channel_id, {}):
+        return
+
     target_sids = get_target_sids(target_user_id)
     for tsid in target_sids:
         await sio.emit("kicked_from_voice", {"channel_id": channel_id}, to=tsid)
-

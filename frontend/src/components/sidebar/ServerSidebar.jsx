@@ -1,6 +1,6 @@
 import React from 'react';
 import { useServer } from '../../context/ServerContext';
-import { Plus, Compass, LogOut, MessageSquare } from 'lucide-react';
+import { Plus, Compass, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ServerSidebar({ onOpenCreateServer, onOpenJoinServer }) {

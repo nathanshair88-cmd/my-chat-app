@@ -27,6 +27,7 @@ class WatchTogetherService {
     this._onRemotePlay = null;
     this._onRemotePause = null;
     this._onRemoteSeek = null;
+    this._watchSyncHandler = null;
   }
 
   // ── Subscription ───────────────────────────────────────────────────────────
@@ -49,14 +50,16 @@ class WatchTogetherService {
   // ── Socket listener ────────────────────────────────────────────────────────
 
   attachSocketListener(channelId) {
-    if (this._socketListenerAttached) return;
-    this._socketListenerAttached = true;
-    this._activeChannelId = channelId;
-
     const socket = getSocket();
     if (!socket) return;
 
-    socket.on('watch_sync', (data) => {
+    if (this._socketListenerAttached && this._activeChannelId === channelId) return;
+    if (this._watchSyncHandler) {
+      socket.off('watch_sync', this._watchSyncHandler);
+    }
+
+    this._activeChannelId = channelId;
+    this._watchSyncHandler = (data) => {
       if (data.channel_id !== this._activeChannelId) return;
 
       switch (data.type) {
@@ -87,7 +90,7 @@ class WatchTogetherService {
             currentTime: data.current_time,
             lastActivity: data.by ? `${data.by} pressed play` : null,
           });
-          this._onRemotePlay && this._onRemotePlay(data.current_time);
+          if (this._onRemotePlay) this._onRemotePlay(data.current_time);
           break;
 
         case 'pause':
@@ -96,7 +99,7 @@ class WatchTogetherService {
             currentTime: data.current_time,
             lastActivity: data.by ? `${data.by} paused` : null,
           });
-          this._onRemotePause && this._onRemotePause(data.current_time);
+          if (this._onRemotePause) this._onRemotePause(data.current_time);
           break;
 
         case 'seek':
@@ -104,7 +107,7 @@ class WatchTogetherService {
             currentTime: data.current_time,
             lastActivity: data.by ? `${data.by} seeked` : null,
           });
-          this._onRemoteSeek && this._onRemoteSeek(data.current_time);
+          if (this._onRemoteSeek) this._onRemoteSeek(data.current_time);
           break;
 
         case 'close':
@@ -117,7 +120,10 @@ class WatchTogetherService {
         default:
           break;
       }
-    });
+    };
+
+    socket.on('watch_sync', this._watchSyncHandler);
+    this._socketListenerAttached = true;
   }
 
   setPlayerCallbacks({ onPlay, onPause, onSeek }) {
@@ -134,11 +140,12 @@ class WatchTogetherService {
 
   detachSocketListener() {
     const socket = getSocket();
-    if (socket) {
-      socket.off('watch_sync');
+    if (socket && this._watchSyncHandler) {
+      socket.off('watch_sync', this._watchSyncHandler);
     }
     this._socketListenerAttached = false;
     this._activeChannelId = null;
+    this._watchSyncHandler = null;
     this._setState({ ...initialState });
   }
 
@@ -158,7 +165,7 @@ class WatchTogetherService {
       if (shorts) return shorts[1];
       const embed = url.pathname.match(/\/embed\/([a-zA-Z0-9_-]{11})/);
       if (embed) return embed[1];
-    } catch (_) {}
+    } catch {}
     return null;
   }
 

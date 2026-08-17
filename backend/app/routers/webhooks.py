@@ -8,8 +8,9 @@ from typing import Optional, List
 from datetime import datetime
 
 from app.database import get_db
-from app.models import Server, Webhook, Message, Channel
+from app.models import Server, User, Webhook, Message, Channel
 from app.auth import get_current_user
+from app.permissions import is_server_owner
 
 router = APIRouter(tags=["webhooks"])
 
@@ -34,22 +35,22 @@ class WebhookExecute(BaseModel):
     avatar_url: Optional[str] = None
 
 @router.get("/api/servers/{server_id}/webhooks", response_model=List[WebhookResponse])
-async def get_webhooks(server_id: int, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(Server).where(Server.id == server_id, Server.owner_id == current_user["sub"]))
-    server = res.scalar_one_or_none()
-    if not server:
+async def get_webhooks(server_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if not await is_server_owner(db, current_user.id, server_id):
         raise HTTPException(status_code=403, detail="Not authorized")
 
     res = await db.execute(select(Webhook).where(Webhook.server_id == server_id))
     return res.scalars().all()
 
 @router.post("/api/servers/{server_id}/webhooks", response_model=WebhookResponse)
-async def create_webhook(server_id: int, webhook: WebhookCreate, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(Server).where(Server.id == server_id, Server.owner_id == current_user["sub"]))
-    server = res.scalar_one_or_none()
-    if not server:
+async def create_webhook(server_id: int, webhook: WebhookCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if not await is_server_owner(db, current_user.id, server_id):
         raise HTTPException(status_code=403, detail="Not authorized")
-        
+
+    name = webhook.name.strip()[:100]
+    if not name:
+        raise HTTPException(status_code=400, detail="Webhook name cannot be empty")
+
     res = await db.execute(select(Channel).where(Channel.id == webhook.channel_id, Channel.server_id == server_id))
     if not res.scalar_one_or_none():
         raise HTTPException(status_code=400, detail="Invalid channel")
@@ -58,7 +59,7 @@ async def create_webhook(server_id: int, webhook: WebhookCreate, current_user=De
     new_webhook = Webhook(
         server_id=server_id,
         channel_id=webhook.channel_id,
-        name=webhook.name,
+        name=name,
         token=token
     )
     db.add(new_webhook)
@@ -67,9 +68,8 @@ async def create_webhook(server_id: int, webhook: WebhookCreate, current_user=De
     return new_webhook
 
 @router.delete("/api/servers/{server_id}/webhooks/{webhook_id}")
-async def delete_webhook(server_id: int, webhook_id: int, current_user=Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(Server).where(Server.id == server_id, Server.owner_id == current_user["sub"]))
-    if not res.scalar_one_or_none():
+async def delete_webhook(server_id: int, webhook_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if not await is_server_owner(db, current_user.id, server_id):
         raise HTTPException(status_code=403, detail="Not authorized")
 
     res = await db.execute(select(Webhook).where(Webhook.id == webhook_id, Webhook.server_id == server_id))
@@ -85,6 +85,7 @@ async def delete_webhook(server_id: int, webhook_id: int, current_user=Depends(g
 async def execute_webhook(token: str, payload: WebhookExecute, db: AsyncSession = Depends(get_db)):
     if not payload.content or not payload.content.strip():
         raise HTTPException(status_code=400, detail="Content cannot be empty")
+    content = payload.content.strip()[:4000]
 
     res = await db.execute(select(Webhook).where(Webhook.token == token))
     webhook = res.scalar_one_or_none()
@@ -93,14 +94,16 @@ async def execute_webhook(token: str, payload: WebhookExecute, db: AsyncSession 
 
     res = await db.execute(select(Server).where(Server.id == webhook.server_id))
     server = res.scalar_one_or_none()
+    if not server:
+        raise HTTPException(status_code=404, detail="Webhook server not found")
     
     new_msg = Message(
         channel_id=webhook.channel_id,
         user_id=server.owner_id,
-        content=payload.content.strip(),
+        content=content,
         webhook_id=webhook.id,
-        custom_username=payload.username or webhook.name,
-        custom_avatar_url=payload.avatar_url
+        custom_username=(payload.username or webhook.name)[:100],
+        custom_avatar_url=payload.avatar_url[:500] if payload.avatar_url else None
     )
     db.add(new_msg)
     await db.commit()

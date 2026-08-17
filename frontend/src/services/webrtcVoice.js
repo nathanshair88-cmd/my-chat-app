@@ -325,7 +325,7 @@ class WebRTCVoiceManager {
 
   _startMediaRecorder() {
     if (this.mediaRecorder) {
-      try { this.mediaRecorder.stop(); } catch (e) {}
+      try { this.mediaRecorder.stop(); } catch {}
       this.mediaRecorder = null;
     }
     if (!this.localAudioStream || !this.localAudioStream.getAudioTracks().length) return;
@@ -368,7 +368,7 @@ class WebRTCVoiceManager {
     notificationService.playVoiceDisconnectChime();
 
     if (this.mediaRecorder) {
-      try { this.mediaRecorder.stop(); } catch (e) {}
+      try { this.mediaRecorder.stop(); } catch {}
       this.mediaRecorder = null;
     }
 
@@ -440,7 +440,7 @@ class WebRTCVoiceManager {
 
       const audioTrack = screenStream.getAudioTracks()[0];
       if (audioTrack) {
-        for (const [targetUserId, pc] of this.peerConnections.entries()) {
+        for (const [, pc] of this.peerConnections.entries()) {
           pc.addTrack(audioTrack, screenStream);
         }
       }
@@ -628,7 +628,7 @@ class WebRTCVoiceManager {
       }
     }
 
-    for (const [targetUserId, pc] of this.peerConnections.entries()) {
+    for (const [, pc] of this.peerConnections.entries()) {
       const senders = pc.getSenders();
       const videoSender = senders.find(s => s.track && s.track.kind === 'video');
 
@@ -849,7 +849,7 @@ class WebRTCVoiceManager {
           this.notify();
         }, 400);
         this.remoteChunkTimeouts.set(user_id, t);
-      } catch (err) {
+      } catch {
         // Silently catch decoding errors
       }
     });
@@ -896,10 +896,8 @@ class WebRTCVoiceManager {
     };
 
     // Renegotiate when tracks are added or removed (e.g. Screen Sharing)
-    let makingOffer = false;
     pc.onnegotiationneeded = async () => {
       try {
-        makingOffer = true;
         const offer = await pc.createOffer();
         if (pc.signalingState !== 'stable') return;
         await pc.setLocalDescription(offer);
@@ -910,8 +908,6 @@ class WebRTCVoiceManager {
         });
       } catch (err) {
         console.warn("Renegotiation offer error:", err);
-      } finally {
-        makingOffer = false;
       }
     };
 

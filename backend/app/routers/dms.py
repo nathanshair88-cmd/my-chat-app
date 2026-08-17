@@ -6,7 +6,7 @@ from typing import List, Optional
 
 from app.database import get_db
 from app.models import User, DMConversation, DirectMessage
-from app.schemas import DMConversationResponse, DirectMessageResponse, UserResponse
+from app.schemas import DMConversationResponse, DirectMessageResponse, UserPublicResponse
 from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/dms", tags=["Direct Messages"])
@@ -40,7 +40,7 @@ async def get_conversations(
             user1_id=conv.user1_id,
             user2_id=conv.user2_id,
             created_at=conv.created_at,
-            other_user=UserResponse.model_validate(other_user)
+            other_user=UserPublicResponse.model_validate(other_user)
         ))
     return result
 
@@ -107,7 +107,7 @@ async def start_conversation(
         user1_id=conv.user1_id,
         user2_id=conv.user2_id,
         created_at=conv.created_at,
-        other_user=UserResponse.model_validate(other_user)
+        other_user=UserPublicResponse.model_validate(other_user)
     )
 
 @router.get("/{conversation_id}/messages", response_model=List[DirectMessageResponse])
@@ -139,7 +139,7 @@ async def get_dm_messages(
     messages = res.scalars().all()
     return messages
 
-@router.get("/users/search", response_model=List[UserResponse])
+@router.get("/users/search", response_model=List[UserPublicResponse])
 async def search_users(
     q: str = Query("", min_length=1),
     current_user: User = Depends(get_current_user),

@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useServer } from '../../context/ServerContext';
-import { useAuth } from '../../context/AuthContext';
 import { dmAPI } from '../../services/api';
 import UserWidget from './UserWidget';
 import UserContextMenu from '../modals/UserContextMenu';
-import { MessageSquare, Plus, Volume2, VolumeX, User, Search, Check, Circle } from 'lucide-react';
+import { Plus, User, Search } from 'lucide-react';
 
 
 export default function DMSidebar({ onOpenSettings }) {
-  const { user } = useAuth();
   const { conversations, currentDM, selectDM, startDM, unreadDMs } = useServer();
 
 
@@ -210,7 +208,7 @@ export default function DMSidebar({ onOpenSettings }) {
                       </div>
                       <div>
                         <div className="text-sm font-medium">{u.username}</div>
-                        <div className="text-xs text-text-muted">{u.email}</div>
+                        <div className="text-xs text-text-muted">{u.status_message || u.status || 'available'}</div>
                       </div>
                     </div>
                     <span className="bg-accent-primary text-text-primary text-xs px-2.5 py-1 rounded hover:bg-accent-hover">

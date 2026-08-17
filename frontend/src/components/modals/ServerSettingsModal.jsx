@@ -125,7 +125,7 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
       fetchRoles();
       // Optimistically update members who had this role
       setMembers(prev => prev.map(m => m.custom_role_id === roleId ? { ...m, custom_role_id: null } : m));
-    } catch (err) {
+    } catch {
       setError('Failed to delete role');
     }
   };
@@ -134,7 +134,7 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
     try {
       await roleAPI.assignRole(server.id, memberUserId, roleId || null);
       setMembers(prev => prev.map(m => m.user_id === memberUserId ? { ...m, custom_role_id: roleId || null } : m));
-    } catch (err) {
+    } catch {
       setError('Failed to assign role');
     }
   };
@@ -163,7 +163,7 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
     try {
       await webhookAPI.deleteWebhook(server.id, webhookId);
       fetchWebhooks();
-    } catch (err) {
+    } catch {
       setError('Failed to delete webhook');
     }
   };

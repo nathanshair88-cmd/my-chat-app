@@ -3,11 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_
 from app.database import get_db
 from app.models import User, ServerRole, Server, ServerMember
+from app.permissions import is_server_member
 from app.auth import get_current_user
 from pydantic import BaseModel
 from typing import List, Optional
 
-router = APIRouter(prefix="/servers", tags=["roles"])
+router = APIRouter(prefix="/api/servers", tags=["roles"])
 
 class RoleCreate(BaseModel):
     name: str
@@ -26,8 +27,26 @@ class RoleResponse(BaseModel):
     color: str
     permissions: int
 
+    class Config:
+        from_attributes = True
+
 class AssignRoleRequest(BaseModel):
     role_id: Optional[int]
+
+def _clean_text(value, max_length: int) -> str:
+    return str(value or "").strip()[:max_length]
+
+def _clean_color(value) -> str:
+    color = _clean_text(value, 7)
+    if len(color) == 7 and color.startswith("#") and all(ch in "0123456789abcdefABCDEF" for ch in color[1:]):
+        return color
+    raise HTTPException(status_code=400, detail="Invalid role color")
+
+def _clean_permissions(value) -> int:
+    try:
+        return max(0, min(int(value), 2_147_483_647))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid permissions value")
 
 async def _check_owner(server_id: int, user_id: int, db: AsyncSession):
     res = await db.execute(select(Server).where(Server.id == server_id))
@@ -40,18 +59,24 @@ async def _check_owner(server_id: int, user_id: int, db: AsyncSession):
 
 @router.get("/{server_id}/roles", response_model=List[RoleResponse])
 async def get_server_roles(server_id: int, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    if not await is_server_member(db, current_user.id, server_id):
+        raise HTTPException(status_code=403, detail="Not a member of this server")
     res = await db.execute(select(ServerRole).where(ServerRole.server_id == server_id))
     return res.scalars().all()
 
 @router.post("/{server_id}/roles", response_model=RoleResponse)
 async def create_server_role(server_id: int, req: RoleCreate, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     await _check_owner(server_id, current_user.id, db)
+
+    name = _clean_text(req.name, 100)
+    if not name:
+        raise HTTPException(status_code=400, detail="Role name cannot be empty")
     
     role = ServerRole(
         server_id=server_id,
-        name=req.name,
-        color=req.color,
-        permissions=req.permissions
+        name=name,
+        color=_clean_color(req.color),
+        permissions=_clean_permissions(req.permissions)
     )
     db.add(role)
     await db.commit()
@@ -67,9 +92,15 @@ async def update_server_role(server_id: int, role_id: int, req: RoleUpdate, curr
     if not role:
         raise HTTPException(status_code=404, detail="Role not found")
         
-    if req.name is not None: role.name = req.name
-    if req.color is not None: role.color = req.color
-    if req.permissions is not None: role.permissions = req.permissions
+    if req.name is not None:
+        name = _clean_text(req.name, 100)
+        if not name:
+            raise HTTPException(status_code=400, detail="Role name cannot be empty")
+        role.name = name
+    if req.color is not None:
+        role.color = _clean_color(req.color)
+    if req.permissions is not None:
+        role.permissions = _clean_permissions(req.permissions)
     
     await db.commit()
     await db.refresh(role)

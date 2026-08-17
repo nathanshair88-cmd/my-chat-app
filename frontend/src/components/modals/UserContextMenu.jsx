@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useServer } from '../../context/ServerContext';
-import { useAuth } from '../../context/AuthContext';
 import { voiceManager } from '../../services/webrtcVoice';
 import { getSocket } from '../../services/socket';
 import {
   MessageSquare, AtSign, Volume2, VolumeX, Copy, 
-  UserX, Shield, ChevronRight, Check, Hash, User as UserIcon
+  UserX, Shield, Check, Hash, User as UserIcon
 } from 'lucide-react';
 import UserProfileModal from './UserProfileModal';
 
@@ -30,7 +29,6 @@ export default function UserContextMenu({
   onClose
 }) {
   const { startDM, setViewMode } = useServer();
-  const { user: currentUser } = useAuth();
 
   const menuRef = useRef(null);
   const [volume, setVolume]   = useState(() => voiceManager.getUserVolume(user?.id || user?.user_id));
@@ -82,7 +80,7 @@ export default function UserContextMenu({
 
   const handleMessage = async () => {
     try {
-      await startDM({ user_id: uid, username: user.username });
+      await startDM({ target_user_id: uid });
       setViewMode('dm');
     } catch (e) { console.error('DM error:', e); }
     onClose();

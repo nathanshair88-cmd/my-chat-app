@@ -41,6 +41,17 @@ class UserResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class UserPublicResponse(BaseModel):
+    id: int
+    username: str
+    avatar_url: Optional[str] = None
+    status: str
+    status_message: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -74,7 +85,7 @@ class MessageResponse(BaseModel):
     custom_username: Optional[str] = None
     custom_avatar_url: Optional[str] = None
     created_at: datetime
-    author: UserResponse
+    author: UserPublicResponse
     reactions: List[ReactionResponse] = []
 
     class Config:
@@ -105,7 +116,7 @@ class ServerMemberResponse(BaseModel):
     role: str
     custom_role_id: Optional[int] = None
     joined_at: datetime
-    user: UserResponse
+    user: UserPublicResponse
 
     class Config:
         from_attributes = True
@@ -155,7 +166,7 @@ class DirectMessageResponse(BaseModel):
     attachments_json: Optional[str] = None
     is_read: bool = False
     created_at: datetime
-    sender: UserResponse
+    sender: UserPublicResponse
 
     class Config:
         from_attributes = True
@@ -165,8 +176,7 @@ class DMConversationResponse(BaseModel):
     user1_id: int
     user2_id: int
     created_at: datetime
-    other_user: UserResponse
+    other_user: UserPublicResponse
 
     class Config:
         from_attributes = True
-

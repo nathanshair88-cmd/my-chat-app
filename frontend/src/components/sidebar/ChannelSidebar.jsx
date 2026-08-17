@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useServer } from '../../context/ServerContext';
 import UserWidget from './UserWidget';
 import UserContextMenu from '../modals/UserContextMenu';
@@ -54,6 +54,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
     }
   };
 
+  const isOwner = String(currentServer.owner_id) === String(localStorage.getItem('discoalto_user_id'));
   const activeVoiceChannel = (currentServer.channels || []).find(c => c.id === voiceState.channel_id);
 
   return (
@@ -89,7 +90,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
               <div className="h-[1px] bg-surface-border my-1" />
 
-              {String(currentServer.owner_id) === String(localStorage.getItem('discoalto_user_id')) && (
+              {isOwner && (
                 <>
                   <button 
                     onClick={() => {
@@ -105,16 +106,18 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                 </>
               )}
 
-              <button 
-                onClick={() => {
-                  onOpenCreateChannel();
-                  setShowServerMenu(false);
-                }}
-                className="w-full flex items-center justify-between px-2 py-2 rounded text-xs font-semibold text-text-primary hover:bg-surface-hover transition-colors"
-              >
-                <span>Create Channel</span>
-                <Plus className="w-4 h-4" />
-              </button>
+              {isOwner && (
+                <button
+                  onClick={() => {
+                    onOpenCreateChannel();
+                    setShowServerMenu(false);
+                  }}
+                  className="w-full flex items-center justify-between px-2 py-2 rounded text-xs font-semibold text-text-primary hover:bg-surface-hover transition-colors"
+                >
+                  <span>Create Channel</span>
+                  <Plus className="w-4 h-4" />
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -125,13 +128,15 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
             <div key={catName}>
               <div className="flex items-center justify-between px-2 mb-1">
                 <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{catName}</span>
-                <button 
-                  onClick={onOpenCreateChannel}
-                  className="text-text-muted hover:text-text-primary transition-colors"
-                  title="Create Channel"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                </button>
+                {isOwner && (
+                  <button
+                    onClick={onOpenCreateChannel}
+                    className="text-text-muted hover:text-text-primary transition-colors"
+                    title="Create Channel"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <div className="space-y-0.5">
@@ -316,11 +321,11 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
         <ServerSettingsModal 
           server={currentServer} 
           onClose={() => setShowServerSettings(false)}
-          onServerUpdated={(updated) => {
+          onServerUpdated={() => {
             // Can reload or just let context know via window.location.reload() for a hard refresh, or ideally update state via context
             window.location.reload(); 
           }}
-          onServerDeleted={(id) => {
+          onServerDeleted={() => {
             window.location.reload();
           }}
         />

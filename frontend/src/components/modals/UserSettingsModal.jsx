@@ -6,8 +6,8 @@ import { notificationService } from '../../services/NotificationService';
 import { voiceManager } from '../../services/webrtcVoice';
 import { scheduleSave } from '../../services/settingsService';
 import { 
-  X, Mic, Volume2, Camera, User, Settings, VolumeX, 
-  Check, Play, Radio, Shield, Palette, Bell, LogOut, Lock, Key, 
+  X, Mic, Volume2, Camera, User, 
+  Check, Play, Palette, Bell, LogOut, 
   ShieldAlert, RefreshCw, Eye, EyeOff
 } from 'lucide-react';
 
@@ -86,7 +86,7 @@ export default function UserSettingsModal({ onClose }) {
 
 
   // Function to enumerate devices
-  const enumerateAllDevices = async (activeStream = null) => {
+  const enumerateAllDevices = async () => {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
         setPermissionError("Media devices API is not supported or blocked by your browser environment.");

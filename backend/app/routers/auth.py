@@ -11,20 +11,41 @@ from app.auth import get_password_hash, verify_password, create_access_token, ge
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
+ALLOWED_STATUSES = {"online", "idle", "dnd", "offline"}
+MAX_SETTINGS_JSON_LENGTH = 20_000
+
+
+def _clean_text(value, max_length: int) -> str:
+    return str(value or "").strip()[:max_length]
+
+
+def _validate_password(password: str):
+    if len(password or "") < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if len(password.encode("utf-8")) > 72:
+        raise HTTPException(status_code=400, detail="Password must be 72 bytes or fewer")
+
 @router.post("/register", response_model=TokenResponse)
 async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+    username = _clean_text(user_in.username, 50)
+    email = _clean_text(user_in.email, 120).lower()
+    avatar = _clean_text(user_in.avatar_url, 500) if user_in.avatar_url else None
+    if not username:
+        raise HTTPException(status_code=400, detail="Username cannot be empty")
+    _validate_password(user_in.password)
+
     # Check if username or email already exists
-    res = await db.execute(select(User).where((User.username == user_in.username) | (User.email == user_in.email)))
+    res = await db.execute(select(User).where((User.username == username) | (User.email == email)))
     existing_user = res.scalar_one_or_none()
     if existing_user:
         raise HTTPException(status_code=400, detail="Username or Email already registered")
 
     # Pick default avatar if none provided
-    avatar = user_in.avatar_url or f"https://api.dicebear.com/7.x/bottts/svg?seed={user_in.username}"
+    avatar = avatar or f"https://api.dicebear.com/7.x/bottts/svg?seed={username}"
 
     new_user = User(
-        username=user_in.username,
-        email=user_in.email,
+        username=username,
+        email=email,
         hashed_password=get_password_hash(user_in.password),
         avatar_url=avatar,
         status="online"
@@ -35,7 +56,7 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
     # Create default server for new user
     invite_code = secrets.token_urlsafe(8)[:8]
     default_server = Server(
-        name=f"{user_in.username}'s Server",
+        name=f"{username}'s Server"[:100],
         invite_code=invite_code,
         owner_id=new_user.id
     )
@@ -58,7 +79,8 @@ async def register(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_in: UserLogin, db: AsyncSession = Depends(get_db)):
-    res = await db.execute(select(User).where(User.email == user_in.email))
+    email = _clean_text(user_in.email, 120).lower()
+    res = await db.execute(select(User).where(User.email == email))
     user = res.scalar_one_or_none()
     if not user or not verify_password(user_in.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -76,9 +98,13 @@ async def update_status(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    current_user.status = status_in.status
+    status_value = _clean_text(status_in.status, 20)
+    if status_value not in ALLOWED_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    current_user.status = status_value
     if status_in.status_message is not None:
-        current_user.status_message = status_in.status_message
+        current_user.status_message = _clean_text(status_in.status_message, 100) or None
     await db.commit()
     await db.refresh(current_user)
     return UserResponse.model_validate(current_user)
@@ -89,25 +115,32 @@ async def update_profile(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    if profile_in.username and profile_in.username != current_user.username:
-        res = await db.execute(select(User).where(User.username == profile_in.username))
-        if res.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Username already taken")
-        current_user.username = profile_in.username
+    if profile_in.username is not None:
+        username = _clean_text(profile_in.username, 50)
+        if not username:
+            raise HTTPException(status_code=400, detail="Username cannot be empty")
+        if username != current_user.username:
+            res = await db.execute(select(User).where(User.username == username))
+            if res.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Username already taken")
+            current_user.username = username
 
-    if profile_in.email and profile_in.email != current_user.email:
-        res = await db.execute(select(User).where(User.email == profile_in.email))
-        if res.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail="Email already registered")
-        current_user.email = profile_in.email
+    if profile_in.email is not None:
+        email = _clean_text(profile_in.email, 120).lower()
+        if email != current_user.email:
+            res = await db.execute(select(User).where(User.email == email))
+            if res.scalar_one_or_none():
+                raise HTTPException(status_code=400, detail="Email already registered")
+            current_user.email = email
 
     if profile_in.avatar_url is not None:
-        current_user.avatar_url = profile_in.avatar_url
+        current_user.avatar_url = _clean_text(profile_in.avatar_url, 500) or None
 
     if profile_in.status_message is not None:
-        current_user.status_message = profile_in.status_message
+        current_user.status_message = _clean_text(profile_in.status_message, 100) or None
 
     if profile_in.new_password:
+        _validate_password(profile_in.new_password)
         if not profile_in.current_password or not verify_password(profile_in.current_password, current_user.hashed_password):
             raise HTTPException(status_code=400, detail="Current password incorrect")
         current_user.hashed_password = get_password_hash(profile_in.new_password)
@@ -135,6 +168,9 @@ async def save_settings(
     db: AsyncSession = Depends(get_db)
 ):
     """Save user preferences to the database."""
-    current_user.settings_json = json.dumps(settings_in.settings)
+    settings_json = json.dumps(settings_in.settings)
+    if len(settings_json) > MAX_SETTINGS_JSON_LENGTH:
+        raise HTTPException(status_code=400, detail="Settings payload is too large")
+    current_user.settings_json = settings_json
     await db.commit()
     return {"ok": True}

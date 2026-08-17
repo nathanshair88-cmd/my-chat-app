@@ -1,3 +1,5 @@
+import os
+
 import jwt
 from datetime import datetime, timedelta
 from typing import Optional
@@ -12,7 +14,12 @@ from app.models import User
 
 import bcrypt
 
-SECRET_KEY = "super-secret-discoalto-clone-jwt-key-antigravity"
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    app_env = os.getenv("APP_ENV", os.getenv("ENVIRONMENT", "development")).lower()
+    if app_env in {"production", "prod"}:
+        raise RuntimeError("SECRET_KEY environment variable is required in production")
+    SECRET_KEY = "dev-only-discoalto-secret-change-me"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 30
 

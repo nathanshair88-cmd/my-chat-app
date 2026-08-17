@@ -11,16 +11,28 @@ from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/servers", tags=["servers"])
 
+ALLOWED_CHANNEL_TYPES = {"text", "voice", "media"}
+
+
+def _clean_text(value, max_length: int) -> str:
+    return str(value or "").strip()[:max_length]
+
+
 @router.post("", response_model=ServerResponse)
 async def create_server(
     server_in: ServerCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    name = _clean_text(server_in.name, 100)
+    icon_url = _clean_text(server_in.icon_url, 500) if server_in.icon_url else None
+    if not name:
+        raise HTTPException(status_code=400, detail="Server name cannot be empty")
+
     invite_code = secrets.token_urlsafe(8)[:8]
     new_server = Server(
-        name=server_in.name,
-        icon_url=server_in.icon_url,
+        name=name,
+        icon_url=icon_url,
         invite_code=invite_code,
         owner_id=current_user.id
     )
@@ -102,7 +114,10 @@ async def join_server(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    code = join_in.invite_code.strip()
+    code = _clean_text(join_in.invite_code, 20)
+    if not code:
+        raise HTTPException(status_code=400, detail="Invite code cannot be empty")
+
     res = await db.execute(
         select(Server)
         .options(
@@ -142,19 +157,28 @@ async def create_channel(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    res = await db.execute(
-        select(ServerMember)
-        .where(ServerMember.server_id == server_id, ServerMember.user_id == current_user.id)
-    )
-    member = res.scalar_one_or_none()
-    if not member:
-        raise HTTPException(status_code=403, detail="Not a member of this server")
+    res = await db.execute(select(Server).where(Server.id == server_id))
+    server = res.scalar_one_or_none()
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+    if server.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the owner can create channels")
+
+    name = _clean_text(channel_in.name, 100)
+    channel_type = _clean_text(channel_in.type, 20).lower()
+    category = _clean_text(channel_in.category, 50)
+    if not name:
+        raise HTTPException(status_code=400, detail="Channel name cannot be empty")
+    if channel_type not in ALLOWED_CHANNEL_TYPES:
+        raise HTTPException(status_code=400, detail="Invalid channel type")
+    if not category:
+        category = "Text Channels"
 
     new_channel = Channel(
         server_id=server_id,
-        name=channel_in.name,
-        type=channel_in.type,
-        category=channel_in.category
+        name=name,
+        type=channel_type,
+        category=category
     )
     db.add(new_channel)
     await db.commit()
@@ -184,9 +208,12 @@ async def update_server(
     if server.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the owner can modify the server")
 
-    server.name = server_in.name
-    if server_in.icon_url:
-        server.icon_url = server_in.icon_url
+    name = _clean_text(server_in.name, 100)
+    if not name:
+        raise HTTPException(status_code=400, detail="Server name cannot be empty")
+
+    server.name = name
+    server.icon_url = _clean_text(server_in.icon_url, 500) if server_in.icon_url else None
 
     await db.commit()
     return ServerResponse.model_validate(server)

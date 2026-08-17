@@ -7,7 +7,7 @@ export const initSocket = (token) => {
     socket.disconnect();
   }
 
-  const socketUrl = 'https://my-chat-backend-suva.onrender.com';
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 
   socket = io(socketUrl, {
     auth: { token },

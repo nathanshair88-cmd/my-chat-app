@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { voiceManager } from '../../services/webrtcVoice';
-import { Mic, MicOff, Volume2, VolumeX, Settings, ChevronUp, Check } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Settings, Check } from 'lucide-react';
 
 export default function UserWidget({ onOpenSettings }) {
   const { user, updateStatus } = useAuth();

@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useServer } from '../../context/ServerContext';
-import { useAuth } from '../../context/AuthContext';
 import { channelAPI } from '../../services/api';
 import MessageItem from './MessageItem';
 import MessageInput from './MessageInput';
-import { X, Hash, MessageSquare } from 'lucide-react';
+import { X, MessageSquare } from 'lucide-react';
 import { getSocket } from '../../services/socket';
 
 export default function ThreadPanel() {
   const { currentChannel, activeThreadMessage, setActiveThreadMessage } = useServer();
-  const { user } = useAuth();
   
   const [threadMessages, setThreadMessages] = useState([]);
   const messagesEndRef = useRef(null);
@@ -41,9 +39,21 @@ export default function ThreadPanel() {
       }
     };
 
+    const handleMessageEdited = ({ message_id, content }) => {
+      setThreadMessages((prev) => prev.map(m => m.id === message_id ? { ...m, content } : m));
+    };
+
+    const handleMessageDeleted = ({ message_id }) => {
+      setThreadMessages((prev) => prev.filter(m => m.id !== message_id));
+    };
+
     socket.on('new_message', handleNewMessage);
+    socket.on('message_edited', handleMessageEdited);
+    socket.on('message_deleted', handleMessageDeleted);
     return () => {
       socket.off('new_message', handleNewMessage);
+      socket.off('message_edited', handleMessageEdited);
+      socket.off('message_deleted', handleMessageDeleted);
     };
   }, [activeThreadMessage]);
 

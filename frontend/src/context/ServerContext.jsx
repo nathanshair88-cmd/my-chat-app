@@ -259,6 +259,16 @@ export const ServerProvider = ({ children }) => {
         setMessages(prev => prev.map(m => m.id === message_id ? { ...m, reactions } : m));
       };
 
+      const handleMessageEdited = (data) => {
+        const { message_id, content } = data;
+        setMessages(prev => prev.map(m => m.id === message_id ? { ...m, content } : m));
+      };
+
+      const handleMessageDeleted = (data) => {
+        const { message_id } = data;
+        setMessages(prev => prev.filter(m => m.id !== message_id));
+      };
+
       const handleDMsReadReceipt = (data) => {
         const { conversation_id, read_by } = data;
         if (viewModeRef.current === 'dm' && currentDMRef.current && currentDMRef.current.id === conversation_id) {
@@ -310,6 +320,8 @@ export const ServerProvider = ({ children }) => {
       socket.on('new_dm_message', handleNewDMMessage);
       socket.on('new_dm_notification', handleNewDMNotification);
       socket.on('reaction_updated', handleReactionUpdated);
+      socket.on('message_edited', handleMessageEdited);
+      socket.on('message_deleted', handleMessageDeleted);
       socket.on('user_typing', handleUserTyping);
       socket.on('dms_read_receipt', handleDMsReadReceipt);
       socket.on('user_connected', handleUserConnected);
@@ -321,6 +333,8 @@ export const ServerProvider = ({ children }) => {
         socket.off('new_dm_message', handleNewDMMessage);
         socket.off('new_dm_notification', handleNewDMNotification);
         socket.off('reaction_updated', handleReactionUpdated);
+        socket.off('message_edited', handleMessageEdited);
+        socket.off('message_deleted', handleMessageDeleted);
         socket.off('user_typing', handleUserTyping);
         socket.off('dms_read_receipt', handleDMsReadReceipt);
         socket.off('user_connected', handleUserConnected);

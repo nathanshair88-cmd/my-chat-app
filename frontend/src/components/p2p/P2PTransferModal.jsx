@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { p2pEngine } from '../../services/webrtcP2PFile';
 import { useServer } from '../../context/ServerContext';
 import { useAuth } from '../../context/AuthContext';
-import { X, Share2, Upload, Download, Play, Pause, AlertCircle, CheckCircle2, Zap } from 'lucide-react';
+import { X, Upload, Download, Play, Pause, Zap } from 'lucide-react';
 
 export default function P2PTransferModal({ onClose }) {
   const { currentServer } = useServer();

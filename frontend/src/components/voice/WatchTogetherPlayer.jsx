@@ -108,7 +108,7 @@ function trySkipAd(iframeRef) {
         video.currentTime = video.duration;
       }
     }
-  } catch (e) {
+  } catch {
     // Cross-origin frames will throw — swallow silently
   }
 }
@@ -186,7 +186,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
     loadYTApi().then(() => {
       // Destroy existing player
       if (playerRef.current) {
-        try { playerRef.current.destroy(); } catch (_) {}
+        try { playerRef.current.destroy(); } catch {}
         playerRef.current = null;
       }
 
@@ -201,7 +201,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
       iframeContainerRef.current.appendChild(div);
 
       // eslint-disable-next-line no-undef
-      const player = new YT.Player(divId, {
+      new YT.Player(divId, {
         videoId,
         width: '100%',
         height: '100%',
@@ -420,7 +420,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
           trySkipAd({ current: iframe });
           setTimeout(() => setAdSkipActive(false), 2000);
         }
-      } catch (_) {
+      } catch {
         // Cross-origin — can't access iframe document
       }
     }, 750);
@@ -441,7 +441,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
       stopLiveTimePoll();
       stopAdObserver();
       if (playerRef.current) {
-        try { playerRef.current.destroy(); } catch (_) {}
+        try { playerRef.current.destroy(); } catch {}
       }
       watchTogetherService.clearPlayerCallbacks();
       if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
@@ -572,7 +572,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
 
   const handleClose = () => {
     watchTogetherService.close(channelId);
-    onClose && onClose();
+    if (onClose) onClose();
   };
 
   // ── Render ────────────────────────────────────────────────────────────────

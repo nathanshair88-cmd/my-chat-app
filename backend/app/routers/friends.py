@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
-router = APIRouter(prefix="/friends", tags=["friends"])
+router = APIRouter(prefix="/api/friends", tags=["friends"])
 
 class FriendRequest(BaseModel):
     username: str

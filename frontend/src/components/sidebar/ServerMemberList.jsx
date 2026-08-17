@@ -10,14 +10,19 @@ export default function ServerMemberList() {
 
   const members = currentServer.members || [];
 
-  // Group members
-  const rolesMap = new Map();
+  const rolesById = new Map((currentServer.roles || []).map(role => [role.id, role]));
   const onlineMembers = [];
   const offlineMembers = [];
 
   members.forEach(member => {
     const isOnline = onlineUsers.has(member.user.id);
-    const m = { ...member.user, role: member.role, custom_role: member.custom_role };
+    const customRole = member.custom_role_id ? rolesById.get(member.custom_role_id) : null;
+    const m = {
+      ...member.user,
+      role: member.role,
+      custom_role_id: member.custom_role_id,
+      custom_role: customRole,
+    };
     
     if (isOnline) {
       onlineMembers.push(m);

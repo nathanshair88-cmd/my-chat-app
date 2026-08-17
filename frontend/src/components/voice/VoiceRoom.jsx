@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { watchTogetherService } from '../../services/watchTogetherService';
 import WatchTogetherPlayer from './WatchTogetherPlayer';
 import UserContextMenu from '../modals/UserContextMenu';
-import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, ShieldAlert, Maximize, Minimize, X, Tv2 } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, Maximize, X, Tv2 } from 'lucide-react';
 
 export default function VoiceRoom() {
   const { currentChannel } = useServer();
