@@ -2,10 +2,12 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useServer } from '../../context/ServerContext';
 import MessageItem from './MessageItem';
 import MessageInput from './MessageInput';
-import { Hash, Volume2, Video, Share2, Search, X, UploadCloud, MessageSquare } from 'lucide-react';
+import { Hash, Volume2, Video, Share2, Search, X, UploadCloud, MessageSquare, Moon, Sun } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function ChatArea({ onOpenP2PModal }) {
   const { viewMode, currentChannel, currentDM, messages, typingUsers, showVoiceGrid, toggleVoiceGrid } = useServer();
+  const { isDarkMode, toggleTheme } = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
 
   const [isDragging, setIsDragging] = useState(false);
@@ -164,6 +166,15 @@ export default function ChatArea({ onOpenP2PModal }) {
           >
             <Share2 className="w-3.5 h-3.5 text-accent-primary" />
             <span className="hidden sm:inline">P2P Transfer</span>
+          </button>
+          
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-1.5 rounded-md hover:bg-surface-hover hover:text-accent-primary transition-colors border border-surface-border shadow-sm bg-surface-active"
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDarkMode ? <Sun className="w-4 h-4 text-text-primary" /> : <Moon className="w-4 h-4 text-text-primary" />}
           </button>
         </div>
       </div>

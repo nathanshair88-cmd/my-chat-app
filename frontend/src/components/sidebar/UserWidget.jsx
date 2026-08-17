@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { voiceManager } from '../../services/webrtcVoice';
-import { Mic, MicOff, Volume2, VolumeX, Settings, ChevronUp, Check, Moon, Sun } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { Mic, MicOff, Volume2, VolumeX, Settings, ChevronUp, Check } from 'lucide-react';
 
 export default function UserWidget({ onOpenSettings }) {
   const { user, updateStatus } = useAuth();
-  const { isDarkMode, toggleTheme } = useTheme();
   
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
@@ -83,14 +81,6 @@ export default function UserWidget({ onOpenSettings }) {
           title="Settings"
         >
           <Settings className="w-4 h-4" />
-        </button>
-        
-        <button
-          onClick={toggleTheme}
-          className="p-1.5 rounded hover:bg-surface-hover hover:text-accent-primary transition-colors ml-1"
-          title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-        >
-          {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
       </div>
 

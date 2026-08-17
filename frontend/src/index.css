@@ -41,7 +41,7 @@
   --success: #10b981;
 }
 
-.dark {
+:root.dark {
   /* DARK MODE (Sleek, deep, vibrant glow) */
   --surface-base: #020617; /* Very deep slate */
   --surface-panel: rgba(15, 23, 42, 0.5); /* Glassy Slate-900 */
@@ -72,14 +72,14 @@
     /* In dark mode, add a subtle glowing ambient background */
   }
 
-  body.dark {
+  :root.dark body {
     background-image: radial-gradient(circle at 15% 50%, rgba(139, 92, 246, 0.15), transparent 25%),
                       radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.15), transparent 25%);
     background-color: var(--surface-base);
   }
   
   /* Fallback animated background for light mode */
-  body:not(.dark) {
+  :root:not(.dark) body {
     background-image: radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.1), transparent 25%),
                       radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.1), transparent 25%);
     background-color: var(--surface-base);
