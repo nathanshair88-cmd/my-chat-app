@@ -107,6 +107,7 @@ export default function MessageItem({ message, searchQuery }) {
         alt={displayName}
         onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY }); }}
         onClick={(e) => { if (e.button === 0) {} }}
+        onError={(e) => { e.target.src = `https://api.dicebear.com/7.x/bottts/svg?seed=${displayName}`; }}
         className="w-10 h-10 rounded-full bg-surface-panel object-cover flex-shrink-0 mt-0.5 border border-surface-border shadow-sm cursor-pointer hover:ring-2 hover:ring-accent-primary/50 transition-all"
       />
 

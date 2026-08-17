@@ -950,10 +950,10 @@ export default function UserSettingsModal({ onClose }) {
                 </div>
               </div>
 
-              <div className="pt-4 flex justify-end">
+              <div className="pt-4 mt-4 sticky bottom-0 bg-surface-panel pb-2 flex justify-end border-t border-surface-border">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-accent-primary hover:bg-accent-hover text-text-primary text-sm font-bold rounded-sm transition shadow-lg"
+                  className="px-6 py-2.5 bg-accent-primary hover:bg-accent-hover text-white text-sm font-bold rounded-sm transition shadow-lg"
                 >
                   Save Changes
                 </button>

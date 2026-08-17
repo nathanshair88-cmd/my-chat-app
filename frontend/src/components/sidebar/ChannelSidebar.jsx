@@ -71,7 +71,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
 
           {/* Server Options Popover */}
           {showServerMenu && (
-            <div className="absolute top-13 left-2 right-2 bg-surface-active border border-surface-border rounded-sm shadow-2xl p-1.5 z-50">
+            <div className="absolute top-full mt-1 left-2 right-2 bg-surface-active border border-surface-border rounded-sm shadow-2xl p-1.5 z-50">
               <button 
                 onClick={() => {
                   copyInviteCode();
@@ -159,21 +159,15 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                   return (
                     <div key={channel.id}>
                       <button
-                        onClick={(e) => {
+                        onClick={() => {
                           if (!isVoiceChannel) {
                             selectChannel(channel);
-                            return;
+                          } else {
+                            selectChannel(channel, false); // Single click (preview)
                           }
-
-                          // For voice channels, we need to differentiate single vs double click
-                          if (e.detail === 1) {
-                            // First click - wait to see if it's a double click
-                            window.voiceClickTimer = setTimeout(() => {
-                              selectChannel(channel, false); // Single click (preview)
-                            }, 250); // 250ms delay
-                          } else if (e.detail === 2) {
-                            // Double click - cancel the single click timer and join
-                            clearTimeout(window.voiceClickTimer);
+                        }}
+                        onDoubleClick={() => {
+                          if (isVoiceChannel) {
                             selectChannel(channel, true); // Double click (join)
                           }
                         }}
@@ -188,7 +182,7 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                         </div>
                         <div className="flex items-center space-x-1 flex-shrink-0">
                           {unreadCount > 0 && !isActive && (
-                            <span className="bg-danger text-text-primary text-[10px] font-bold px-1.5 py-0.2 rounded-full shadow-sm">
+                            <span className="bg-danger text-text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow-sm">
                               {unreadCount}
                             </span>
                           )}

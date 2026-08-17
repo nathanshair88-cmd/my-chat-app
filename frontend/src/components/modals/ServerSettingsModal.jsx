@@ -425,16 +425,20 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
                         <div className="flex items-center space-x-4">
                           {/* Role Assignment Dropdown */}
                           {isOwner && !isMemberOwner && (
-                            <select
-                              value={member.custom_role_id || ''}
-                              onChange={(e) => handleAssignRole(member.user_id, e.target.value ? parseInt(e.target.value) : null)}
-                              className="bg-surface-panel border border-surface-border text-text-primary text-xs rounded px-2 py-1 focus:outline-none"
-                            >
-                              <option value="">No Role</option>
-                              {roles.map(r => (
-                                <option key={r.id} value={r.id}>{r.name}</option>
-                              ))}
-                            </select>
+                            roles.length > 0 ? (
+                              <select
+                                value={member.custom_role_id || ''}
+                                onChange={(e) => handleAssignRole(member.user_id, e.target.value ? parseInt(e.target.value) : null)}
+                                className="bg-surface-panel border border-surface-border text-text-primary text-xs rounded px-2 py-1 focus:outline-none"
+                              >
+                                <option value="">No Role</option>
+                                {roles.map(r => (
+                                  <option key={r.id} value={r.id}>{r.name}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <div className="text-[10px] text-text-muted italic bg-surface-active px-2 py-1 rounded border border-surface-border">Create a role first</div>
+                            )
                           )}
                           
                           {/* Display role badge for non-owners (or owners can see their own) */}

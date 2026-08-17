@@ -337,7 +337,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
           prevPollTime >= 0 &&
           !ignoreRemoteRef.current &&
           !scrubbingRef.current &&
-          Math.abs(t - prevPollTime) > 3
+          Math.abs(t - prevPollTime) > 1.5
         ) {
           // Check if we just finished scrubbing (within the last 1 second) to prevent double-emit
           const timeSinceScrub = Date.now() - (scrubbingRef.lastScrubEnd || 0);
@@ -347,7 +347,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
         }
         prevPollTime = t;
       }
-    }, 500);
+    }, 250);
   };
 
   const stopLiveTimePoll = () => {
@@ -658,6 +658,18 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
             <SkipForward className="w-3 h-3" />
             <span>SPONSORBLOCK {sponsorBlockEnabled ? 'ON' : 'OFF'}</span>
             {sponsorSkipActive && <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping ml-0.5" />}
+          </button>
+
+          <button
+            onClick={() => setShowQueue(prev => !prev)}
+            title={showQueue ? 'Hide Queue' : 'Show Queue'}
+            className={`p-1.5 rounded-md transition-all ${
+              showQueue 
+                ? 'bg-accent-primary text-text-primary shadow-sm' 
+                : 'bg-surface-hover hover:bg-surface-active text-text-muted hover:text-text-primary'
+            }`}
+          >
+            <ListVideo className="w-4 h-4" />
           </button>
 
           <button

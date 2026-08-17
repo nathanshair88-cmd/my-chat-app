@@ -43,9 +43,14 @@ export default function ChatArea({ onOpenP2PModal }) {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
+    
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      setDroppedFiles(Array.from(e.dataTransfer.files));
-      setTimeout(() => setDroppedFiles([]), 500);
+      // Filter out weird ghost files from dragged text/links (they usually have no type/size)
+      const validFiles = Array.from(e.dataTransfer.files).filter(f => f.type || f.size > 0);
+      if (validFiles.length > 0) {
+        setDroppedFiles(validFiles);
+        setTimeout(() => setDroppedFiles([]), 500);
+      }
     }
   };
 
@@ -220,7 +225,7 @@ export default function ChatArea({ onOpenP2PModal }) {
           </div>
 
           {/* Search Results Notice */}
-          {searchQuery.trim() && (
+          {searchQuery && searchQuery.trim() !== '' && (
             <div className="bg-surface-panel p-2.5 rounded-sm border border-accent-primary text-xs text-text-primary flex items-center justify-between mb-4 shadow-sm backdrop-blur-sm">
               <span>
                 Showing {filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'} matching "<strong className="text-accent-primary">{searchQuery}</strong>"

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useServer } from '../../context/ServerContext';
 import { useAuth } from '../../context/AuthContext';
 import { voiceManager } from '../../services/webrtcVoice';
@@ -131,7 +132,7 @@ export default function UserContextMenu({
     return <UserProfileModal user={user} onClose={onClose} />;
   }
 
-  return (
+  return createPortal(
     <div
       ref={menuRef}
       className="fixed z-[9999] w-60 bg-surface-active border border-surface-border rounded-lg shadow-2xl overflow-hidden animate-fadeIn text-[13px]"
@@ -247,7 +248,8 @@ export default function UserContextMenu({
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
