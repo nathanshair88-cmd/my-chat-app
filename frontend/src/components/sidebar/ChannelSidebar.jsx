@@ -140,7 +140,22 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                   return (
                     <div key={channel.id}>
                       <button
-                        onClick={() => selectChannel(channel)}
+                        onClick={() => {
+                          if (isVoiceChannel) {
+                            // Single click: preview the chat WITHOUT joining voice
+                            selectChannel(channel, false);
+                          } else {
+                            // Text channels: select normally
+                            selectChannel(channel);
+                          }
+                        }}
+                        onDoubleClick={() => {
+                          if (isVoiceChannel) {
+                            // Double click: select AND join the voice channel
+                            selectChannel(channel, true);
+                          }
+                        }}
+                        title={isVoiceChannel && !isVoiceConnected ? 'Single-click to preview · Double-click to join voice' : undefined}
                         className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-sm font-medium transition-colors ${
                           isActive ? 'bg-surface-active text-text-primary font-semibold shadow-sm' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
                         }`}
