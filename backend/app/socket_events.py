@@ -9,7 +9,8 @@ from app.auth import decode_token
 
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=[]
+    cors_allowed_origins=[],
+    max_http_buffer_size=10_000_000  # 10 MB limit for file attachments
 )
 
 # In-memory mappings

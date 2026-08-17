@@ -22,6 +22,13 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
 
   const handleFilesSelected = (files) => {
     Array.from(files).forEach(file => {
+      // Prevent very large files from crashing the browser tab by freezing the main thread during base64 encoding
+      // and maxing out the WebSocket payload limit.
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`File "${file.name}" is too large (>${(file.size / 1024 / 1024).toFixed(1)}MB). Please use the "P2P File Transfer" button for large files!`);
+        return;
+      }
+      
       const reader = new FileReader();
       reader.onload = (e) => {
         setAttachments(prev => [
