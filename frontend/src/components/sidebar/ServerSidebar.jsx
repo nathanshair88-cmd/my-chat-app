@@ -4,7 +4,7 @@ import { Plus, Compass, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ServerSidebar({ onOpenCreateServer, onOpenJoinServer }) {
-  const { servers, currentServer, selectServer, viewMode, selectDM, unreadDMs } = useServer();
+  const { servers, currentServer, selectServer, viewMode, openDirectMessages, unreadDMs } = useServer();
   const { logout } = useAuth();
 
   const totalUnreadDMs = Object.values(unreadDMs || {}).reduce((sum, count) => sum + count, 0);
@@ -13,7 +13,7 @@ export default function ServerSidebar({ onOpenCreateServer, onOpenJoinServer }) 
     <div className="w-[72px] bg-surface-panel/40 backdrop-blur-md flex flex-col items-center py-3 space-y-2 select-none z-20 border-r border-surface-border/50">
       {/* App Logo / Direct Messages Home Icon */}
       <button 
-        onClick={() => selectDM(null)}
+        onClick={openDirectMessages}
         className="relative group flex items-center justify-center"
       >
         <div className={`absolute left-0 w-1 bg-accent-primary rounded-r-full transition-all duration-200 ${viewMode === 'dm' ? 'h-10' : 'h-0 group-hover:h-5'}`} />

@@ -1,22 +1,69 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useServer } from '../../context/ServerContext';
-import { dmAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { dmAPI, friendsAPI } from '../../services/api';
 import UserWidget from './UserWidget';
 import UserContextMenu from '../modals/UserContextMenu';
-import { Plus, User, Search } from 'lucide-react';
+import { Inbox, MessageCircle, Plus, Search, Users, X } from 'lucide-react';
 
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'online': return 'bg-green-500';
+    case 'idle': return 'bg-yellow-500';
+    case 'dnd': return 'bg-red-500';
+    default: return 'bg-gray-500';
+  }
+};
+
+const avatarFor = (user) => (
+  user?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user?.username || 'user')}`
+);
 
 export default function DMSidebar({ onOpenSettings }) {
-  const { conversations, currentDM, selectDM, startDM, unreadDMs } = useServer();
-
+  const {
+    conversations,
+    currentDM,
+    dmHomeTab,
+    openDMHome,
+    selectDM,
+    startDM,
+    unreadDMs
+  } = useServer();
+  const { user } = useAuth();
 
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState('');
+  const [friendships, setFriendships] = useState([]);
   const [contextMenu, setContextMenu] = useState(null);
+
   const conversationList = conversations || [];
+  const incomingRequestCount = friendships.filter(
+    item => item.status === 'pending' && item.friend_id === user?.id
+  ).length;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchFriendships = async () => {
+      try {
+        const res = await friendsAPI.getFriends();
+        if (!cancelled) {
+          setFriendships(Array.isArray(res.data) ? res.data : []);
+        }
+      } catch (err) {
+        console.error('Error fetching friend requests:', err);
+        if (!cancelled) setFriendships([]);
+      }
+    };
+
+    fetchFriendships();
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const handleSearch = async (e) => {
     const q = e.target.value;
@@ -32,7 +79,7 @@ export default function DMSidebar({ onOpenSettings }) {
       const res = await dmAPI.searchUsers(q);
       setSearchResults(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error("Error searching users:", err);
+      console.error('Error searching users:', err);
       setSearchResults([]);
       setSearchError(err.response?.data?.detail || 'Could not search users');
     } finally {
@@ -48,55 +95,72 @@ export default function DMSidebar({ onOpenSettings }) {
       setSearchResults([]);
       setSearchError('');
     } catch (err) {
-      console.error("Failed to start DM:", err);
+      console.error('Failed to start DM:', err);
     }
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'online': return 'bg-green-500';
-      case 'idle': return 'bg-yellow-500';
-      case 'dnd': return 'bg-red-500';
-      default: return 'bg-gray-500';
-    }
+  const closeSearch = () => {
+    setShowSearchModal(false);
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchError('');
   };
 
   return (
-    <div className="w-60 bg-surface-panel flex flex-col h-full border-r border-surface-border select-none">
-      {/* Search / Header */}
-      <div className="p-3 border-b border-surface-border shadow-sm flex items-center justify-between">
+    <div className="w-64 bg-surface-panel flex flex-col h-full border-r border-surface-border select-none">
+      <div className="p-3 border-b border-surface-border shadow-sm">
         <button
           onClick={() => setShowSearchModal(true)}
-          className="w-full bg-surface-active text-text-muted text-sm px-3 py-1.5 rounded flex items-center justify-between hover:bg-surface-hover transition"
+          className="w-full h-9 bg-surface-active text-text-muted text-sm px-3 rounded-md flex items-center justify-between hover:bg-surface-hover transition border border-surface-border"
         >
-          <span className="flex items-center space-x-2">
-            <Search className="w-4 h-4" />
-            <span>Find or start a DM</span>
+          <span className="flex items-center space-x-2 min-w-0">
+            <Search className="w-4 h-4 shrink-0" />
+            <span className="truncate">Find or start a conversation</span>
           </span>
         </button>
       </div>
 
-      <div className="px-2 pt-2 pb-1">
+      <div className="px-2 py-2 space-y-1">
         <button
-          onClick={() => selectDM(null)} // Null sets viewMode to 'dm' and currentDM to null, showing FriendsArea
-          className={`w-full flex items-center space-x-3 px-2 py-2 rounded-md group transition ${
-            !currentDM ? 'bg-surface-active text-text-primary shadow-sm' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
+          onClick={() => openDMHome('friends')}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-md group transition ${
+            !currentDM && dmHomeTab === 'friends'
+              ? 'bg-surface-active text-text-primary shadow-sm'
+              : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
           }`}
         >
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-surface-panel/50 group-hover:bg-surface-active border border-surface-border transition-colors">
-            <User className="w-4 h-4 text-text-primary" />
-          </div>
-          <span className="font-semibold text-sm">Friends</span>
+          <span className="flex items-center space-x-3 min-w-0">
+            <Users className="w-5 h-5 shrink-0" />
+            <span className="font-semibold text-sm truncate">Friends</span>
+          </span>
+        </button>
+
+        <button
+          onClick={() => openDMHome('requests')}
+          className={`w-full flex items-center justify-between px-3 py-2 rounded-md group transition ${
+            !currentDM && dmHomeTab === 'requests'
+              ? 'bg-surface-active text-text-primary shadow-sm'
+              : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
+          }`}
+        >
+          <span className="flex items-center space-x-3 min-w-0">
+            <Inbox className="w-5 h-5 shrink-0" />
+            <span className="font-semibold text-sm truncate">Requests</span>
+          </span>
+          {incomingRequestCount > 0 && (
+            <span className="ml-2 bg-danger text-text-primary text-[10px] font-bold min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full">
+              {incomingRequestCount > 99 ? '99+' : incomingRequestCount}
+            </span>
+          )}
         </button>
       </div>
 
-      {/* Direct Messages List */}
-      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto px-2 py-3 space-y-1 custom-scrollbar border-t border-surface-border">
         <div className="px-2 mb-2 flex items-center justify-between text-xs font-semibold text-text-muted uppercase tracking-wider">
           <span>Direct Messages</span>
           <button
             onClick={() => setShowSearchModal(true)}
-            className="hover:text-text-primary transition"
+            className="p-1 rounded hover:bg-surface-hover hover:text-text-primary transition"
             title="Start Direct Message"
           >
             <Plus className="w-4 h-4" />
@@ -105,7 +169,7 @@ export default function DMSidebar({ onOpenSettings }) {
 
         {conversationList.length === 0 ? (
           <div className="px-3 py-6 text-center text-xs text-text-muted">
-            No direct messages yet.<br />Click + above to find a friend!
+            No direct messages yet.
           </div>
         ) : (
           conversationList.map((conv) => {
@@ -122,17 +186,18 @@ export default function DMSidebar({ onOpenSettings }) {
                   setContextMenu({ x: e.clientX, y: e.clientY, user: other });
                 }}
                 className={`w-full flex items-center space-x-3 px-2 py-2 rounded-md group transition ${
-                  isSelected ? 'bg-surface-hover text-text-primary' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
+                  isSelected
+                    ? 'bg-surface-hover text-text-primary'
+                    : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
                 }`}
               >
                 <div className="relative flex-shrink-0">
-                  {other?.avatar_url ? (
-                    <img src={other.avatar_url} alt={other.username} className="w-8 h-8 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-accent-primary flex items-center justify-center text-text-primary font-semibold text-xs">
-                      {other?.username?.[0]?.toUpperCase() || '?'}
-                    </div>
-                  )}
+                  <img
+                    src={avatarFor(other)}
+                    alt={other?.username || 'User'}
+                    className="w-8 h-8 rounded-full object-cover bg-surface-active"
+                    onError={(e) => { e.currentTarget.src = avatarFor({ username: other?.username || 'user' }); }}
+                  />
                   <span className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-surface-border ${getStatusColor(other?.status)}`} />
                 </div>
 
@@ -140,17 +205,14 @@ export default function DMSidebar({ onOpenSettings }) {
                   <div className="text-sm font-medium truncate flex items-center justify-between">
                     <span className="truncate">{other?.username || 'Unknown'}</span>
                     {unreadCount > 0 && (
-                      <span className="ml-2 bg-danger text-text-primary text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                        {unreadCount}
+                      <span className="ml-2 bg-danger text-text-primary text-[10px] font-bold min-w-5 h-5 px-1.5 flex items-center justify-center rounded-full">
+                        {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
                   </div>
-                  {other?.status_message && (
-                    <div className="text-[11px] text-text-muted truncate">{other.status_message}</div>
-                  )}
-                  {!other?.status_message && other?.public_id && (
-                    <div className="text-[11px] text-text-muted truncate font-mono">#{other.public_id}</div>
-                  )}
+                  <div className="text-[11px] text-text-muted truncate">
+                    {other?.status_message || (other?.public_id ? `#${other.public_id}` : other?.status || 'Offline')}
+                  </div>
                 </div>
               </button>
             );
@@ -160,7 +222,6 @@ export default function DMSidebar({ onOpenSettings }) {
 
       <UserWidget onOpenSettings={onOpenSettings} />
 
-      {/* User Context Menu */}
       {contextMenu && (
         <UserContextMenu
           x={contextMenu.x}
@@ -172,22 +233,19 @@ export default function DMSidebar({ onOpenSettings }) {
         />
       )}
 
-      {/* Search Users Modal */}
       {showSearchModal && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-          <div className="bg-surface-base w-full max-w-md rounded-sm p-5 shadow-2xl border border-surface-border">
-            <h3 className="text-lg font-bold text-text-primary mb-3 flex items-center justify-between">
-              <span>Start a Direct Message</span>
+          <div className="bg-surface-base w-full max-w-md rounded-md p-5 shadow-2xl border border-surface-border">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-bold text-text-primary">Start a Direct Message</h3>
               <button
-                onClick={() => {
-                  setShowSearchModal(false);
-                  setSearchError('');
-                }}
-                className="text-text-muted hover:text-text-primary text-sm"
+                onClick={closeSearch}
+                className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover"
+                title="Close"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
-            </h3>
+            </div>
 
             <div className="relative mb-4">
               <input
@@ -196,7 +254,7 @@ export default function DMSidebar({ onOpenSettings }) {
                 placeholder="Type a username or #ID to search..."
                 value={searchQuery}
                 onChange={handleSearch}
-                className="w-full bg-surface-active text-text-primary text-sm px-4 py-2.5 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-primary"
+                className="w-full bg-surface-active text-text-primary text-sm px-4 py-2.5 pr-10 rounded-md focus:outline-none focus:ring-2 focus:ring-accent-primary border border-surface-border"
               />
               <Search className="w-4 h-4 text-text-muted absolute right-3 top-3" />
             </div>
@@ -211,23 +269,26 @@ export default function DMSidebar({ onOpenSettings }) {
                   {searchQuery ? 'No users found matching query' : 'Type above to search registered users'}
                 </div>
               ) : (
-                searchResults.map(u => (
+                searchResults.map(result => (
                   <button
-                    key={u.id}
-                    onClick={() => handleStartDM(u)}
+                    key={result.id}
+                    onClick={() => handleStartDM(result)}
                     className="w-full flex items-center justify-between p-2 rounded-md hover:bg-surface-hover text-text-primary text-left transition"
                   >
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 rounded-full bg-accent-primary flex items-center justify-center text-text-primary font-bold text-xs">
-                        {u.username[0].toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-sm font-medium">{u.username}</div>
-                        <div className="text-xs text-text-muted font-mono">#{u.public_id || u.id}</div>
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <img
+                        src={avatarFor(result)}
+                        alt={result.username}
+                        className="w-8 h-8 rounded-full object-cover bg-surface-active shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium truncate">{result.username}</div>
+                        <div className="text-xs text-text-muted font-mono truncate">#{result.public_id || result.id}</div>
                       </div>
                     </div>
-                    <span className="bg-accent-primary text-text-primary text-xs px-2.5 py-1 rounded hover:bg-accent-hover">
-                      Message
+                    <span className="ml-3 bg-accent-primary text-text-primary text-xs px-2.5 py-1 rounded-md hover:bg-accent-hover flex items-center space-x-1.5">
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>Message</span>
                     </span>
                   </button>
                 ))

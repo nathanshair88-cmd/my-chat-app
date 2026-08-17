@@ -47,6 +47,8 @@ export const ServerProvider = ({ children }) => {
   // DM state
   const [conversations, setConversations] = useState([]);
   const [currentDM, setCurrentDM] = useState(null);
+  const [lastDM, setLastDM] = useState(null);
+  const [dmHomeTab, setDMHomeTab] = useState('friends');
   useEffect(() => { currentDMRef.current = currentDM; }, [currentDM]);
 
   // Unified chat state & unread state
@@ -114,14 +116,16 @@ export const ServerProvider = ({ children }) => {
 
   // Fetch DM Conversations
   const fetchConversations = useCallback(async () => {
-    if (!user) return;
+    if (!user) return [];
     try {
       const res = await dmAPI.getConversations();
       const nextConversations = dedupeConversations(res.data);
       setConversations(nextConversations);
       syncUnreadDMCounts(nextConversations);
+      return nextConversations;
     } catch (err) {
       console.error("Error fetching DM conversations:", err);
+      return [];
     }
   }, [user, syncUnreadDMCounts]);
 
@@ -220,6 +224,7 @@ export const ServerProvider = ({ children }) => {
     setActiveThreadMessage(null);
 
     if (conversation) {
+      setLastDM(conversation);
       setUnreadDMCount(conversation.id, 0);
       if (socket) {
         socket.emit('join_dm', { conversation_id: conversation.id });
@@ -237,6 +242,22 @@ export const ServerProvider = ({ children }) => {
         console.error("Error fetching DM messages:", err);
       }
     }
+  };
+
+  const openDMHome = async (tab = 'friends') => {
+    setDMHomeTab(tab);
+    await selectDM(null);
+  };
+
+  const openDirectMessages = async () => {
+    setDMHomeTab('friends');
+    const availableConversations = conversations.length > 0
+      ? conversations
+      : await fetchConversations();
+    const rememberedDM = lastDM
+      ? availableConversations.find(conv => conv.id === lastDM.id) || lastDM
+      : null;
+    await selectDM(rememberedDM || availableConversations[0] || null);
   };
 
   const startDM = async (target) => {
@@ -462,6 +483,7 @@ export const ServerProvider = ({ children }) => {
       currentChannel,
       conversations,
       currentDM,
+      dmHomeTab,
       messages,
       typingUsers,
       unreadChannels,
@@ -478,6 +500,8 @@ export const ServerProvider = ({ children }) => {
       selectServer,
       selectChannel,
       selectDM,
+      openDMHome,
+      openDirectMessages,
       startDM,
       addServer,
       joinServer,

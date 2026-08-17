@@ -6,7 +6,7 @@ import ServerSidebar from './components/sidebar/ServerSidebar';
 import ChannelSidebar from './components/sidebar/ChannelSidebar';
 import DMSidebar from './components/sidebar/DMSidebar';
 import ChatArea from './components/chat/ChatArea';
-import FriendsArea from './components/chat/FriendsArea';
+import DirectMessagesArea from './components/chat/DirectMessagesArea';
 import VoiceRoom from './components/voice/VoiceRoom';
 import GlobalVoiceAudioPlayer from './components/voice/GlobalVoiceAudioPlayer';
 import AuthModal from './components/modals/AuthModal';
@@ -19,7 +19,7 @@ import UserSettingsModal from './components/modals/UserSettingsModal';
 
 function MainDashboard() {
   const { user, loading } = useAuth();
-  const { viewMode, showVoiceGrid, currentDM } = useServer();
+  const { viewMode, showVoiceGrid } = useServer();
 
   const [serverModalMode, setServerModalMode] = useState(null); // 'create' | 'join' | null
   const [showChannelModal, setShowChannelModal] = useState(false);
@@ -86,15 +86,15 @@ function MainDashboard() {
 
         {/* 3. Main Center Workspace (Chat or Voice/Video Grid) */}
         <div className="flex-1 flex min-w-0 h-full relative bg-surface-base/30 backdrop-blur-md">
-          {showVoiceGrid ? (
+          {showVoiceGrid && viewMode !== 'dm' ? (
             <div className="flex-1 flex flex-col lg:flex-row h-full min-w-0">
               <VoiceRoom />
               <div className="w-full lg:w-96 border-t lg:border-t-0 lg:border-l border-surface-border flex flex-col h-full bg-surface-panel/40">
                 <ChatArea onOpenP2PModal={() => setShowP2PModal(true)} />
               </div>
             </div>
-          ) : viewMode === 'dm' && !currentDM ? (
-            <FriendsArea />
+          ) : viewMode === 'dm' ? (
+            <DirectMessagesArea onOpenP2PModal={() => setShowP2PModal(true)} />
           ) : (
             <ChatArea onOpenP2PModal={() => setShowP2PModal(true)} />
           )}
