@@ -330,7 +330,11 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
           !scrubbingRef.current &&
           Math.abs(t - prevPollTime) > 3
         ) {
-          watchTogetherService.seek(channelIdRef.current, t);
+          // Check if we just finished scrubbing (within the last 1 second) to prevent double-emit
+          const timeSinceScrub = Date.now() - (scrubbingRef.lastScrubEnd || 0);
+          if (timeSinceScrub > 1000) {
+            watchTogetherService.seek(channelIdRef.current, t);
+          }
         }
         prevPollTime = t;
       }
@@ -498,12 +502,9 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
 
   const handlePlayPause = () => {
     if (!playerRef.current) return;
-    const t = playerRef.current.getCurrentTime() || 0;
     if (watchState.isPlaying) {
-      watchTogetherService.pause(channelId, t);
       playerRef.current.pauseVideo();
     } else {
-      watchTogetherService.play(channelId, t);
       playerRef.current.playVideo();
     }
   };
@@ -521,7 +522,10 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
   const handleScrubEnd = (e) => {
     const t = Number(e.target.value);
     setScrubbing(false);
+    scrubbingRef.current = false;
+    scrubbingRef.lastScrubEnd = Date.now();
     setScrubValue(t);
+    playerRef.current?.seekTo(t, true);
     watchTogetherService.seek(channelId, t);
   };
 
