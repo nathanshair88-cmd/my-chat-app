@@ -159,19 +159,22 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings }) 
                   return (
                     <div key={channel.id}>
                       <button
-                        onClick={() => {
-                          if (isVoiceChannel) {
-                            // Single click: preview the chat WITHOUT joining voice
-                            selectChannel(channel, false);
-                          } else {
-                            // Text channels: select normally
+                        onClick={(e) => {
+                          if (!isVoiceChannel) {
                             selectChannel(channel);
+                            return;
                           }
-                        }}
-                        onDoubleClick={() => {
-                          if (isVoiceChannel) {
-                            // Double click: select AND join the voice channel
-                            selectChannel(channel, true);
+
+                          // For voice channels, we need to differentiate single vs double click
+                          if (e.detail === 1) {
+                            // First click - wait to see if it's a double click
+                            window.voiceClickTimer = setTimeout(() => {
+                              selectChannel(channel, false); // Single click (preview)
+                            }, 250); // 250ms delay
+                          } else if (e.detail === 2) {
+                            // Double click - cancel the single click timer and join
+                            clearTimeout(window.voiceClickTimer);
+                            selectChannel(channel, true); // Double click (join)
                           }
                         }}
                         title={isVoiceChannel && !isVoiceConnected ? 'Single-click to preview · Double-click to join voice' : undefined}
