@@ -17,6 +17,8 @@ import {
   Tv2,
   Users,
   Clock,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { watchTogetherService } from '../../services/watchTogetherService';
 
@@ -130,17 +132,21 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
   const [adSkipEnabled, setAdSkipEnabled] = useState(true);
   const [sponsorBlockEnabled, setSponsorBlockEnabled] = useState(true);
   const [notification, setNotification] = useState(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControlsInFullscreen, setShowControlsInFullscreen] = useState(true);
 
   const playerRef = useRef(null);       // YT.Player instance
   const iframeContainerRef = useRef(null); // div to mount player in
   const iframeRef = useRef(null);       // actual <iframe> element
+  const watchPanelRef = useRef(null);   // outer panel div — target for fullscreen
   const adObserverRef = useRef(null);
   const sponsorPollRef = useRef(null);
   const liveTimeRef = useRef(null);
-  const ignoreRemoteRef = useRef(false); // prevent echo from own actions
+  const ignoreRemoteRef = useRef(false);
   const currentVideoIdRef = useRef(null);
-  const channelIdRef = useRef(channelId); // stable ref so closures always have current channelId
-  const scrubbingRef = useRef(false);   // ref mirror of scrubbing state for use inside intervals
+  const channelIdRef = useRef(channelId);
+  const scrubbingRef = useRef(false);
+  const hideControlsTimerRef = useRef(null);
 
   // Keep channelIdRef in sync
   useEffect(() => { channelIdRef.current = channelId; }, [channelId]);
@@ -425,9 +431,56 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
         try { playerRef.current.destroy(); } catch (_) {}
       }
       watchTogetherService.clearPlayerCallbacks();
+      if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Fullscreen handling ───────────────────────────────────────────────────
+
+  const handleToggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      watchPanelRef.current?.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
+  // Listen for native fullscreen changes (ESC key exits too)
+  useEffect(() => {
+    const onFSChange = () => {
+      const entering = !!document.fullscreenElement;
+      setIsFullscreen(entering);
+      if (entering) {
+        setShowControlsInFullscreen(true);
+      } else {
+        if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+        setShowControlsInFullscreen(true);
+      }
+    };
+    document.addEventListener('fullscreenchange', onFSChange);
+    return () => document.removeEventListener('fullscreenchange', onFSChange);
+  }, []);
+
+  // Auto-hide controls after 3s idle in fullscreen; mouse movement resets timer
+  const handleMouseMove = useCallback(() => {
+    if (!isFullscreen) return;
+    setShowControlsInFullscreen(true);
+    if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    hideControlsTimerRef.current = setTimeout(() => {
+      setShowControlsInFullscreen(false);
+    }, 3000);
+  }, [isFullscreen]);
+
+  // Start the hide timer when entering fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      hideControlsTimerRef.current = setTimeout(() => setShowControlsInFullscreen(false), 3000);
+    }
+    return () => {
+      if (hideControlsTimerRef.current) clearTimeout(hideControlsTimerRef.current);
+    };
+  }, [isFullscreen]);
 
   // ── User control handlers ─────────────────────────────────────────────────
 
@@ -482,7 +535,11 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
   const progressPercent = duration > 0 ? (scrubValue / duration) * 100 : 0;
 
   return (
-    <div className="watch-together-panel flex flex-col h-full bg-black/40 backdrop-blur-xl border-r border-surface-border relative overflow-hidden">
+    <div
+      ref={watchPanelRef}
+      onMouseMove={handleMouseMove}
+      className="watch-together-panel flex flex-col h-full bg-black/40 backdrop-blur-xl border-r border-surface-border relative overflow-hidden"
+    >
       
       {/* Ambient glow background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -548,6 +605,14 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
           </button>
 
           <button
+            onClick={handleToggleFullscreen}
+            title={isFullscreen ? 'Exit Fullscreen (ESC)' : 'Enter Fullscreen'}
+            className="p-1.5 rounded-md bg-surface-hover hover:bg-surface-active text-text-muted hover:text-text-primary transition-all"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+
+          <button
             onClick={handleClose}
             className="p-1.5 rounded-md bg-surface-hover hover:bg-danger text-text-muted hover:text-white transition-all"
             title="Close Watch Together"
@@ -610,8 +675,14 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
             />
           </div>
 
-          {/* ── Control bar ────────────────────────────────────────────── */}
-          <div className="relative z-10 shrink-0 px-4 pt-3 pb-4 bg-surface-active/80 backdrop-blur-xl border-t border-surface-border space-y-2">
+          {/* ── Control bar — floats as overlay in fullscreen, docked normally ── */}
+          <div
+            className={[
+              'z-20 shrink-0 px-4 pt-3 pb-4 bg-surface-active/90 backdrop-blur-xl border-t border-surface-border space-y-2 transition-all duration-300',
+              isFullscreen ? 'absolute bottom-0 left-0 right-0' : 'relative',
+              isFullscreen && !showControlsInFullscreen ? 'opacity-0 translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0',
+            ].join(' ')}
+          >
 
             {/* Notification toast */}
             {notification && (
@@ -723,6 +794,15 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
                     Go
                   </button>
                 </form>
+
+                {/* Fullscreen toggle button */}
+                <button
+                  onClick={handleToggleFullscreen}
+                  title={isFullscreen ? 'Exit Fullscreen (ESC)' : 'Enter Fullscreen'}
+                  className="p-2 rounded-md bg-surface-hover hover:bg-white/10 text-text-muted hover:text-white transition-all"
+                >
+                  {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 

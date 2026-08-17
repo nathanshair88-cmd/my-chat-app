@@ -143,3 +143,28 @@
 /* Hide scrollbars utility */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Watch Together fullscreen styles */
+.watch-together-panel:fullscreen,
+.watch-together-panel:-webkit-full-screen {
+  background: #000 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Keep header visible in fullscreen */
+.watch-together-panel:fullscreen > div:first-child,
+.watch-together-panel:-webkit-full-screen > div:first-child {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+  border-bottom: none !important;
+  transition: opacity 0.3s, transform 0.3s;
+}
