@@ -90,6 +90,7 @@ class Message(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     attachments_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # JSON string of attachments
+    parent_id: Mapped[Optional[int]] = mapped_column(ForeignKey("messages.id", ondelete="CASCADE"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
 
@@ -97,6 +98,8 @@ class Message(Base):
     channel: Mapped["Channel"] = relationship("Channel", back_populates="messages")
     author: Mapped["User"] = relationship("User", back_populates="messages")
     reactions: Mapped[List["Reaction"]] = relationship("Reaction", back_populates="message", cascade="all, delete-orphan")
+    parent: Mapped[Optional["Message"]] = relationship("Message", remote_side=[id], back_populates="replies")
+    replies: Mapped[List["Message"]] = relationship("Message", back_populates="parent", cascade="all, delete-orphan")
 
 class Reaction(Base):
     __tablename__ = "reactions"

@@ -19,7 +19,28 @@ async def get_channel_messages(
 ):
     res = await db.execute(
         select(Message)
-        .where(Message.channel_id == channel_id)
+        .where(Message.channel_id == channel_id, Message.parent_id.is_(None))
+        .options(
+            selectinload(Message.author),
+            selectinload(Message.reactions)
+        )
+        .order_by(Message.created_at.asc())
+        .limit(limit)
+    )
+    messages = res.scalars().all()
+    return [MessageResponse.model_validate(m) for m in messages]
+
+@router.get("/{channel_id}/messages/{message_id}/thread", response_model=list[MessageResponse])
+async def get_thread_messages(
+    channel_id: int,
+    message_id: int,
+    limit: int = 50,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    res = await db.execute(
+        select(Message)
+        .where(Message.channel_id == channel_id, Message.parent_id == message_id)
         .options(
             selectinload(Message.author),
             selectinload(Message.reactions)

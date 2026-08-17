@@ -3,7 +3,7 @@ import { getSocket } from '../../services/socket';
 import { useServer } from '../../context/ServerContext';
 import { Send, Bold, Code, Italic, Paperclip, Share2, X, Image as ImageIcon, FileText } from 'lucide-react';
 
-export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
+export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parentId = null }) {
   const { viewMode, currentChannel, currentDM } = useServer();
   const [content, setContent] = useState('');
   const [attachments, setAttachments] = useState([]);
@@ -126,7 +126,8 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [] }) {
       socket.emit('send_message', {
         channel_id: currentChannel.id,
         content: finalContent || (attachments.length > 0 ? '[Attachment]' : ''),
-        attachments_json
+        attachments_json,
+        parent_id: parentId
       });
 
       if (isTypingRef.current) {

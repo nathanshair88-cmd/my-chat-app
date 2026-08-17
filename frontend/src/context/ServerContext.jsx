@@ -46,6 +46,9 @@ export const ServerProvider = ({ children }) => {
   const [unreadChannels, setUnreadChannels] = useState({});
   const [unreadDMs, setUnreadDMs] = useState({});
 
+  // Active Thread Message state
+  const [activeThreadMessage, setActiveThreadMessage] = useState(null);
+
   // Sound preference
   const [soundEnabled, setSoundEnabledState] = useState(true);
 
@@ -129,6 +132,7 @@ export const ServerProvider = ({ children }) => {
     setCurrentChannel(channel);
     setMessages([]);
     setTypingUsers(new Map());
+    setActiveThreadMessage(null); // Close thread when switching channel
 
     // Clear unread badge for this channel
     setUnreadChannels(prev => ({ ...prev, [channel.id]: 0 }));
@@ -358,7 +362,8 @@ export const ServerProvider = ({ children }) => {
       setShowVoiceGrid,
       toggleVoiceGrid,
       soundEnabled,
-
+      activeThreadMessage,
+      setActiveThreadMessage,
 
       toggleSoundEnabled,
       selectServer,

@@ -45,6 +45,7 @@ async def run_migrations(conn):
         # Add settings_json column to users table if it doesn't exist
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS settings_json TEXT",
         "ALTER TABLE server_members ADD COLUMN custom_role_id INTEGER REFERENCES server_roles(id) ON DELETE SET NULL",
+        "ALTER TABLE messages ADD COLUMN parent_id INTEGER REFERENCES messages(id) ON DELETE CASCADE",
     ]
     for sql in migrations:
         try:

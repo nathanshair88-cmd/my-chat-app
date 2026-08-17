@@ -22,7 +22,7 @@ export default function MessageItem({ message, searchQuery }) {
   const author = message.author || message.sender;
   const isOwnMessage = author?.id === user?.id;
 
-  const { currentServer } = useServer();
+  const { currentServer, setActiveThreadMessage } = useServer();
   let roleColor = null;
   if (currentServer && author) {
     const member = currentServer.members?.find(m => m.user_id === author.id);
@@ -301,6 +301,9 @@ export default function MessageItem({ message, searchQuery }) {
           onClose={() => setMsgContextMenu(null)}
           onAddReaction={() => setShowEmojiPicker(true)}
           onReply={() => window.dispatchEvent(new CustomEvent('reply-message', { detail: { message } }))}
+          onReplyThread={() => {
+            setActiveThreadMessage(message);
+          }}
           onEdit={() => window.dispatchEvent(new CustomEvent('edit-message', { detail: { message } }))}
         />
       )}

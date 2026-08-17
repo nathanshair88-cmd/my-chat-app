@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getSocket } from '../../services/socket';
-import { Copy, CornerUpLeft, Edit2, Trash2, Smile, AlertTriangle, Check } from 'lucide-react';
+import { Copy, CornerUpLeft, Edit2, Trash2, Smile, AlertTriangle, Check, MessageSquare } from 'lucide-react';
 
 export default function MessageContextMenu({
   x, y,
@@ -8,6 +8,7 @@ export default function MessageContextMenu({
   isOwnMessage = false,
   onClose,
   onReply,
+  onReplyThread,
   onEdit,
   onAddReaction
 }) {
@@ -89,6 +90,7 @@ export default function MessageContextMenu({
         onClick={handleCopy} 
       />
       <MenuItem icon={<CornerUpLeft className="w-3.5 h-3.5" />} label="Reply" onClick={handleReply} />
+      <MenuItem icon={<MessageSquare className="w-3.5 h-3.5" />} label="Reply in Thread" onClick={() => { if (onReplyThread) onReplyThread(); onClose(); }} />
       <MenuItem icon={<Smile className="w-3.5 h-3.5" />} label="Add Reaction" onClick={handleReaction} />
       
       {isOwnMessage && (

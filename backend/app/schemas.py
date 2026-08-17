@@ -61,6 +61,7 @@ class MessageCreate(BaseModel):
     channel_id: int
     content: str
     attachments_json: Optional[str] = None
+    parent_id: Optional[int] = None
 
 class MessageResponse(BaseModel):
     id: int
@@ -68,6 +69,7 @@ class MessageResponse(BaseModel):
     user_id: int
     content: str
     attachments_json: Optional[str] = None
+    parent_id: Optional[int] = None
     created_at: datetime
     author: UserResponse
     reactions: List[ReactionResponse] = []

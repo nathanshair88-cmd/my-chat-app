@@ -35,7 +35,9 @@ export const serverAPI = {
 };
 
 export const channelAPI = {
-  getMessages: (channel_id) => API.get(`/channels/${channel_id}/messages`),
+  createChannel: (serverId, data) => API.post(`/servers/${serverId}/channels`, data),
+  getMessages: (channelId) => API.get(`/channels/${channelId}/messages`),
+  getThreadMessages: (channelId, messageId) => API.get(`/channels/${channelId}/messages/${messageId}/thread`),
 };
 
 export const dmAPI = {

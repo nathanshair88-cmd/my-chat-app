@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useServer } from '../../context/ServerContext';
 import MessageItem from './MessageItem';
 import MessageInput from './MessageInput';
+import ThreadPanel from './ThreadPanel';
 import { Hash, Volume2, Video, Share2, Search, X, UploadCloud, MessageSquare, Moon, Sun } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -91,7 +92,7 @@ export default function ChatArea({ onOpenP2PModal }) {
 
   return (
     <div 
-      className="flex-1 bg-transparent flex flex-col min-w-0 h-full relative"
+      className="flex-1 bg-transparent flex min-w-0 h-full relative"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -105,135 +106,141 @@ export default function ChatArea({ onOpenP2PModal }) {
         </div>
       )}
 
-      {/* Header Bar */}
-      <div className="h-12 px-4 border-b border-surface-border flex items-center justify-between shadow-sm bg-surface-panel/40 backdrop-blur-md z-10">
-        <div className="flex items-center min-w-0 pr-2">
-          {isDM ? (
-            <div className="flex items-center space-x-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-accent-primary flex items-center justify-center text-text-primary font-bold text-xs shadow-sm">
-                {otherUser?.username?.[0]?.toUpperCase() || 'U'}
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header Bar */}
+        <div className="h-12 px-4 border-b border-surface-border flex items-center justify-between shadow-sm bg-surface-panel/40 backdrop-blur-md z-10">
+          <div className="flex items-center min-w-0 pr-2">
+            {isDM ? (
+              <div className="flex items-center space-x-2 min-w-0">
+                <div className="w-7 h-7 rounded-full bg-accent-primary flex items-center justify-center text-text-primary font-bold text-xs shadow-sm">
+                  {otherUser?.username?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <span className="font-bold text-text-primary text-md truncate">@{otherUser?.username}</span>
               </div>
-              <span className="font-bold text-text-primary text-md truncate">@{otherUser?.username}</span>
-            </div>
-          ) : (
-            <div className="flex items-center min-w-0">
-              {getChannelIcon(currentChannel.type)}
-              <span className="font-bold text-text-primary text-md truncate">{currentChannel.name}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Right Header Toolbar: Search Bar, Video Grid & P2P Button */}
-        <div className="flex items-center space-x-3">
-          {/* Voice Channel Video Grid Toggle */}
-          {currentChannel && (currentChannel.type === 'voice' || currentChannel.type === 'media') && (
-            <button
-              onClick={toggleVoiceGrid}
-              className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition shadow-sm ${
-                showVoiceGrid ? 'bg-accent-primary text-text-primary' : 'bg-surface-active text-text-muted hover:text-text-primary hover:bg-surface-hover'
-              }`}
-              title={showVoiceGrid ? "Switch to Dedicated Text Chat" : "View Voice & Video Grid"}
-            >
-              <Video className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{showVoiceGrid ? 'Text Chat' : 'Voice Grid'}</span>
-            </button>
-          )}
-
-          {/* Real-time Message Search Input */}
-          <div className="relative flex items-center">
-
-            <input
-              type="text"
-              placeholder="Search messages..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-surface-active text-text-primary text-xs px-3 py-1.5 pl-8 pr-7 rounded-md w-36 sm:w-48 focus:w-64 focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all border border-surface-border"
-            />
-            <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 pointer-events-none" />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 text-text-muted hover:text-text-primary"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+            ) : (
+              <div className="flex items-center min-w-0">
+                {getChannelIcon(currentChannel.type)}
+                <span className="font-bold text-text-primary text-md truncate">{currentChannel.name}</span>
+              </div>
             )}
           </div>
 
-          <button
-            onClick={onOpenP2PModal}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-surface-active hover:bg-surface-hover text-text-primary text-xs font-semibold rounded-md transition-colors border border-surface-border shadow-sm"
-          >
-            <Share2 className="w-3.5 h-3.5 text-accent-primary" />
-            <span className="hidden sm:inline">P2P Transfer</span>
-          </button>
-          
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-1.5 rounded-md hover:bg-surface-hover hover:text-accent-primary transition-colors border border-surface-border shadow-sm bg-surface-active"
-            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          >
-            {isDarkMode ? <Sun className="w-4 h-4 text-text-primary" /> : <Moon className="w-4 h-4 text-text-primary" />}
-          </button>
-        </div>
-      </div>
+          {/* Right Header Toolbar: Search Bar, Video Grid & P2P Button */}
+          <div className="flex items-center space-x-3">
+            {/* Voice Channel Video Grid Toggle */}
+            {currentChannel && (currentChannel.type === 'voice' || currentChannel.type === 'media') && (
+              <button
+                onClick={toggleVoiceGrid}
+                className={`flex items-center space-x-1.5 px-2.5 py-1.5 rounded-md text-xs font-semibold transition shadow-sm ${
+                  showVoiceGrid ? 'bg-accent-primary text-text-primary' : 'bg-surface-active text-text-muted hover:text-text-primary hover:bg-surface-hover'
+                }`}
+                title={showVoiceGrid ? "Switch to Dedicated Text Chat" : "View Voice & Video Grid"}
+              >
+                <Video className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{showVoiceGrid ? 'Text Chat' : 'Voice Grid'}</span>
+              </button>
+            )}
 
-      {/* Messages Scrollable Stream */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar bg-transparent">
-        {/* Welcome Banner */}
-        <div className="mb-6 pt-4 border-b border-surface-border pb-6">
-          {isDM ? (
-            <div>
-              <div className="w-16 h-16 rounded-full bg-accent-primary flex items-center justify-center text-text-primary text-2xl font-bold mb-3 shadow-md">
-                {otherUser?.username?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <h2 className="text-2xl font-bold text-text-primary">@{otherUser?.username}</h2>
-              <p className="text-sm text-text-muted mt-1">This is the beginning of your direct message history with @{otherUser?.username}.</p>
+            {/* Real-time Message Search Input */}
+            <div className="relative flex items-center">
+
+              <input
+                type="text"
+                placeholder="Search messages..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-surface-active text-text-primary text-xs px-3 py-1.5 pl-8 pr-7 rounded-md w-36 sm:w-48 focus:w-64 focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all border border-surface-border"
+              />
+              <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 pointer-events-none" />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 text-text-muted hover:text-text-primary"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-          ) : (
-            <div>
-              <div className="w-16 h-16 rounded-full bg-surface-active flex items-center justify-center mb-3 border border-surface-border shadow-sm">
-                {getChannelIcon(currentChannel.type)}
+
+            <button
+              onClick={onOpenP2PModal}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-surface-active hover:bg-surface-hover text-text-primary text-xs font-semibold rounded-md transition-colors border border-surface-border shadow-sm"
+            >
+              <Share2 className="w-3.5 h-3.5 text-accent-primary" />
+              <span className="hidden sm:inline">P2P Transfer</span>
+            </button>
+            
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 rounded-md hover:bg-surface-hover hover:text-accent-primary transition-colors border border-surface-border shadow-sm bg-surface-active"
+              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDarkMode ? <Sun className="w-4 h-4 text-text-primary" /> : <Moon className="w-4 h-4 text-text-primary" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Messages Scrollable Stream */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar bg-transparent">
+          {/* Welcome Banner */}
+          <div className="mb-6 pt-4 border-b border-surface-border pb-6">
+            {isDM ? (
+              <div>
+                <div className="w-16 h-16 rounded-full bg-accent-primary flex items-center justify-center text-text-primary text-2xl font-bold mb-3 shadow-md">
+                  {otherUser?.username?.[0]?.toUpperCase() || 'U'}
+                </div>
+                <h2 className="text-2xl font-bold text-text-primary">@{otherUser?.username}</h2>
+                <p className="text-sm text-text-muted mt-1">This is the beginning of your direct message history with @{otherUser?.username}.</p>
               </div>
-              <h2 className="text-2xl font-bold text-text-primary">Welcome to #{currentChannel.name}!</h2>
-              <p className="text-sm text-text-muted mt-1">This is the start of the #{currentChannel.name} channel.</p>
+            ) : (
+              <div>
+                <div className="w-16 h-16 rounded-full bg-surface-active flex items-center justify-center mb-3 border border-surface-border shadow-sm">
+                  {getChannelIcon(currentChannel.type)}
+                </div>
+                <h2 className="text-2xl font-bold text-text-primary">Welcome to #{currentChannel.name}!</h2>
+                <p className="text-sm text-text-muted mt-1">This is the start of the #{currentChannel.name} channel.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Search Results Notice */}
+          {searchQuery.trim() && (
+            <div className="bg-surface-panel p-2.5 rounded-sm border border-accent-primary text-xs text-text-primary flex items-center justify-between mb-4 shadow-sm backdrop-blur-sm">
+              <span>
+                Showing {filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'} matching "<strong className="text-accent-primary">{searchQuery}</strong>"
+              </span>
+              <button onClick={() => setSearchQuery('')} className="text-accent-primary hover:underline font-semibold">
+                Clear filter
+              </button>
             </div>
           )}
+
+          {filteredMessages.map((msg) => (
+            <MessageItem key={msg.id} message={msg} searchQuery={searchQuery} />
+          ))}
+          <div ref={messagesEndRef} />
         </div>
 
-        {/* Search Results Notice */}
-        {searchQuery.trim() && (
-          <div className="bg-surface-panel p-2.5 rounded-sm border border-accent-primary text-xs text-text-primary flex items-center justify-between mb-4 shadow-sm backdrop-blur-sm">
-            <span>
-              Showing {filteredMessages.length} message{filteredMessages.length === 1 ? '' : 's'} matching "<strong className="text-accent-primary">{searchQuery}</strong>"
+        {/* Typing Indicator Bar */}
+        {typingArray.length > 0 && !isDM && (
+          <div className="px-4 py-1 text-xs text-text-muted italic flex items-center space-x-1.5 bg-transparent backdrop-blur-sm">
+            <span className="flex space-x-1">
+              <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+              <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+              <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
             </span>
-            <button onClick={() => setSearchQuery('')} className="text-accent-primary hover:underline font-semibold">
-              Clear filter
-            </button>
+            <span>{typingArray.join(', ')} {typingArray.length === 1 ? 'is' : 'are'} typing...</span>
           </div>
         )}
 
-        {filteredMessages.map((msg) => (
-          <MessageItem key={msg.id} message={msg} searchQuery={searchQuery} />
-        ))}
-        <div ref={messagesEndRef} />
+        {/* Message Input */}
+        <MessageInput onOpenP2PModal={onOpenP2PModal} droppedFiles={droppedFiles} />
       </div>
 
-      {/* Typing Indicator Bar */}
-      {typingArray.length > 0 && !isDM && (
-        <div className="px-4 py-1 text-xs text-text-muted italic flex items-center space-x-1.5 bg-transparent backdrop-blur-sm">
-          <span className="flex space-x-1">
-            <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-1.5 h-1.5 bg-text-muted rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </span>
-          <span>{typingArray.join(', ')} {typingArray.length === 1 ? 'is' : 'are'} typing...</span>
-        </div>
-      )}
-
-      {/* Message Input */}
-      <MessageInput onOpenP2PModal={onOpenP2PModal} droppedFiles={droppedFiles} />
+      {/* Thread Panel (Split Pane) */}
+      <ThreadPanel />
     </div>
   );
 }

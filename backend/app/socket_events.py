@@ -141,6 +141,7 @@ async def send_message(sid, data):
     channel_id = data.get("channel_id")
     content = data.get("content", "").strip()
     attachments_json = data.get("attachments_json")
+    parent_id = data.get("parent_id")
 
     if not channel_id or not content:
         return
@@ -150,7 +151,8 @@ async def send_message(sid, data):
             channel_id=channel_id,
             user_id=user_data["id"],
             content=content,
-            attachments_json=attachments_json
+            attachments_json=attachments_json,
+            parent_id=parent_id
         )
         db.add(new_msg)
         await db.commit()
@@ -172,6 +174,7 @@ async def send_message(sid, data):
             "user_id": full_msg.user_id,
             "content": full_msg.content,
             "attachments_json": full_msg.attachments_json,
+            "parent_id": full_msg.parent_id,
             "created_at": full_msg.created_at.isoformat(),
             "author": {
                 "id": full_msg.author.id,
