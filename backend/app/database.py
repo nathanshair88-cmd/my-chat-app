@@ -44,22 +44,26 @@ async def run_migrations(conn):
     migrations = [
         # Add settings_json column to users table if it doesn't exist
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS settings_json TEXT",
-        "ALTER TABLE server_members ADD COLUMN custom_role_id INTEGER REFERENCES server_roles(id) ON DELETE SET NULL",
-        "ALTER TABLE messages ADD COLUMN parent_id INTEGER REFERENCES messages(id) ON DELETE CASCADE",
-        "ALTER TABLE direct_messages ADD COLUMN is_read INTEGER DEFAULT 0",
-        "ALTER TABLE messages ADD COLUMN webhook_id INTEGER REFERENCES webhooks(id) ON DELETE SET NULL",
-        "ALTER TABLE messages ADD COLUMN custom_username TEXT",
-        "ALTER TABLE messages ADD COLUMN custom_avatar_url TEXT",
-        "ALTER TABLE messages ADD COLUMN updated_at TIMESTAMP",
+        "ALTER TABLE server_members ADD COLUMN IF NOT EXISTS custom_role_id INTEGER",
+        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS parent_id INTEGER",
+        "ALTER TABLE direct_messages ADD COLUMN IF NOT EXISTS is_read INTEGER DEFAULT 0",
+        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS webhook_id INTEGER",
+        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS custom_username TEXT",
+        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS custom_avatar_url TEXT",
+        "ALTER TABLE messages ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP",
     ]
     for sql in migrations:
         try:
             await conn.execute(text(sql))
+            await conn.commit()
         except Exception as e:
+            await conn.rollback()
             # Column already exists or other non-fatal error — ignore
             print(f"Migration skipped (already applied?): {e}")
 
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    async with engine.connect() as conn:
         await run_migrations(conn)
