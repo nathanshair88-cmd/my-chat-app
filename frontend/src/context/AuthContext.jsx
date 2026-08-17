@@ -3,6 +3,7 @@ import { authAPI } from '../services/api';
 import { initSocket, disconnectSocket } from '../services/socket';
 import { p2pEngine } from '../services/webrtcP2PFile';
 import { loadSettings } from '../services/settingsService';
+import { voiceManager } from '../services/webrtcVoice';
 
 const AuthContext = createContext();
 
@@ -21,6 +22,7 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem('discoalto_username', res.data.username);
           if (res.data.avatar_url) localStorage.setItem('discoalto_avatar_url', res.data.avatar_url);
           initSocket(token);
+          voiceManager.setupGlobalRoomListener();
           p2pEngine.initSocketListeners();
           loadSettings();
         } catch (err) {
@@ -59,6 +61,7 @@ export const AuthProvider = ({ children }) => {
     if (userData.avatar_url) localStorage.setItem('discoalto_avatar_url', userData.avatar_url);
     setUser(userData);
     initSocket(access_token);
+    voiceManager.setupGlobalRoomListener();
     p2pEngine.initSocketListeners();
     loadSettings();
     return userData;

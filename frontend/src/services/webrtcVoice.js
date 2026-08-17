@@ -646,6 +646,28 @@ class WebRTCVoiceManager {
     }
   }
 
+  // Called once after socket connects — listens for voice room updates globally
+  // so the sidebar always shows who's in each channel, even if you haven't joined.
+  setupGlobalRoomListener() {
+    const socket = getSocket();
+    if (!socket) return;
+
+    // Avoid registering duplicate listeners
+    if (this._globalRoomListenerAttached) return;
+    this._globalRoomListenerAttached = true;
+
+    socket.on('voice_room_update', (data) => {
+      if (data && data.channel_id) {
+        if (data.users && data.users.length > 0) {
+          this.allVoiceRooms.set(String(data.channel_id), data.users);
+        } else {
+          this.allVoiceRooms.delete(String(data.channel_id));
+        }
+        this.notify();
+      }
+    });
+  }
+
   // Private peer mesh handlers
 
   _setupSocketListeners() {
