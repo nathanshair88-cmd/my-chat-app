@@ -139,6 +139,13 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
   const liveTimeRef = useRef(null);
   const ignoreRemoteRef = useRef(false); // prevent echo from own actions
   const currentVideoIdRef = useRef(null);
+  const channelIdRef = useRef(channelId); // stable ref so closures always have current channelId
+  const scrubbingRef = useRef(false);   // ref mirror of scrubbing state for use inside intervals
+
+  // Keep channelIdRef in sync
+  useEffect(() => { channelIdRef.current = channelId; }, [channelId]);
+  // Keep scrubbingRef in sync
+  useEffect(() => { scrubbingRef.current = scrubbing; }, [scrubbing]);
 
   // ── Subscribe to service state ─────────────────────────────────────────────
 
@@ -219,8 +226,20 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
           },
           onStateChange: (e) => {
             // eslint-disable-next-line no-undef
-            if (e.data === YT.PlayerState.PLAYING) {
+            const YTState = YT.PlayerState;
+            if (e.data === YTState.PLAYING) {
               setDuration(e.target.getDuration());
+              // Broadcast to peers ONLY if this wasn't triggered by a remote sync command
+              if (!ignoreRemoteRef.current) {
+                const t = e.target.getCurrentTime();
+                watchTogetherService.play(channelIdRef.current, t);
+              }
+            } else if (e.data === YTState.PAUSED) {
+              // Broadcast pause to peers if user-initiated (not a remote command)
+              if (!ignoreRemoteRef.current) {
+                const t = e.target.getCurrentTime();
+                watchTogetherService.pause(channelIdRef.current, t);
+              }
             }
           },
           onError: () => {
@@ -239,6 +258,7 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
   }, [watchState.videoId]);
 
   // ── Register remote control callbacks on the service ──────────────────────
+  // Run ONCE on mount. Uses refs for playerRef/ignoreRemoteRef so no stale closures.
 
   useEffect(() => {
     watchTogetherService.setPlayerCallbacks({
@@ -246,25 +266,32 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
         ignoreRemoteRef.current = true;
         playerRef.current?.seekTo(t, true);
         playerRef.current?.playVideo();
-        showNotification(watchState.lastActivity || 'Playing');
-        setTimeout(() => { ignoreRemoteRef.current = false; }, 1000);
+        setTimeout(() => { ignoreRemoteRef.current = false; }, 1500);
       },
       onPause: (t) => {
         ignoreRemoteRef.current = true;
         playerRef.current?.seekTo(t, true);
         playerRef.current?.pauseVideo();
-        showNotification(watchState.lastActivity || 'Paused');
-        setTimeout(() => { ignoreRemoteRef.current = false; }, 1000);
+        setTimeout(() => { ignoreRemoteRef.current = false; }, 1500);
       },
       onSeek: (t) => {
         ignoreRemoteRef.current = true;
         playerRef.current?.seekTo(t, true);
-        setTimeout(() => { ignoreRemoteRef.current = false; }, 1000);
+        setTimeout(() => { ignoreRemoteRef.current = false; }, 1500);
       },
     });
     return () => watchTogetherService.clearPlayerCallbacks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [watchState.lastActivity]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Show notification when remote activity changes ────────────────────────
+
+  const prevLastActivity = useRef(null);
+  useEffect(() => {
+    if (watchState.lastActivity && watchState.lastActivity !== prevLastActivity.current) {
+      prevLastActivity.current = watchState.lastActivity;
+      showNotification(watchState.lastActivity);
+    }
+  }, [watchState.lastActivity, showNotification]);
 
   // ── Volume control ────────────────────────────────────────────────────────
 
@@ -282,11 +309,24 @@ export default function WatchTogetherPlayer({ channelId, onClose }) {
 
   const startLiveTimePoll = () => {
     stopLiveTimePoll();
+    let prevPollTime = -1;
     liveTimeRef.current = setInterval(() => {
       if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
         const t = playerRef.current.getCurrentTime() || 0;
         setLiveTime(t);
-        if (!scrubbing) setScrubValue(t);
+        if (!scrubbingRef.current) setScrubValue(t);
+
+        // Detect manual seek: a jump > 3s that wasn't caused by a remote command
+        // (e.g. user drags YouTube's native progress bar if it ever shows)
+        if (
+          prevPollTime >= 0 &&
+          !ignoreRemoteRef.current &&
+          !scrubbingRef.current &&
+          Math.abs(t - prevPollTime) > 3
+        ) {
+          watchTogetherService.seek(channelIdRef.current, t);
+        }
+        prevPollTime = t;
       }
     }, 500);
   };
