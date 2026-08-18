@@ -73,7 +73,7 @@ export default function VoiceRoom() {
           className="px-5 sm:px-6 py-3 bg-success hover:bg-success/80 text-text-primary font-bold rounded-md shadow-lg transition-all transform hover:scale-105 flex items-center space-x-2"
         >
           <Radio className="w-5 h-5 animate-pulse" />
-          <span>Connect to Voice</span>
+          <span>Join Voice</span>
         </button>
       </div>
     );
@@ -207,10 +207,11 @@ export default function VoiceRoom() {
         {/* Disconnect Voice */}
         <button
           onClick={() => voiceManager.leaveVoiceChannel()}
-          className="p-3 sm:p-3.5 bg-danger hover:bg-danger-hover text-text-primary rounded-full transition-all transform active:scale-95 shadow-lg shadow-danger/30 mobile-touch-target"
-          title="Disconnect Voice"
+          className="flex items-center gap-2 px-3 py-3 sm:px-3.5 sm:py-3.5 bg-danger hover:bg-danger-hover text-text-primary rounded-full transition-all transform active:scale-95 shadow-lg shadow-danger/30 mobile-touch-target"
+          title="Leave Voice"
         >
           <PhoneOff className="w-5 h-5" />
+          <span className="text-sm font-semibold leading-none">Leave Voice</span>
         </button>
       </div>
 

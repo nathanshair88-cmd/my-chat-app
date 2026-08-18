@@ -7,7 +7,7 @@ import { voiceManager } from '../../services/webrtcVoice';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
 
 export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings, onNavigate }) {
-  const { currentServer, currentChannel, selectChannel, unreadChannels, showVoiceGrid, toggleVoiceGrid } = useServer();
+  const { currentServer, currentChannel, selectChannel, unreadChannels, showVoiceGrid, setShowVoiceGrid, toggleVoiceGrid } = useServer();
 
 
   const [copiedInvite, setCopiedInvite] = useState(false);
@@ -59,6 +59,14 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings, on
   const isOwner = String(currentServer.owner_id) === String(currentUserId);
   const canManageServer = isOwner || currentMember?.role === 'admin';
   const activeVoiceChannel = (currentServer.channels || []).find(c => c.id === voiceState.channel_id);
+  const isTouchNavigation = (event) => {
+    const pointerType = event?.nativeEvent?.pointerType;
+    if (pointerType) return pointerType !== 'mouse';
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia?.('(pointer: coarse)').matches ||
+      window.matchMedia?.('(hover: none)').matches ||
+      window.innerWidth < 768;
+  };
 
   return (
     <div className="w-[min(82vw,18rem)] md:w-60 bg-surface-panel/30 backdrop-blur-md flex flex-col justify-between select-none z-10 border-r border-surface-border h-full">
@@ -167,11 +175,14 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings, on
                   return (
                     <div key={channel.id}>
                       <button
-                        onClick={() => {
+                        onClick={(event) => {
                           if (!isVoiceChannel) {
                             selectChannel(channel);
                           } else {
                             selectChannel(channel, false); // Single click (preview)
+                            if (isTouchNavigation(event)) {
+                              setShowVoiceGrid(true);
+                            }
                           }
                           onNavigate?.();
                         }}
