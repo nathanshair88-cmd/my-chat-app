@@ -4,9 +4,10 @@ import UserContextMenu from '../modals/UserContextMenu';
 import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio, Settings } from 'lucide-react';
 import { voiceManager } from '../../services/webrtcVoice';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
+import { notify } from '../../services/localWorkspace';
 
 export default function ChannelSidebar({ onOpenCreateChannel, onNavigate }) {
-  const { currentServer, currentChannel, selectChannel, unreadChannels, setShowVoiceGrid } = useServer();
+  const { currentServer, currentChannel, selectChannel, unreadChannels } = useServer();
 
 
   const [copiedInvite, setCopiedInvite] = useState(false);
@@ -30,10 +31,13 @@ export default function ChannelSidebar({ onOpenCreateChannel, onNavigate }) {
     );
   }
 
-  const copyInviteCode = () => {
-    navigator.clipboard.writeText(currentServer.invite_code);
-    setCopiedInvite(true);
-    setTimeout(() => setCopiedInvite(false), 2000);
+  const copyInviteCode = async () => {
+    try {
+      await navigator.clipboard.writeText(currentServer.invite_code);
+      setCopiedInvite(true);
+      notify('Invite code copied. Send it to a friend so they can join your space.');
+      setTimeout(() => setCopiedInvite(false), 2000);
+    } catch { notify('Could not copy the invite. Select the code in Space options to copy it.'); }
   };
 
   // Group channels by category
@@ -56,26 +60,19 @@ export default function ChannelSidebar({ onOpenCreateChannel, onNavigate }) {
   const currentMember = currentServer.members?.find(m => Number(m.user_id) === currentUserId);
   const isOwner = String(currentServer.owner_id) === String(currentUserId);
   const canManageServer = isOwner || currentMember?.role === 'admin';
-  const isTouchNavigation = (event) => {
-    const pointerType = event?.nativeEvent?.pointerType;
-    if (pointerType) return pointerType !== 'mouse';
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia?.('(pointer: coarse)').matches ||
-      window.matchMedia?.('(hover: none)').matches ||
-      window.innerWidth < 768;
-  };
 
   return (
-    <div className="w-[min(82vw,18rem)] md:w-60 bg-surface-panel/30 backdrop-blur-md flex flex-col justify-between select-none z-10 border-r border-surface-border h-full">
+    <div className="channel-navigation" aria-label={`Channels in ${currentServer.name}`}>
       <div className="flex-1 flex flex-col min-h-0">
         {/* Server Header Dropdown */}
         <div className="relative">
           <button 
+            aria-expanded={showServerMenu}
             onClick={() => setShowServerMenu(!showServerMenu)}
-            className="w-full min-h-12 px-4 flex items-center justify-between border-b border-surface-border font-bold text-text-primary shadow-sm hover:bg-surface-hover transition-colors"
+            className="space-options-button"
           >
-            <span className="truncate">{currentServer.name}</span>
-            <ChevronDown className="w-5 h-5 text-text-muted" />
+            <span>Space options</span>
+            <ChevronDown size={14} />
           </button>
 
           {/* Server Options Popover */}
@@ -131,20 +128,12 @@ export default function ChannelSidebar({ onOpenCreateChannel, onNavigate }) {
         </div>
 
         {/* Categorized Channels List */}
-        <div className="flex-1 overflow-y-auto px-2 py-3 space-y-4 no-scrollbar">
+        <div className="channel-groups px-1 py-2 space-y-3">
           {Object.entries(categories).map(([catName, chList]) => (
             <div key={catName}>
               <div className="flex items-center justify-between px-2 mb-1">
                 <span className="text-[11px] font-bold text-text-muted uppercase tracking-wider">{catName}</span>
-                {canManageServer && (
-                  <button
-                    onClick={onOpenCreateChannel}
-                    className="text-text-muted hover:text-text-primary transition-colors p-1 rounded mobile-touch-target md:min-w-0 md:min-h-0"
-                    title="Create Channel"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                )}
+
               </div>
 
               <div className="space-y-0.5">
@@ -172,23 +161,12 @@ export default function ChannelSidebar({ onOpenCreateChannel, onNavigate }) {
                   return (
                     <div key={channel.id}>
                       <button
-                        onClick={(event) => {
-                          if (!isVoiceChannel) {
-                            selectChannel(channel);
-                          } else {
-                            selectChannel(channel, false); // Single click (preview)
-                            if (isTouchNavigation(event)) {
-                              setShowVoiceGrid(true);
-                            }
-                          }
+                        aria-current={isActive ? 'page' : undefined}
+                        onClick={() => {
+                          selectChannel(channel, false);
                           onNavigate?.();
                         }}
-                        onDoubleClick={() => {
-                          if (isVoiceChannel) {
-                            selectChannel(channel, true); // Double click (join)
-                          }
-                        }}
-                        title={isVoiceChannel && !isVoiceConnected ? 'Single-click to preview · Double-click to join voice' : undefined}
+                        title={isVoiceChannel ? 'Open voice room' : undefined}
                         className={`w-full flex items-center justify-between px-2 py-2 md:py-1.5 rounded-md text-sm font-medium transition-colors ${
                           isActive ? 'bg-surface-active text-text-primary font-semibold shadow-sm' : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
                         }`}

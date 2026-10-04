@@ -4,14 +4,16 @@ import MessageItem from './MessageItem';
 import MessageInput from './MessageInput';
 import ThreadPanel from './ThreadPanel';
 import ServerMemberList from '../sidebar/ServerMemberList';
-import { Hash, Volume2, Video, Search, X, UploadCloud, MessageSquare, Moon, Sun, Users } from 'lucide-react';
-import { useTheme } from '../../context/ThemeContext';
+import { Hash, Volume2, Video, Search, X, UploadCloud, MessageSquare, ArrowLeft, Users } from 'lucide-react';
+import UserProfileModal from '../modals/UserProfileModal';
 
 export default function ChatArea({ onOpenP2PModal, showMemberList = true, compact = false }) {
   const {
     viewMode,
     currentChannel,
     currentDM,
+    currentServer,
+    openDirectMessages,
     messages,
     messagesLoading,
     messagesError,
@@ -26,7 +28,8 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
     membersListOpen,
     toggleMembersList,
   } = useServer();
-  const { isDarkMode, toggleTheme } = useTheme();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   const [isDragging, setIsDragging] = useState(false);
@@ -132,22 +135,24 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
         </div>
       )}
 
+      {profileOpen && otherUser && <UserProfileModal user={otherUser} onClose={() => setProfileOpen(false)} />}
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header Bar */}
-        <div className={`chat-header ${compact ? 'min-h-12 px-3' : 'min-h-12 pl-14 pr-2 md:px-4'} border-b border-surface-border flex items-center justify-between gap-2 shadow-sm bg-surface-panel/40 backdrop-blur-md z-10`}>
+        <div className={`chat-header ${compact ? 'min-h-12 px-3' : 'min-h-12 px-4'} border-b border-surface-border flex items-center justify-between gap-2 shadow-sm bg-surface-panel/40 backdrop-blur-md z-10`}>
           <div className="flex items-center min-w-0 pr-2">
             {isDM ? (
               <div className="flex items-center space-x-2 min-w-0">
+                <button className="icon-button" onClick={openDirectMessages} aria-label="Back to messages" title="Back to messages"><ArrowLeft size={18} /></button>
                 <div className="w-7 h-7 rounded-full bg-accent-primary flex items-center justify-center text-text-primary font-bold text-xs shadow-sm">
                   {otherUser?.username?.[0]?.toUpperCase() || 'U'}
                 </div>
-                <span className="font-bold text-text-primary text-sm sm:text-md truncate">@{otherUser?.username}</span>
+                <button className="conversation-title" onClick={() => setProfileOpen(true)} aria-label={`View profile of ${otherUser?.username}`}><strong>{otherUser?.username}</strong><small>View profile</small></button>
               </div>
             ) : (
               <div className="flex items-center min-w-0">
                 {getChannelIcon(currentChannel.type)}
-                <span className="font-bold text-text-primary text-sm sm:text-md truncate">{currentChannel.name}</span>
+                <span className="conversation-title"><strong>{currentChannel.name}</strong><small>{currentServer?.name}{compact ? " ? Room chat" : ""}</small></span>
               </div>
             )}
           </div>
@@ -155,7 +160,7 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
           {/* Right Header Toolbar: Search Bar, Video Grid & P2P Button */}
           <div className={`flex items-center shrink-0 ${compact ? 'gap-1.5' : 'gap-1.5 sm:gap-2 lg:gap-3'}`}>
             {/* Voice Channel Video Grid Toggle */}
-            {currentChannel && (currentChannel.type === 'voice' || currentChannel.type === 'media') && (
+            {!compact && currentChannel && (currentChannel.type === 'voice' || currentChannel.type === 'media') && (
               <button
                 onClick={toggleVoiceGrid}
                 className={`flex items-center space-x-1.5 p-2 sm:px-2.5 sm:py-1.5 rounded-md text-xs font-semibold transition shadow-sm mobile-touch-target sm:min-w-0 sm:min-h-0 ${
@@ -164,57 +169,28 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
                 title={showVoiceGrid ? "Switch to Dedicated Text Chat" : "View Voice & Video Grid"}
               >
                 <Video className="w-3.5 h-3.5" />
-                <span className={compact ? 'hidden' : 'hidden sm:inline'}>{showVoiceGrid ? 'Text Chat' : 'Voice Grid'}</span>
+                <span className={compact ? 'hidden' : 'hidden sm:inline'}>{showVoiceGrid ? 'Text chat' : 'Open room'}</span>
               </button>
             )}
 
-            {/* Real-time Message Search Input */}
-            <div className={`${compact ? 'hidden' : 'relative hidden sm:flex items-center'}`}>
-
-              <input
-                aria-label="Search messages in this conversation"
-                type="text"
-                placeholder="Search loaded messages…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-surface-active text-text-primary text-xs px-3 py-1.5 pl-8 pr-7 rounded-md w-40 lg:w-48 focus:w-56 lg:focus:w-64 focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all border border-surface-border"
-              />
-              <Search className="w-3.5 h-3.5 text-text-muted absolute left-2.5 pointer-events-none" />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2 text-text-muted hover:text-text-primary"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-
-
-            
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 sm:p-1.5 rounded-md hover:bg-surface-hover hover:text-accent-primary transition-colors border border-surface-border shadow-sm bg-surface-active mobile-touch-target sm:min-w-0 sm:min-h-0"
-              title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-            >
-              {isDarkMode ? <Sun className="w-4 h-4 text-text-primary" /> : <Moon className="w-4 h-4 text-text-primary" />}
-            </button>
-
+            <button className="chat-header-action" aria-label="Search conversation" aria-expanded={searchOpen} onClick={() => setSearchOpen(v => !v)}><Search size={17} /><span>Search</span></button>
             {!isDM && showMemberList && (
               <button
+                aria-label={membersListOpen ? "Hide members" : "Show members"}
+                aria-expanded={membersListOpen}
                 onClick={toggleMembersList}
                 className={`p-2 sm:p-1.5 rounded-md transition-colors border border-surface-border shadow-sm mobile-touch-target sm:min-w-0 sm:min-h-0 ${
                   membersListOpen ? 'bg-accent-primary text-text-primary' : 'bg-surface-active hover:bg-surface-hover hover:text-accent-primary'
                 }`}
                 title={membersListOpen ? "Hide Member List" : "Show Member List"}
               >
-                <Users className="w-4 h-4 text-text-primary" />
+                <Users className="w-4 h-4 text-text-primary" /><span className="member-button-label">Members</span>
               </button>
             )}
           </div>
         </div>
 
+        {searchOpen && <label className="conversation-search-row"><Search size={17} /><input autoFocus aria-label="Search messages in this conversation" placeholder="Search loaded messages" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} /><button aria-label="Close conversation search" className="icon-button" onClick={() => { setSearchOpen(false); setSearchQuery(''); }}><X size={17} /></button></label>}
         {/* Messages Scrollable Stream */}
         <div ref={messagesContainerRef} className="chat-stream flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 bg-transparent responsive-safe-scroll" onScroll={e => { const el = e.currentTarget; nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140; }}>
           {/* Welcome Banner */}

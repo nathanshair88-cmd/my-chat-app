@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { notificationService } from '../services/NotificationService';
 
 import { voiceManager } from '../services/webrtcVoice';
+import { readLocal, writeLocal } from '../services/localWorkspace';
 
 const ServerContext = createContext();
 
@@ -48,7 +49,7 @@ export const ServerProvider = ({ children }) => {
   // DM state
   const [conversations, setConversations] = useState([]);
   const [currentDM, setCurrentDM] = useState(null);
-  const [lastDM, setLastDM] = useState(null);
+  const visitedChannels = React.useRef(readLocal(`alto:channels:${user?.id}`, {}));
   const [dmHomeTab, setDMHomeTab] = useState('friends');
   const [friendships, setFriendships] = useState([]);
   const [unreadFriendRequests, setUnreadFriendRequests] = useState(0);
@@ -73,10 +74,7 @@ export const ServerProvider = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   // Session UI state
-  const [membersListOpen, setMembersListOpen] = useState(() => {
-    if (typeof window === 'undefined') return true;
-    return window.innerWidth >= 1024;
-  });
+  const [membersListOpen, setMembersListOpen] = useState(false);
 
   const toggleMembersList = useCallback(() => {
     setMembersListOpen(prev => !prev);
@@ -205,7 +203,7 @@ export const ServerProvider = ({ children }) => {
     setCurrentDM(null);
     setCurrentServer(server);
     if (server && server.channels && server.channels.length > 0) {
-      const defaultChannel = server.channels.find(c => c.type === 'text') || server.channels[0];
+      const defaultChannel = server.channels.find(c => c.id === visitedChannels.current[server.id]) || server.channels.find(c => c.type === 'text') || server.channels[0];
       selectChannelInternal(defaultChannel);
     } else {
       setCurrentChannel(null);
@@ -219,7 +217,7 @@ export const ServerProvider = ({ children }) => {
     setShowVoiceGrid(prev => !prev);
   };
 
-  const selectChannel = async (channel, userInitiated = true) => {
+  const selectChannel = async (channel, userInitiated = false) => {
     const request = ++messageRequestRef.current;
     setMessagesError('');
     setHasOlderMessages(false);
@@ -244,7 +242,13 @@ export const ServerProvider = ({ children }) => {
       }
     }
 
-    setShowVoiceGrid(false); // Default to dedicated text chat view!
+    setShowVoiceGrid(channel.type === 'voice' || channel.type === 'media');
+    const owner = servers.find(s => s.channels?.some(c => c.id === channel.id));
+    if (owner) {
+      setCurrentServer(owner);
+      visitedChannels.current[owner.id] = channel.id;
+      writeLocal(`alto:channels:${user?.id}`, visitedChannels.current);
+    }
     setCurrentChannel(channel);
     setMessages([]);
     setTypingUsers(new Map());
@@ -298,7 +302,6 @@ export const ServerProvider = ({ children }) => {
     setActiveThreadMessage(null);
 
     if (conversation) {
-      setLastDM(conversation);
       setUnreadDMCount(conversation.id, 0);
       if (socket) {
         socket.emit('join_dm', { conversation_id: conversation.id });
@@ -328,14 +331,7 @@ export const ServerProvider = ({ children }) => {
   };
 
   const openDirectMessages = async () => {
-    setDMHomeTab('friends');
-    const availableConversations = conversations.length > 0
-      ? conversations
-      : await fetchConversations();
-    const rememberedDM = lastDM
-      ? availableConversations.find(conv => conv.id === lastDM.id) || lastDM
-      : null;
-    await selectDM(rememberedDM || availableConversations[0] || null);
+    await openDMHome('messages');
   };
 
   const startDM = async (target) => {
@@ -591,6 +587,7 @@ export const ServerProvider = ({ children }) => {
       servers,
       currentServer,
       currentChannel,
+      voiceState,
       conversations,
       currentDM,
       dmHomeTab,

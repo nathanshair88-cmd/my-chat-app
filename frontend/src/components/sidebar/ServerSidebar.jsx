@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Home,
   MessageCircle,
@@ -7,18 +7,24 @@ import {
   Plus,
   Compass,
   Search,
-  ArrowUpRight,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import { useServer } from "../../context/ServerContext";
 import Brand from "../Brand";
 import UserWidget from "./UserWidget";
+import ChannelSidebar from "./ChannelSidebar";
+import DMSidebar from "./DMSidebar";
 
 export default function ServerSidebar({
   onOpenCreateServer,
   onOpenJoinServer,
+  onOpenCreateChannel,
   onOpenSettings,
   onSearch,
+  onNewMessage,
   onNavigate,
+  onClose,
 }) {
   const {
     servers,
@@ -31,7 +37,9 @@ export default function ServerSidebar({
     unreadDMs,
     unreadFriendRequests,
     currentDM,
+    dmHomeTab,
   } = useServer();
+  const [collapsedSpace, setCollapsedSpace] = useState(null);
   const unread = Object.values(unreadDMs || {}).reduce((a, b) => a + b, 0);
   const go = (action) => {
     action();
@@ -47,14 +55,14 @@ export default function ServerSidebar({
     {
       label: "Messages",
       icon: MessageCircle,
-      active: viewMode === "dm" && !!currentDM,
+      active: viewMode === "dm" && (!!currentDM || dmHomeTab === "messages"),
       action: openDirectMessages,
       count: unread,
     },
     {
       label: "Friends",
       icon: Users,
-      active: viewMode === "dm" && !currentDM,
+      active: viewMode === "dm" && !currentDM && dmHomeTab !== "messages",
       action: () => openDMHome("friends"),
       count: unreadFriendRequests,
     },
@@ -66,24 +74,35 @@ export default function ServerSidebar({
     },
   ];
   return (
-    <aside className="primary-nav" aria-label="Main navigation">
-      <button
-        className="brand-button"
-        aria-label="Alto home"
-        onClick={() => go(() => setViewMode("home"))}
-      >
-        <Brand />
-      </button>
+    <aside className="primary-nav unified-nav" aria-label="Main navigation">
+      <div className="nav-brand-row">
+        <button
+          className="brand-button"
+          aria-label="Alto home"
+          onClick={() => go(() => setViewMode("home"))}
+        >
+          <Brand />
+        </button>
+        {onClose && (
+          <button
+            className="icon-button nav-close"
+            aria-label="Close navigation"
+            onClick={onClose}
+          >
+            <X size={20} />
+          </button>
+        )}
+      </div>
       <button
         className="nav-search"
         onClick={onSearch}
         title="Search or jump to (Ctrl+K)"
       >
         <Search size={17} />
-        <span>Jump to…</span>
+        <span>Search everything</span>
         <kbd>Ctrl K</kbd>
       </button>
-      <nav className="main-links">
+      <nav className="main-links" aria-label="Your workspace">
         {links.map(({ label, icon: Icon, action, active, count }) => (
           <button
             key={label}
@@ -99,58 +118,75 @@ export default function ServerSidebar({
           </button>
         ))}
       </nav>
-      <div className="nav-section-title">
-        <span>YOUR SPACES</span>
-        <button
-          aria-label="Create a space"
-          title="Create a space"
-          onClick={onOpenCreateServer}
-        >
-          <Plus size={16} />
-        </button>
-      </div>
-      <nav className="space-nav">
-        {servers.map((server, i) => (
+      <div className="navigation-scroll">
+        {viewMode === "dm" && (
+          <DMSidebar onNavigate={onNavigate} onNewMessage={onNewMessage} />
+        )}
+        <div className="nav-section-title">
+          <span>Your spaces</span>
           <button
-            key={server.id}
-            title={server.name}
-            aria-label={server.name}
-            aria-current={
-              viewMode === "server" && currentServer?.id === server.id
-                ? "page"
-                : undefined
-            }
-            className={`nav-link ${viewMode === "server" && currentServer?.id === server.id ? "active space-active" : ""}`}
-            onClick={() => go(() => selectServer(server))}
+            aria-label="Create a space"
+            title="Create a space"
+            onClick={onOpenCreateServer}
           >
-            <span className={`nav-space-icon tint-${i % 4}`}>
-              {server.icon_url ? (
-                <img src={server.icon_url} alt="" />
-              ) : (
-                server.name.slice(0, 2).toUpperCase()
-              )}
-            </span>
-            <span>{server.name}</span>
-          </button>
-        ))}
-        <button
-          className="nav-link join-link"
-          title="Join a space"
-          onClick={onOpenJoinServer}
-        >
-          <Compass size={19} />
-          <span>Join a space</span>
-        </button>
-      </nav>
-      <div className="nav-bottom">
-        <div className="nav-invite-card">
-          <span className="invite-spark">✳</span>
-          <strong>Your people. Your space.</strong>
-          <p>Build a corner of the internet that feels like you.</p>
-          <button onClick={onOpenCreateServer}>
-            Make it yours <ArrowUpRight size={15} />
+            <Plus size={17} />
           </button>
         </div>
+        <nav className="space-tree" aria-label="Your spaces">
+          {servers.map((server, i) => {
+            const active =
+              viewMode === "server" && currentServer?.id === server.id;
+            const expanded = active && collapsedSpace !== server.id;
+            return (
+              <div
+                className={`space-branch ${expanded ? "expanded" : ""}`}
+                key={server.id}
+              >
+                <button
+                  title={server.name}
+                  aria-label={server.name}
+                  aria-expanded={expanded}
+                  className={`nav-link space-switch ${expanded ? "space-active" : ""}`}
+                  onClick={() => {
+                    if (active) setCollapsedSpace(expanded ? server.id : null);
+                    else {
+                      setCollapsedSpace(null);
+                      selectServer(server);
+                    }
+                  }}
+                >
+                  <span className={`nav-space-icon tint-${i % 4}`}>
+                    {server.icon_url ? (
+                      <img src={server.icon_url} alt="" />
+                    ) : (
+                      server.name.slice(0, 2).toUpperCase()
+                    )}
+                  </span>
+                  <span>{server.name}</span>
+                  <ChevronDown size={15} className="space-chevron" />
+                </button>
+                {expanded && (
+                  <ChannelSidebar
+                    onOpenCreateChannel={onOpenCreateChannel}
+                    onNavigate={onNavigate}
+                  />
+                )}
+              </div>
+            );
+          })}
+          {!servers.length && (
+            <p className="nav-empty">
+              Spaces bring group chats and voice rooms together. Create one, or
+              join with an invite.
+            </p>
+          )}
+        </nav>
+        <button className="nav-link join-link" onClick={onOpenJoinServer}>
+          <Compass size={18} />
+          <span>Join a space</span>
+        </button>
+      </div>
+      <div className="nav-bottom">
         <UserWidget onOpenSettings={onOpenSettings} />
       </div>
     </aside>

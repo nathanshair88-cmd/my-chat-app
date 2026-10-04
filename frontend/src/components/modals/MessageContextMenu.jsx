@@ -79,7 +79,7 @@ export default function MessageContextMenu({
   return (
     <div
       ref={menuRef}
-      className="fixed z-[9999] w-[min(12rem,calc(100vw-1rem))] bg-surface-active border border-surface-border rounded-lg shadow-2xl overflow-hidden animate-fadeIn text-[13px] p-1 space-y-0.5"
+      className="message-context-menu fixed z-[9999] w-[min(12rem,calc(100vw-1rem))] bg-surface-active border border-surface-border rounded-lg shadow-2xl overflow-hidden animate-fadeIn text-[13px] p-1 space-y-0.5"
       style={{ top: pos.top, left: pos.left }}
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}

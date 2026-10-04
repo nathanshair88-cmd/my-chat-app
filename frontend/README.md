@@ -30,6 +30,14 @@ If using a different frontend port, add its exact origin to `CORS_ORIGINS` and `
 
 ## Product and design
 
+### Navigation update
+
+Spaces and channels now share one labeled sidebar. Selecting a space opens its last visited channel; selecting an open space collapses or expands its channel list. On phones, Browse opens the same navigation as a keyboard-contained drawer, with the full screen available for the conversation.
+
+Messages opens an inbox with conversation search, All/Unread filters, and a New message action. Friends and requests remain separate. Chats include a Back to messages button and an explicit profile action. Member lists and voice text panels open on demand. Voice rooms preview consistently on desktop and mobile, and require an explicit Join Voice action. Call controls now have visible labels.
+
+Home puts shortcuts and spaces first for existing members. Message formatting expands on demand, while mobile message actions use one labeled menu. Account controls remain in a single dock. The navigation regression test covers these flows, remembered channels, and mobile focus restoration.
+
 - Original Alto brand mark, geometric artwork, and five bundled SVG avatars. These assets do not need external image services.
 - A home dashboard using real spaces, conversations, friends, and saved-message counts.
 - A single account dock across home, spaces, and DMs. Profile/status, mute, deafen, and settings live here; an active call adds camera, screen sharing, room navigation, and disconnect controls.

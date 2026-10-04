@@ -3,8 +3,8 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ServerProvider, useServer } from "./context/ServerContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import ServerSidebar from "./components/sidebar/ServerSidebar";
-import ChannelSidebar from "./components/sidebar/ChannelSidebar";
-import DMSidebar from "./components/sidebar/DMSidebar";
+import NavigationDrawer from "./components/sidebar/NavigationDrawer";
+import NewMessageModal from "./components/modals/NewMessageModal";
 import ServerMemberList from "./components/sidebar/ServerMemberList";
 import ChatArea from "./components/chat/ChatArea";
 import DirectMessagesArea from "./components/chat/DirectMessagesArea";
@@ -22,11 +22,12 @@ const UserSettingsModal = lazy(
   () => import("./components/modals/UserSettingsModal"),
 );
 import { Menu, MessageSquare, X } from "lucide-react";
-import { Search, Sparkles, ArrowUpRight, WifiOff } from "lucide-react";
+import { Search, WifiOff } from "lucide-react";
 import HomeDashboard from "./components/home/HomeDashboard";
 import CommandPalette from "./components/CommandPalette";
 import { getSocket } from "./services/socket";
 import Brand from "./components/Brand";
+import { voiceManager } from "./services/webrtcVoice";
 
 function MainDashboard() {
   const { user, loading, sessionError, retrySession } = useAuth();
@@ -36,21 +37,21 @@ function MainDashboard() {
     membersListOpen,
     toggleMembersList,
     currentServer,
+    currentDM,
+    dmHomeTab,
+    voiceState,
+    currentChannel,
+    servers,
+    selectServer,
+    selectChannel,
   } = useServer();
   const [showSearch, setShowSearch] = useState(false);
   const [toast, setToast] = useState("");
   const [connected, setConnected] = useState(true);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
-  const [wideVoiceLayout, setWideVoiceLayout] = useState(() => window.innerWidth >= 1800);
   useEffect(() => {
     const query = window.matchMedia("(max-width: 767px)");
     const adapt = () => setIsMobile(query.matches);
-    query.addEventListener("change", adapt);
-    return () => query.removeEventListener("change", adapt);
-  }, []);
-  useEffect(() => {
-    const query = window.matchMedia("(min-width: 1800px)");
-    const adapt = () => setWideVoiceLayout(query.matches);
     query.addEventListener("change", adapt);
     return () => query.removeEventListener("change", adapt);
   }, []);
@@ -86,14 +87,11 @@ function MainDashboard() {
   const [showChannelModal, setShowChannelModal] = useState(false);
   const [showP2PModal, setShowP2PModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showNewMessage, setShowNewMessage] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [voiceTextChatOpen, setVoiceTextChatOpen] = useState(false);
 
   const closeMobileNav = () => setMobileNavOpen(false);
-
-  useEffect(() => {
-    setMobileNavOpen(false);
-  }, [viewMode]);
 
   useEffect(() => {
     if (!showVoiceGrid || viewMode === "dm") {
@@ -151,6 +149,26 @@ function MainDashboard() {
     return <AuthModal />;
   }
 
+  const openNewMessage = () => {
+    closeMobileNav();
+    setShowNewMessage(true);
+  };
+  const navigation = (
+    <ServerSidebar
+      onOpenCreateServer={() => setServerModalMode("create")}
+      onOpenJoinServer={() => setServerModalMode("join")}
+      onOpenCreateChannel={() => setShowChannelModal(true)}
+      onNavigate={closeMobileNav}
+      onClose={isMobile ? closeMobileNav : undefined}
+      onOpenSettings={() => setShowSettingsModal(true)}
+      onNewMessage={openNewMessage}
+      onSearch={() => {
+        closeMobileNav();
+        setShowSearch(true);
+      }}
+    />
+  );
+
   return (
     <div className="flex app-shell-height w-screen p-0 bg-transparent overflow-hidden select-none relative">
       {/* Background Voice Audio Player */}
@@ -158,48 +176,55 @@ function MainDashboard() {
 
       {/* Main Glass App Container */}
       <div className="alto-shell flex w-full h-full overflow-hidden relative">
-        {/* 1. Leftmost Server Rail */}
-        <ServerSidebar
-          onOpenCreateServer={() => setServerModalMode("create")}
-          onOpenJoinServer={() => setServerModalMode("join")}
-          onNavigate={closeMobileNav}
-          onOpenSettings={() => setShowSettingsModal(true)}
-          onSearch={() => setShowSearch(true)}
-        />
-
-        <div className="workspace-frame">
+        {(!isMobile || mobileNavOpen) &&
+          (isMobile ? (
+            <NavigationDrawer onClose={closeMobileNav}>
+              {navigation}
+            </NavigationDrawer>
+          ) : (
+            navigation
+          ))}
+        <div
+          className={`workspace-frame ${!isHome && (viewMode !== "dm" || currentDM) ? "conversation-workspace" : ""}`}
+        >
           <header className="workspace-topbar">
-            <div className="workspace-breadcrumb">
-              <span>YOUR WORKSPACE</span>
-              <span>/</span>
-              <strong>
-                {viewMode === "home"
-                  ? "Home"
-                  : viewMode === "saved"
-                    ? "Saved"
-                    : viewMode === "dm"
-                      ? "Your people"
-                      : currentServer?.name || "Spaces"}
-              </strong>
+            <button
+              className="browse-button"
+              onClick={() => setMobileNavOpen(true)}
+              aria-label="Open navigation"
+            >
+              <Menu size={20} />
+              <span>Browse</span>
+            </button>
+            <div className="workspace-location">
+              {viewMode === "home"
+                ? "Home"
+                : viewMode === "saved"
+                  ? "Saved messages"
+                  : viewMode === "dm"
+                    ? currentDM
+                      ? "Messages"
+                      : dmHomeTab === "messages"
+                        ? "Messages"
+                        : "Friends"
+                    : currentServer?.name}
             </div>
-            <div className="topbar-actions">
-              <button
-                onClick={() => setShowSearch(true)}
-                title="Quick search"
-                aria-label="Quick search"
-              >
-                <Search size={18} />
-              </button>
-              <span className="topbar-divider" />
-              <button
-                className="topbar-create"
-                onClick={() => setServerModalMode("create")}
-              >
-                Create a space <ArrowUpRight size={15} />
-              </button>
-              <Sparkles className="topbar-spark" size={18} />
-            </div>
+            <button
+              className="topbar-search"
+              onClick={() => setShowSearch(true)}
+              aria-label="Quick search"
+            >
+              <Search size={18} />
+              <span>Search</span>
+            </button>
           </header>
+          {isMobile && voiceState.channel_id && !(viewMode === 'server' && showVoiceGrid && currentChannel?.id === voiceState.channel_id) && <aside className="mobile-call-strip" aria-label="Active call">
+            <button onClick={() => {
+              const server = servers.find(s => s.channels?.some(c => c.id === voiceState.channel_id));
+              if (server) { selectServer(server); selectChannel(server.channels.find(c => c.id === voiceState.channel_id), false); }
+            }}>Call in progress <strong>Return to call</strong></button>
+            <button onClick={() => voiceManager.leaveVoiceChannel()} aria-label="Leave active call">Leave</button>
+          </aside>}
           {!connected && (
             <div className="connection-banner" role="status">
               <WifiOff size={15} /> Reconnecting… Your drafts are safe. Messages
@@ -207,48 +232,6 @@ function MainDashboard() {
             </div>
           )}
           <div className="workspace-body">
-            {/* 2. Channel or DM Navigation Sidebar */}
-            {mobileNavOpen && (
-              <button
-                aria-label="Close navigation"
-                className="fixed inset-y-0 left-14 right-0 z-20 bg-black/50 md:hidden"
-                onClick={closeMobileNav}
-              />
-            )}
-
-            {!isHome && (!isMobile || mobileNavOpen) && (
-              <div
-                className={`secondary-nav fixed md:relative left-14 md:left-auto top-0 bottom-0 md:top-auto md:bottom-auto z-30 md:z-10 h-dvh md:h-full shrink-0 transition-transform duration-200 ease-out ${
-                  mobileNavOpen
-                    ? "translate-x-0"
-                    : "-translate-x-[120%] md:translate-x-0"
-                }`}
-              >
-                {viewMode === "dm" ? (
-                  <DMSidebar
-                    onOpenSettings={() => setShowSettingsModal(true)}
-                    onNavigate={closeMobileNav}
-                  />
-                ) : (
-                  <ChannelSidebar
-                    onOpenCreateChannel={() => setShowChannelModal(true)}
-                    onOpenSettings={() => setShowSettingsModal(true)}
-                    onNavigate={closeMobileNav}
-                  />
-                )}
-              </div>
-            )}
-
-            {!isHome && !mobileNavOpen && (
-              <button
-                aria-label="Open navigation"
-                onClick={() => setMobileNavOpen(true)}
-                className="md:hidden absolute top-2 left-[4.25rem] z-40 mobile-touch-target rounded-md border border-surface-border bg-surface-active/90 text-text-primary shadow-lg backdrop-blur flex items-center justify-center"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-            )}
-
             {/* 3. Main Center Workspace (Chat or Voice/Video Grid) */}
             <div className="flex-1 flex min-w-0 h-full relative bg-surface-base/30 backdrop-blur-md">
               {isHome ? (
@@ -265,43 +248,51 @@ function MainDashboard() {
                       <div className="empty-note">Opening your room...</div>
                     }
                   >
-                    <VoiceRoom onOpenTextChat={!wideVoiceLayout && !voiceTextChatOpen ? () => setVoiceTextChatOpen(true) : null} />
+                    <VoiceRoom
+                      onOpenTextChat={
+                        !voiceTextChatOpen
+                          ? () => setVoiceTextChatOpen(true)
+                          : null
+                      }
+                    />
                   </Suspense>
 
                   {voiceTextChatOpen && (
                     <button
                       aria-label="Close voice text chat"
-                      className="fixed inset-0 z-[55] bg-black/50 min-[1800px]:hidden"
+                      className="fixed inset-0 z-[55] bg-black/50 min-[1200px]:hidden"
                       onClick={() => setVoiceTextChatOpen(false)}
                     />
                   )}
 
-                  {(voiceTextChatOpen || wideVoiceLayout) && <div
-                    className={`fixed min-[1800px]:relative inset-y-0 ${voiceTextChatOpen && membersListOpen ? "right-0 lg:right-56 xl:right-60" : "right-0"} min-[1800px]:inset-y-auto min-[1800px]:right-auto z-[60] min-[1800px]:z-10 w-[min(92vw,28rem)] sm:w-[28rem] min-[1800px]:w-[30rem] min-[1800px]:min-w-[30rem] min-[2200px]:w-[34rem] min-[2200px]:min-w-[34rem] border-l border-surface-border flex flex-col h-dvh min-[1800px]:h-full min-h-0 bg-surface-panel shadow-2xl min-[1800px]:shadow-none transition-transform duration-200 ease-out shrink-0 ${
-                      voiceTextChatOpen
-                        ? "translate-x-0"
-                        : "translate-x-full min-[1800px]:translate-x-0"
-                    }`}
-                  >
-                    <div className="min-[1800px]:hidden min-h-12 px-3 border-b border-surface-border bg-surface-panel/95 flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2 min-w-0 text-text-primary font-semibold">
-                        <MessageSquare className="w-4 h-4 text-accent-primary shrink-0" />
-                        <span className="truncate">Voice Text Chat</span>
+                  {voiceTextChatOpen && (
+                    <div
+                      className={`fixed min-[1200px]:relative inset-y-0 ${voiceTextChatOpen && membersListOpen ? "right-0 lg:right-56 xl:right-60" : "right-0"} min-[1200px]:inset-y-auto min-[1200px]:right-auto z-[60] min-[1200px]:z-10 w-[min(92vw,28rem)] sm:w-[28rem] min-[1200px]:w-[30rem] min-[1200px]:min-w-[30rem] min-[2200px]:w-[34rem] min-[2200px]:min-w-[34rem] border-l border-surface-border flex flex-col h-dvh min-[1200px]:h-full min-h-0 bg-surface-panel shadow-2xl min-[1200px]:shadow-none transition-transform duration-200 ease-out shrink-0 ${
+                        voiceTextChatOpen
+                          ? "translate-x-0"
+                          : "translate-x-full min-[1200px]:translate-x-0"
+                      }`}
+                    >
+                      <div className="min-h-12 px-3 border-b border-surface-border bg-surface-panel/95 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 min-w-0 text-text-primary font-semibold">
+                          <MessageSquare className="w-4 h-4 text-accent-primary shrink-0" />
+                          <span className="truncate">Voice Text Chat</span>
+                        </div>
+                        <button
+                          aria-label="Close voice text chat"
+                          onClick={() => setVoiceTextChatOpen(false)}
+                          className="mobile-touch-target rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover flex items-center justify-center"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
                       </div>
-                      <button
-                        aria-label="Close voice text chat"
-                        onClick={() => setVoiceTextChatOpen(false)}
-                        className="mobile-touch-target rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover flex items-center justify-center"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
+                      <ChatArea
+                        onOpenP2PModal={() => setShowP2PModal(true)}
+                        showMemberList={false}
+                        compact
+                      />
                     </div>
-                    <ChatArea
-                      onOpenP2PModal={() => setShowP2PModal(true)}
-                      showMemberList={false}
-                      compact
-                    />
-                  </div>}
+                  )}
 
                   {membersListOpen && (
                     <>
@@ -316,6 +307,7 @@ function MainDashboard() {
                 </div>
               ) : viewMode === "dm" ? (
                 <DirectMessagesArea
+                  onNewMessage={openNewMessage}
                   onOpenP2PModal={() => setShowP2PModal(true)}
                 />
               ) : (
@@ -326,9 +318,12 @@ function MainDashboard() {
         </div>
       </div>
       {/* Overlays / Modals */}
+      {showNewMessage && (
+        <NewMessageModal onClose={() => setShowNewMessage(false)} />
+      )}
       {showSearch && (
         <CommandPalette
-          onClose={() => setShowSearch(false)}
+          onClose={() => { setShowSearch(false); closeMobileNav(); }}
           onSettings={() => setShowSettingsModal(true)}
           onCreate={() => setServerModalMode("create")}
         />
@@ -347,11 +342,11 @@ function MainDashboard() {
       {serverModalMode && (
         <CreateServerModal
           mode={serverModalMode}
-          onClose={() => setServerModalMode(null)}
+          onClose={() => { setServerModalMode(null); closeMobileNav(); }}
         />
       )}
       {showChannelModal && (
-        <CreateChannelModal onClose={() => setShowChannelModal(false)} />
+        <CreateChannelModal onClose={() => { setShowChannelModal(false); closeMobileNav(); }} />
       )}
       {showP2PModal && (
         <Suspense

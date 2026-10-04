@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Check, Inbox, MessageSquare, Search, UserMinus, UserPlus, Users, X } from 'lucide-react';
+import { Check, Inbox, MessageSquare, Search, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useServer } from '../../context/ServerContext';
 import { friendsAPI } from '../../services/api';
-import UserProfileModal from '../modals/UserProfileModal';
 import ChatArea from './ChatArea';
+import MessagesInbox from './MessagesInbox';
 
 const avatarFor = (user) => (
   user?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user?.username || 'user')}`
@@ -18,79 +18,6 @@ const statusColor = (status) => {
     default: return 'bg-surface-border';
   }
 };
-
-const formatDate = (value, fallback = 'Recently') => {
-  if (!value) return fallback;
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return fallback;
-  return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-};
-
-function DMProfilePanel({ conversation }) {
-  const other = conversation?.other_user;
-  const [showProfileModal, setShowProfileModal] = useState(false);
-
-  if (!other) return null;
-
-  return (
-    <aside className="hidden 2xl:flex w-80 shrink-0 flex-col border-l border-surface-border bg-surface-panel/80 h-full">
-      <div className="h-24 bg-gradient-to-r from-accent-primary to-accent-hover relative">
-        <div className="absolute -bottom-10 left-5">
-          <div className="relative">
-            <img
-              src={avatarFor(other)}
-              alt={other.username}
-              className="w-20 h-20 rounded-full object-cover border-4 border-surface-panel bg-surface-active shadow-lg"
-            />
-            <span className={`absolute bottom-1 right-1 w-4 h-4 rounded-full border-2 border-surface-panel ${statusColor(other.status)}`} />
-          </div>
-        </div>
-      </div>
-
-      <div className="px-5 pt-14 pb-5 overflow-y-auto custom-scrollbar">
-        <div className="border-b border-surface-border pb-4">
-          <h2 className="text-xl font-bold text-text-primary truncate">{other.username}</h2>
-          <div className="text-sm text-text-muted font-mono truncate">#{other.public_id || other.id}</div>
-          {other.status_message && (
-            <p className="mt-3 text-sm text-text-primary leading-relaxed break-words">
-              {other.status_message}
-            </p>
-          )}
-        </div>
-
-        <div className="py-4 border-b border-surface-border space-y-3">
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-1">Member Since</div>
-            <div className="flex items-center space-x-2 text-sm text-text-primary">
-              <Calendar className="w-4 h-4 text-text-muted" />
-              <span>{formatDate(other.created_at, 'Member profile')}</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-text-muted mb-1">Conversation Since</div>
-            <div className="flex items-center space-x-2 text-sm text-text-primary">
-              <MessageSquare className="w-4 h-4 text-text-muted" />
-              <span>{formatDate(conversation.created_at)}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="py-4">
-          <button
-            onClick={() => setShowProfileModal(true)}
-            className="w-full bg-surface-active hover:bg-surface-hover border border-surface-border text-text-primary rounded-md py-2 text-sm font-semibold transition"
-          >
-            View Full Profile
-          </button>
-        </div>
-      </div>
-      {showProfileModal && (
-        <UserProfileModal user={other} onClose={() => setShowProfileModal(false)} />
-      )}
-    </aside>
-  );
-}
 
 function DirectMessagesHome() {
   const { user } = useAuth();
@@ -192,13 +119,13 @@ function DirectMessagesHome() {
 
   const tabs = [
     { id: 'friends', label: 'Friends', count: acceptedFriends.length },
-    { id: 'pending', label: 'Pending', count: outgoingRequests.length },
+    { id: 'pending', label: 'Sent', count: outgoingRequests.length },
     { id: 'requests', label: 'Requests', count: incomingRequests.length },
   ];
 
   return (
     <div className="flex-1 flex flex-col h-full bg-surface-base min-w-0">
-      <div className="min-h-12 border-b border-surface-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pl-16 pr-4 sm:px-4 py-2 sm:py-0 shrink-0 shadow-sm bg-surface-panel/40">
+      <div className="min-h-12 border-b border-surface-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-4 py-2 sm:py-0 shrink-0 shadow-sm bg-surface-panel/40">
         <div className="flex items-center min-w-0">
           <Icon className="w-5 h-5 mr-2 text-text-muted shrink-0" />
           <span className="font-bold text-text-primary truncate">{title}</span>
@@ -380,17 +307,17 @@ function DirectMessagesHome() {
   );
 }
 
-export default function DirectMessagesArea({ onOpenP2PModal }) {
-  const { currentDM } = useServer();
+export default function DirectMessagesArea({ onOpenP2PModal, onNewMessage }) {
+  const { currentDM, dmHomeTab } = useServer();
 
   if (!currentDM) {
-    return <DirectMessagesHome />;
+    return dmHomeTab === 'messages' ? <MessagesInbox onNewMessage={onNewMessage} /> : <DirectMessagesHome />;
   }
 
   return (
     <div className="flex-1 flex min-w-0 h-full bg-surface-base/30">
       <ChatArea onOpenP2PModal={onOpenP2PModal} />
-      <DMProfilePanel conversation={currentDM} />
+
     </div>
   );
 }

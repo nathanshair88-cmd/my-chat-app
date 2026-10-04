@@ -184,10 +184,10 @@ test("real chat, drafts, saved messages, search, editing, themes, and responsive
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page
-    .getByRole("button", { name: "The Common Room", exact: true })
+    .getByRole("button", { name: "Open navigation", exact: true })
     .click();
   await page
-    .getByRole("button", { name: "Open navigation", exact: true })
+    .getByRole("button", { name: "The Common Room", exact: true })
     .click();
   await page.getByRole("button", { name: "ideas", exact: true }).click();
   await expect(
@@ -290,6 +290,10 @@ test("create and join spaces, make a friend, and exchange direct messages", asyn
     "See you at the weekend!",
   );
   await pageB.getByRole("button", { name: "Messages", exact: true }).click();
+  await pageB
+    .locator(".inbox-conversation")
+    .filter({ hasText: "Jamie" })
+    .click();
   await expect(pageB.locator(".message-body")).toHaveText(
     "See you at the weekend!",
   );
@@ -303,17 +307,33 @@ test("create and join spaces, make a friend, and exchange direct messages", asyn
     "Wouldn’t miss it.",
   );
   await screenshot(page, "direct-messages");
-  await page.getByTitle('Direct transfer for large files', { exact: true }).click();
-  await page.getByLabel('Send to', { exact: true }).selectOption(String(b.user.id));
-  await page.getByLabel('Choose a file', { exact: true }).setInputFiles({ name: 'weekend-note.txt', mimeType: 'text/plain', buffer: Buffer.from('See you in the common room.') });
-  await page.getByRole('button', { name: /Send file directly/ }).click();
-  await expect(pageB.getByRole('button', { name: 'Accept Download', exact: true })).toBeVisible();
-  const downloaded = pageB.waitForEvent('download');
-  await pageB.getByRole('button', { name: 'Accept Download', exact: true }).click();
+  await page
+    .getByTitle("Direct transfer for large files", { exact: true })
+    .click();
+  await page
+    .getByLabel("Send to", { exact: true })
+    .selectOption(String(b.user.id));
+  await page
+    .getByLabel("Choose a file", { exact: true })
+    .setInputFiles({
+      name: "weekend-note.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("See you in the common room."),
+    });
+  await page.getByRole("button", { name: /Send file directly/ }).click();
+  await expect(
+    pageB.getByRole("button", { name: "Accept Download", exact: true }),
+  ).toBeVisible();
+  const downloaded = pageB.waitForEvent("download");
+  await pageB
+    .getByRole("button", { name: "Accept Download", exact: true })
+    .click();
   const file = await downloaded;
-  expect(file.suggestedFilename()).toBe('weekend-note.txt');
-  expect(await fs.readFile(await file.path(), 'utf8')).toBe('See you in the common room.');
-  await screenshot(page, 'direct-file-transfer');
+  expect(file.suggestedFilename()).toBe("weekend-note.txt");
+  expect(await fs.readFile(await file.path(), "utf8")).toBe(
+    "See you in the common room.",
+  );
+  await screenshot(page, "direct-file-transfer");
   await contextB.close();
 });
 
@@ -335,12 +355,10 @@ test("latest message history, pagination, reactions, threads, and attachments", 
   });
   try {
     for (let n = 1; n <= 55; n++) {
-      const response = await socket
-        .timeout(5000)
-        .emitWithAck("send_message", {
-          channel_id: channel.id,
-          content: `History message ${n}`,
-        });
+      const response = await socket.timeout(5000).emitWithAck("send_message", {
+        channel_id: channel.id,
+        content: `History message ${n}`,
+      });
       expect(response.ok).toBe(true);
     }
   } finally {
@@ -385,13 +403,11 @@ test("latest message history, pagination, reactions, threads, and attachments", 
   ).toHaveCount(1);
   await page.getByRole("button", { name: "Close thread", exact: true }).click();
   await expect(page.locator(".message-body")).toHaveCount(55);
-  await page
-    .locator('.message-composer input[type="file"]')
-    .setInputFiles({
-      name: "hello.txt",
-      mimeType: "text/plain",
-      buffer: Buffer.from("A small file shared on Alto."),
-    });
+  await page.locator('.message-composer input[type="file"]').setInputFiles({
+    name: "hello.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("A small file shared on Alto."),
+  });
   await page.getByRole("button", { name: "Send message", exact: true }).click();
   await expect(
     page.locator(".message-row").last().getByText("hello.txt", { exact: true }),
@@ -430,9 +446,17 @@ test("one account dock controls voice, camera, and disconnect with synthetic dev
   await login(page, account.email);
   await page.getByRole("button", { name: server.name, exact: true }).click();
   await page.getByRole("button", { name: "Lounge", exact: true }).click();
-  await page
-    .getByTitle("View Voice & Video Grid", { exact: true })
-    .click();
+  await expect(
+    page.getByRole("button", { name: "Join Voice", exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(async () => {
+      const { voiceManager } = await import("/src/services/webrtcVoice.js");
+      return (
+        voiceManager.channel_id || voiceManager.getCurrentState().channel_id
+      );
+    }),
+  ).toBeFalsy();
   await page.getByRole("button", { name: "Join Voice", exact: true }).click();
   await expect(
     page.getByText("Voice connected", { exact: true }),
@@ -451,13 +475,27 @@ test("one account dock controls voice, camera, and disconnect with synthetic dev
   await expect(
     dock.getByRole("button", { name: "Turn off camera", exact: true }),
   ).toBeVisible();
-  await expect.poll(() => page.locator('video').first().evaluate(el => el.readyState)).toBeGreaterThanOrEqual(2);
+  await expect
+    .poll(() =>
+      page
+        .locator("video")
+        .first()
+        .evaluate((el) => el.readyState),
+    )
+    .toBeGreaterThanOrEqual(2);
   await screenshot(page, "voice-and-unified-account-dock");
-  await expect(page.locator(".workspace-topbar")).toBeInViewport({ ratio: 1 });
-  expect(await page.locator(".workspace-topbar").evaluate(el => el.getBoundingClientRect().top)).toBe(0);
-  await page.getByRole("button", { name: "Open voice text chat", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Alto home" })).toBeInViewport({
+    ratio: 1,
+  });
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await page
+    .getByRole("button", { name: "Open voice text chat", exact: true })
+    .click();
   await expect(page.locator(".chat-stream")).toBeVisible();
-  await page.getByRole("button", { name: "Close voice text chat", exact: true }).last().click();
+  await page
+    .getByRole("button", { name: "Close voice text chat", exact: true })
+    .last()
+    .click();
   await expect(page.locator(".chat-stream")).toHaveCount(0);
   await dock
     .getByRole("button", { name: "Disconnect voice", exact: true })
@@ -477,4 +515,142 @@ test("one account dock controls voice, camera, and disconnect with synthetic dev
     );
   });
   expect(mediaReleased).toBe(true);
+  await page.setViewportSize({ width: 360, height: 640 });
+  await page.getByRole("button", { name: "Join Voice", exact: true }).click();
+  await expect(page.locator(".voice-controls")).toBeVisible();
+  await screenshot(page, "navigation-mobile-call");
+  await page.getByRole('button', { name:'Open navigation' }).click();
+  await page.getByRole('button', { name:'Home', exact:true }).click();
+  await expect(page.getByRole('complementary', { name:'Active call' })).toBeVisible();
+  await page.getByRole('button', { name:/Return to call/ }).click();
+  await expect(page.locator('.voice-controls')).toBeVisible();
+  await expect(page.getByRole('complementary', { name:'Active call' })).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page
+    .locator(".voice-controls")
+    .getByRole("button", { name: "Leave Voice", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Join Voice", exact: true }),
+  ).toBeVisible();
+});
+
+test("clear inbox, one navigation column, remembered channels, and a labeled mobile drawer", async ({
+  page,
+  request,
+}) => {
+  const account = await createAccount(request, "Robin");
+  const other = await createAccount(request, "Avery");
+  const [space] = await (
+    await request.get(`${api}/servers`, { headers: account.headers })
+  ).json();
+  await request.post(`${api}/servers/${space.id}/channels`, {
+    headers: account.headers,
+    data: { name: "weekend-plans", type: "text", category: "Conversations" },
+  });
+  await login(page, account.email);
+  await page.getByRole("button", { name: "Messages", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Messages", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Start with a hello" }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "New message", exact: true })
+    .last()
+    .click();
+  const dialog = page.getByRole("dialog", { name: "New message" });
+  await dialog
+    .getByRole("textbox", { name: "Find a person" })
+    .fill(`#${other.user.public_id}`);
+  await dialog.getByRole("button", { name: /Avery/ }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Message @Avery", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "View profile of Avery" }).click();
+  await expect(
+    page.getByText(`#${other.user.public_id}`, { exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Back to messages" }).click();
+  await expect(page.locator(".inbox-conversation")).toHaveCount(1);
+  await page.getByRole("button", { name: "Unread", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: /all caught up/ }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "View all messages" }).click();
+  await page
+    .getByRole("textbox", { name: "Search conversations" })
+    .fill("no matches");
+  await expect(
+    page.getByRole("heading", { name: "No conversations found" }),
+  ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Search conversations" })
+    .fill("Avery");
+  await screenshot(page, "navigation-inbox-desktop");
+  await page.getByRole("button", { name: space.name, exact: true }).click();
+  await page
+    .getByRole("button", { name: "weekend-plans", exact: true })
+    .click();
+  await expect(page.locator(".secondary-nav")).toHaveCount(0);
+  await page.getByRole("button", { name: space.name, exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: space.name, exact: true }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    page.getByRole("textbox", { name: "Message #weekend-plans", exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: space.name, exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "weekend-plans", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Show members", exact: true }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await page.getByRole("button", { name: space.name, exact: true }).click();
+  await expect(
+    page.getByRole("textbox", { name: "Message #weekend-plans", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Search conversation", exact: true })
+    .click();
+  await expect(
+    page.getByRole("textbox", { name: "Search messages in this conversation" }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Close conversation search" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".primary-nav")).toHaveCount(0);
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await expect(page.getByRole("dialog", { name: "Browse Alto" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Your profile and status" }),
+  ).toHaveCount(1);
+  await screenshot(page, "navigation-mobile-drawer");
+  await page.keyboard.press("Escape");
+  await expect(
+    page.getByRole("button", { name: "Open navigation" }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("button", { name: "Messages", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Browse Alto" })).toHaveCount(
+    0,
+  );
+  await page.locator(".inbox-conversation").click();
+  await expect(
+    page.getByRole("textbox", { name: "Message @Avery", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/Getting the conversation ready/)).toHaveCount(0);
+  await screenshot(page, "navigation-mobile-dm");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });

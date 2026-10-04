@@ -36,6 +36,8 @@ export default function HomeDashboard({
     conversations,
     selectDM,
     openDMHome,
+    openDirectMessages,
+    currentServer,
     unreadChannels,
     unreadDMs,
     friendships,
@@ -156,7 +158,7 @@ export default function HomeDashboard({
 
   return (
     <div className="home-scroll">
-      <div className="home-page">
+      <div className={`home-page ${servers.length ? "everyday-home" : ""}`}>
         <div className="home-greeting">
           <div>
             <div className="eyebrow">YOUR DAILY DOSE OF CONNECTION</div>
@@ -187,6 +189,11 @@ export default function HomeDashboard({
             Finding your spaces...
           </div>
         )}
+        {servers.length > 0 && <section className="home-shortcuts" aria-label="Quick actions">
+          <button className="resume-space" onClick={() => selectServer(servers.find(s => s.id === currentServer?.id) || servers[0])}><span className="shortcut-icon"><ArrowRight size={21} /></span><span><small>Jump back in</small><strong>{currentServer?.name || servers[0].name}</strong></span><ArrowRight size={18} /></button>
+          <button onClick={openDirectMessages}><span className="shortcut-icon"><MessageCircle size={21} /></span><span><strong>Messages</strong><small>{Object.values(unreadDMs).reduce((a,b) => a+b,0) || 'All your'} conversations</small></span><ArrowRight size={18} /></button>
+          <button onClick={onJoin}><span className="shortcut-icon"><Compass size={21} /></span><span><strong>Join a space</strong><small>Have an invite code?</small></span><ArrowRight size={18} /></button>
+        </section>}
         <div className="home-columns">
           <div className="home-main">
             <section className="welcome-card">
@@ -393,7 +400,7 @@ export default function HomeDashboard({
                   key={channel.id}
                   onClick={() => {
                     selectServer(server);
-                    selectChannel(channel);
+                    selectChannel(channel, false);
                   }}
                 >
                   <span className="room-icon">

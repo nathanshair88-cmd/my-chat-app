@@ -83,7 +83,7 @@ export default function VoiceRoom({ onOpenTextChat }) {
   return (
     <div className="flex-1 min-w-0 bg-transparent flex flex-col justify-between p-2 sm:p-4 relative min-h-0 overflow-hidden select-none">
       {/* Top Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-surface-active/80 backdrop-blur-md px-3 sm:px-4 py-2.5 rounded-md border border-surface-border mb-3 sm:mb-4 z-10 shadow-sm ml-12 sm:ml-0">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-surface-active/80 backdrop-blur-md px-3 sm:px-4 py-2.5 rounded-md border border-surface-border mb-3 sm:mb-4 z-10 shadow-sm">
         <div className="flex items-center space-x-2 text-text-primary font-bold text-sm min-w-0">
           <Radio className="w-4 h-4 text-success animate-pulse" />
           <span className="truncate">#{currentChannel.name}</span>
@@ -141,7 +141,7 @@ export default function VoiceRoom({ onOpenTextChat }) {
       </div>
 
       {/* Control Action Toolbar */}
-      <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-surface-active/80 backdrop-blur-md py-2.5 sm:py-3 px-3 sm:px-6 rounded-md border border-surface-border mt-3 sm:mt-4 self-center max-w-full shadow-2xl z-10">
+      <div className="voice-controls flex flex-wrap items-center justify-center gap-2 sm:gap-4 bg-surface-active/80 backdrop-blur-md py-2.5 sm:py-3 px-3 sm:px-6 rounded-md border border-surface-border mt-3 sm:mt-4 self-center max-w-full shadow-2xl z-10">
         {/* Watch Together / Activities Button */}
         <button
           onClick={() => setShowWatchTogether(v => !v)}
@@ -150,7 +150,7 @@ export default function VoiceRoom({ onOpenTextChat }) {
           }`}
           title={showWatchTogether ? 'Hide Watch Together' : 'Watch Together (YouTube Sync)'}
         >
-          <Tv2 className="w-5 h-5" />
+          <Tv2 className="w-5 h-5" /><span className="voice-control-label">Watch</span>
           {watchState.isActive && !showWatchTogether && (
             <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border border-surface-base animate-pulse" />
           )}
@@ -164,7 +164,7 @@ export default function VoiceRoom({ onOpenTextChat }) {
           }`}
           title={voiceState.isMuted ? "Unmute Mic" : "Mute Mic"}
         >
-          {voiceState.isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+          {voiceState.isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}<span className="voice-control-label">{voiceState.isMuted ? "Unmute" : "Mute"}</span>
         </button>
 
         {/* Deafen Audio */}
@@ -175,7 +175,7 @@ export default function VoiceRoom({ onOpenTextChat }) {
           }`}
           title={voiceState.isDeafened ? "Undeafen Audio" : "Deafen Audio"}
         >
-          {voiceState.isDeafened ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+          {voiceState.isDeafened ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}<span className="voice-control-label">{voiceState.isDeafened ? "Sound on" : "Sound off"}</span>
         </button>
 
         {/* Screen Share Button */}
@@ -190,9 +190,9 @@ export default function VoiceRoom({ onOpenTextChat }) {
           className={`p-3 sm:p-3.5 rounded-full transition-all transform active:scale-95 shadow-sm mobile-touch-target ${
             voiceState.isScreenSharing ? 'bg-accent-primary text-text-primary shadow-accent-primary/30' : 'bg-surface-panel hover:bg-surface-hover text-text-primary'
           }`}
-          title={voiceState.isScreenSharing ? "Stop Screen Share" : "Share Screen (Full Res @ 60FPS)"}
+          title={voiceState.isScreenSharing ? "Stop Screen Share" : "Share screen"}
         >
-          {voiceState.isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+          {voiceState.isScreenSharing ? <MonitorOff className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}<span className="voice-control-label">{voiceState.isScreenSharing ? "Stop sharing" : "Share screen"}</span>
         </button>
 
         {/* Camera (Webcam) Button */}
@@ -203,7 +203,7 @@ export default function VoiceRoom({ onOpenTextChat }) {
           }`}
           title={voiceState.isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
         >
-          {voiceState.isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          {voiceState.isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}<span className="voice-control-label">{voiceState.isCameraOn ? "Camera off" : "Camera on"}</span>
         </button>
 
         {/* Disconnect Voice */}
@@ -213,7 +213,7 @@ export default function VoiceRoom({ onOpenTextChat }) {
           title="Leave Voice"
         >
           <PhoneOff className="w-5 h-5" />
-          <span className="text-sm font-semibold leading-none">Leave Voice</span>
+          <span className="voice-control-label">Leave Voice</span>
         </button>
       </div>
 

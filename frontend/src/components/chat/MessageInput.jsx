@@ -15,6 +15,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showFormatting, setShowFormatting] = useState(false);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [draftSaveFailed, setDraftSaveFailed] = useState(false);
@@ -351,6 +352,8 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
         {/* Formatting & Action Bar */}
         <div className="composer-toolbar flex flex-wrap items-center justify-between gap-2 border-b border-surface-border pb-1.5 px-1 text-text-muted">
           <div className="flex items-center gap-1 min-w-0">
+            <button className="format-toggle" aria-expanded={showFormatting} aria-label="Formatting options" onClick={() => setShowFormatting(v => !v)}><span>Aa</span><span className="composer-option-label">Format</span></button>
+            {showFormatting && <>
             <button 
               onClick={() => insertFormatting('**')} 
               className="p-2 sm:p-1 hover:text-text-primary hover:bg-surface-hover rounded transition-colors mobile-touch-target sm:min-w-0 sm:min-h-0"
@@ -374,13 +377,14 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
             </button>
             
             {/* GIF Button */}
+            </>}
             <div className="relative">
               <button 
                 onClick={() => setShowGifPicker(!showGifPicker)} 
                 className="p-2 sm:p-1 hover:text-text-primary hover:bg-surface-hover rounded transition-colors mobile-touch-target sm:min-w-0 sm:min-h-0"
                 title="Send a GIF"
               >
-                <PlaySquare className="w-4 h-4" />
+                <PlaySquare className="w-4 h-4" /><span className="composer-option-label">GIF</span>
               </button>
               {showGifPicker && (
                 <GifPicker 
@@ -396,7 +400,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
               className="p-2 sm:p-1 hover:text-accent-hover hover:bg-surface-hover rounded transition-colors text-accent-primary mobile-touch-target sm:min-w-0 sm:min-h-0"
               title="Attach File / Image"
             >
-              <Paperclip className="w-4 h-4" />
+              <Paperclip className="w-4 h-4" /><span className="composer-option-label">Attach</span>
             </button>
             <input
               type="file"
