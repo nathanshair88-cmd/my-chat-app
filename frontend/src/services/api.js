@@ -6,6 +6,7 @@ const useVercelProxy =
   import.meta.env.VITE_FORCE_DIRECT_BACKEND !== 'true';
 
 const API = axios.create({
+  timeout: 15000,
   baseURL: useVercelProxy ? '/api' : (import.meta.env.VITE_API_URL || '/api'),
 });
 
@@ -42,7 +43,7 @@ export const serverAPI = {
 
 export const channelAPI = {
   createChannel: (serverId, data) => API.post(`/servers/${serverId}/channels`, data),
-  getMessages: (channelId) => API.get(`/channels/${channelId}/messages`),
+  getMessages: (channelId, before) => API.get(`/channels/${channelId}/messages`, { params: { before } }),
   getThreadMessages: (channelId, messageId) => API.get(`/channels/${channelId}/messages/${messageId}/thread`),
 };
 

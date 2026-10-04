@@ -3,23 +3,43 @@ import { getSocket } from '../../services/socket';
 import { useServer } from '../../context/ServerContext';
 import { Send, Bold, Code, Italic, Paperclip, Share2, X, FileText, PlaySquare } from 'lucide-react';
 import GifPicker from './GifPicker';
+import { readLocal, writeLocal } from '../../services/localWorkspace';
+import { useAuth } from '../../context/AuthContext';
 
 export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parentId = null, compact = false }) {
   const { viewMode, currentChannel, currentDM } = useServer();
-  const [content, setContent] = useState('');
+  const { user } = useAuth();
+  const draftKey = `alto:draft:${user?.id}:${viewMode}:${currentDM?.id || currentChannel?.id}:${parentId || 'main'}`;
+  const [content, setContent] = useState(() => readLocal(draftKey, ''));
   const [attachments, setAttachments] = useState([]);
   const [replyingTo, setReplyingTo] = useState(null);
   const [editingMessage, setEditingMessage] = useState(null);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [sendError, setSendError] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [draftSaveFailed, setDraftSaveFailed] = useState(false);
   const fileInputRef = useRef(null);
   const typingTimeoutRef = useRef(null);
   const isTypingRef = useRef(false);
 
   const inputRef = useRef(null);
+  const draftRef = useRef({ key: draftKey, content, editing: false });
+  useEffect(() => {
+    draftRef.current = { key: draftKey, content, editing: Boolean(editingMessage) };
+    if (!editingMessage) setDraftSaveFailed(!writeLocal(draftKey, content));
+  }, [draftKey, content, editingMessage]);
+  useEffect(() => () => {
+    const draft = draftRef.current;
+    if (!draft.editing) writeLocal(draft.key, draft.content);
+    clearTimeout(typingTimeoutRef.current);
+  }, []);
+  useEffect(() => {
+    if (inputRef.current) { inputRef.current.style.height = 'auto'; inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 160)}px`; }
+  }, [content]);
 
   const clearComposer = () => {
+    writeLocal(draftKey, '');
+    draftRef.current.content = '';
     setContent('');
     setAttachments([]);
     setReplyingTo(null);
@@ -68,6 +88,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
   // Listen for @mention and reply events
   useEffect(() => {
     const handleMentionEvent = (e) => {
+      if (parentId) return;
       const { username } = e.detail;
       setContent(prev => `${prev}@${username} `);
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -75,6 +96,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
 
     const handleReplyEvent = (e) => {
       const { message } = e.detail;
+      if ((message.parent_id || null) !== parentId) return;
       setReplyingTo(message);
       setEditingMessage(null);
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -82,6 +104,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
 
     const handleEditEvent = (e) => {
       const { message } = e.detail;
+      if ((message.parent_id || null) !== parentId) return;
       setEditingMessage(message);
       setReplyingTo(null);
       setAttachments([]);
@@ -97,7 +120,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
       window.removeEventListener('reply-message', handleReplyEvent);
       window.removeEventListener('edit-message', handleEditEvent);
     };
-  }, []);
+  }, [parentId]);
 
 
   const handleFilesSelected = (files) => {
@@ -105,13 +128,19 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
       // Prevent very large files from crashing the browser tab by freezing the main thread during base64 encoding
       // and maxing out the WebSocket payload limit.
       if (file.size > 5 * 1024 * 1024) {
-        alert(`File "${file.name}" is too large (>${(file.size / 1024 / 1024).toFixed(1)}MB). Please use the "P2P File Transfer" button for large files!`);
+        setSendError(`“${file.name}” is larger than 5 MB. Use Direct transfer for larger files.`);
         return;
       }
       
       const reader = new FileReader();
+      reader.onerror = () => setSendError(`Could not read “${file.name}”. Please try a different file.`);
       reader.onload = (e) => {
-        setAttachments(prev => [
+        setAttachments(prev => {
+          if (prev.reduce((sum, attachment) => sum + (attachment.size || 0), 0) + file.size > 5 * 1024 * 1024) {
+            setSendError('Attachments can total up to 5 MB per message. Use Direct transfer for larger files.');
+            return prev;
+          }
+          return [
           ...prev,
           {
             name: file.name,
@@ -119,7 +148,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
             type: file.type,
             url: e.target.result
           }
-        ]);
+        ]; });
       };
       reader.readAsDataURL(file);
     });
@@ -170,13 +199,12 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
         setSendError('Realtime connection is disconnected. Please wait a moment and try again.');
         return;
       }
-      activeSocket.emit('edit_message', {
+      emitWithAck('edit_message', {
         message_id: editingMessage.id,
         content: finalContent,
         channel_id: editingMessage.channel_id,
         conversation_id: editingMessage.conversation_id
-      });
-      clearComposer();
+      }, clearComposer);
       return;
     }
 
@@ -243,14 +271,18 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       handleSendMessage();
     }
   };
 
   const insertFormatting = (prefix, suffix = prefix) => {
-    setContent(prev => `${prev}${prefix}text${suffix}`);
+    const start = inputRef.current?.selectionStart ?? content.length;
+    const end = inputRef.current?.selectionEnd ?? start;
+    const selected = content.slice(start, end) || 'text';
+    setContent(`${content.slice(0, start)}${prefix}${selected}${suffix}${content.slice(end)}`);
+    requestAnimationFrame(() => { inputRef.current?.focus(); inputRef.current?.setSelectionRange(start + prefix.length, start + prefix.length + selected.length); });
   };
 
   const placeholderText = viewMode === 'dm' 
@@ -258,7 +290,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
     : `Message #${currentChannel ? currentChannel.name : 'channel'}`;
 
   return (
-    <div className={`${compact ? 'px-2 pb-2' : 'px-2 sm:px-4 pb-2 sm:pb-4'} bg-transparent`}>
+    <div className={`message-composer ${compact ? 'px-2 pb-2' : 'px-2 sm:px-4 pb-2 sm:pb-4'} bg-transparent`}>
       <div className="bg-surface-panel/40 backdrop-blur-md rounded-md border border-surface-border p-2 flex flex-col space-y-2 shadow-lg">
         {/* Reply Preview Bar */}
         {replyingTo && (
@@ -317,7 +349,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
         )}
 
         {/* Formatting & Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-surface-border pb-1.5 px-1 text-text-muted">
+        <div className="composer-toolbar flex flex-wrap items-center justify-between gap-2 border-b border-surface-border pb-1.5 px-1 text-text-muted">
           <div className="flex items-center gap-1 min-w-0">
             <button 
               onClick={() => insertFormatting('**')} 
@@ -377,20 +409,21 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
 
           <div className="flex items-center gap-2 shrink-0">
             {/* P2P WebRTC DataChannel Share Button */}
-            <button
+            {onOpenP2PModal && <button
               onClick={onOpenP2PModal}
               className="flex items-center space-x-1 px-2.5 py-2 sm:py-1 bg-accent-primary hover:bg-accent-hover text-text-primary text-xs font-semibold rounded-md shadow transition-colors mobile-touch-target sm:min-w-0 sm:min-h-0"
-              title="Send Direct P2P File (Unlimited GBs, Zero Server Storage)"
+              title="Direct transfer for large files"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span className={compact ? 'hidden' : 'hidden sm:inline'}>P2P File Transfer</span>
-            </button>
+              <span className={compact ? 'hidden' : 'hidden sm:inline'}>Direct transfer</span>
+            </button>}
           </div>
         </div>
 
         {/* Input Text Area */}
-        <div className="flex items-end space-x-2">
+        <div className="composer-field flex items-end space-x-2">
           <textarea
+            aria-label={parentId ? 'Reply in thread' : placeholderText}
             ref={inputRef}
             value={content}
             onChange={handleTextChange}
@@ -401,6 +434,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
           />
 
           <button
+            aria-label={editingMessage ? 'Save edit' : 'Send message'}
             onClick={handleSendMessage}
             disabled={isSending || (!content.trim() && attachments.length === 0)}
             className={`p-2.5 sm:p-2 rounded-sm transition-colors flex-shrink-0 shadow-sm mobile-touch-target sm:min-w-0 sm:min-h-0 ${
@@ -411,6 +445,7 @@ export default function MessageInput({ onOpenP2PModal, droppedFiles = [], parent
           </button>
         </div>
       </div>
+      <footer className="composer-hint"><span>Enter to send · Shift + Enter for a new line</span><span>{draftSaveFailed ? 'Browser storage full — draft not saved' : content && !editingMessage ? 'Draft saved on this device' : 'A little hello goes a long way.'}</span></footer>
     </div>
   );
 }

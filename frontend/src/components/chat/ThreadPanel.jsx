@@ -10,7 +10,7 @@ export default function ThreadPanel() {
   const { currentChannel, activeThreadMessage, setActiveThreadMessage } = useServer();
   
   const [threadMessages, setThreadMessages] = useState([]);
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
 
   useEffect(() => {
     const fetchThread = async () => {
@@ -26,7 +26,8 @@ export default function ThreadPanel() {
   }, [currentChannel, activeThreadMessage]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    container?.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   }, [threadMessages]);
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function ThreadPanel() {
           <span className="font-bold text-text-primary text-md truncate">Thread</span>
         </div>
         <button
+          aria-label="Close thread"
           onClick={() => setActiveThreadMessage(null)}
           className="p-2 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded transition mobile-touch-target sm:min-w-0 sm:min-h-0"
         >
@@ -76,7 +78,7 @@ export default function ThreadPanel() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 no-scrollbar responsive-safe-scroll">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 no-scrollbar responsive-safe-scroll">
         {/* Parent Message Preview */}
         <div className="mb-4 pb-4 border-b border-surface-border">
           <div className="text-xs text-text-muted font-bold uppercase tracking-wider mb-2">Original Message</div>
@@ -86,12 +88,11 @@ export default function ThreadPanel() {
         {threadMessages.map((msg) => (
           <MessageItem key={msg.id} message={msg} />
         ))}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
       <div className="p-2 sm:p-3 bg-surface-panel/50 border-t border-surface-border">
-         <MessageInput parentId={activeThreadMessage.id} placeholder={`Reply in thread...`} />
+         <MessageInput key={activeThreadMessage.id} parentId={activeThreadMessage.id} compact />
       </div>
     </div>
   );

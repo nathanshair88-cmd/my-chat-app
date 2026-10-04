@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/channels", tags=["channels"])
 async def get_channel_messages(
     channel_id: int,
     limit: int = Query(50, ge=1, le=100),
+    before: int | None = Query(None, ge=1),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
@@ -24,16 +25,16 @@ async def get_channel_messages(
 
     res = await db.execute(
         select(Message)
-        .where(Message.channel_id == channel_id, Message.parent_id.is_(None))
+        .where(Message.channel_id == channel_id, Message.parent_id.is_(None), *( [Message.id < before] if before else [] ))
         .options(
             selectinload(Message.author),
             selectinload(Message.reactions)
         )
-        .order_by(Message.created_at.asc())
+        .order_by(Message.id.desc())
         .limit(limit)
     )
     messages = res.scalars().all()
-    return [_message_dict(m) for m in messages]
+    return [_message_dict(m) for m in reversed(messages)]
 
 @router.get("/{channel_id}/messages/{message_id}/thread", response_model=list[MessageResponse])
 async def get_thread_messages(

@@ -291,6 +291,8 @@ class WebRTCVoiceManager {
     }
 
 
+    const generation = (this.joinGeneration || 0) + 1;
+    this.joinGeneration = generation;
     this.currentChannelId = channel_id;
     this._setupSocketListeners();
 
@@ -305,16 +307,18 @@ class WebRTCVoiceManager {
         audioConstraints.deviceId = { exact: savedAudioInput };
       }
 
-      this.localAudioStream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: audioConstraints,
         video: false,
       });
-
+      if (generation !== this.joinGeneration) { stream.getTracks().forEach(track => track.stop()); return; }
+      this.localAudioStream = stream;
       this._applyMicState();
       this._setupAudioAnalyser('local', this.localAudioStream);
       this._startMediaRecorder();
     } catch (err) {
       console.warn("No microphone accessible or permission denied:", err);
+      if (generation !== this.joinGeneration) return;
       this.localAudioStream = new MediaStream();
     }
 
@@ -360,12 +364,22 @@ class WebRTCVoiceManager {
   }
 
   leaveVoiceChannel() {
+    this.joinGeneration = (this.joinGeneration || 0) + 1;
     const socket = getSocket();
     if (socket && this.currentChannelId) {
       socket.emit('leave_voice', { channel_id: this.currentChannelId });
     }
 
-    notificationService.playVoiceDisconnectChime();
+    if (this.currentChannelId) notificationService.playVoiceDisconnectChime();
+    this._stopCompositeLoop();
+    if (this.localCameraStream) {
+      this.localCameraStream.getTracks().forEach(track => track.stop());
+      this.localCameraStream = null;
+    }
+    if (this.compositeStream) {
+      this.compositeStream.getTracks().forEach(track => track.stop());
+      this.compositeStream = null;
+    }
 
     if (this.mediaRecorder) {
       try { this.mediaRecorder.stop(); } catch {}

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useServer } from '../../context/ServerContext';
 import { dmAPI } from '../../services/api';
-import UserWidget from './UserWidget';
 import UserContextMenu from '../modals/UserContextMenu';
 import { Inbox, MessageCircle, Plus, Search, Users, X } from 'lucide-react';
 
@@ -18,7 +17,7 @@ const avatarFor = (user) => (
   user?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user?.username || 'user')}`
 );
 
-export default function DMSidebar({ onOpenSettings, onNavigate }) {
+export default function DMSidebar({ onNavigate }) {
   const {
     conversations,
     currentDM,
@@ -234,7 +233,6 @@ export default function DMSidebar({ onOpenSettings, onNavigate }) {
         )}
       </div>
 
-      <UserWidget onOpenSettings={onOpenSettings} />
 
       {contextMenu && (
         <UserContextMenu

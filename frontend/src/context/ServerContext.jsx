@@ -21,7 +21,7 @@ export const ServerProvider = ({ children }) => {
   const { user } = useAuth();
 
   // App View Mode: 'server' | 'dm'
-  const [viewMode, setViewMode] = useState('server');
+  const [viewMode, setViewMode] = useState('home');
 
   // Server state
   const [servers, setServers] = useState([]);
@@ -31,6 +31,7 @@ export const ServerProvider = ({ children }) => {
 
   // Refs to avoid stale closures in socket event handlers
   const currentChannelRef = React.useRef(currentChannel);
+  const messageRequestRef = React.useRef(0);
   const currentDMRef = React.useRef(null);
   const viewModeRef = React.useRef('server');
 
@@ -55,6 +56,12 @@ export const ServerProvider = ({ children }) => {
 
   // Unified chat state & unread state
   const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [messagesError, setMessagesError] = useState('');
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
+  const [olderMessagesLoading, setOlderMessagesLoading] = useState(false);
+  const [spacesError, setSpacesError] = useState('');
+  const [spacesLoading, setSpacesLoading] = useState(true);
   const [typingUsers, setTypingUsers] = useState(new Map());
   const [unreadChannels, setUnreadChannels] = useState({});
   const [unreadDMs, setUnreadDMs] = useState({});
@@ -73,6 +80,12 @@ export const ServerProvider = ({ children }) => {
 
   const toggleMembersList = useCallback(() => {
     setMembersListOpen(prev => !prev);
+  }, []);
+  useEffect(() => {
+    const breakpoint = window.matchMedia('(min-width: 1024px)');
+    const adapt = () => { if (!breakpoint.matches) setMembersListOpen(false); };
+    breakpoint.addEventListener('change', adapt);
+    return () => breakpoint.removeEventListener('change', adapt);
   }, []);
 
   // Sound preference
@@ -149,14 +162,16 @@ export const ServerProvider = ({ children }) => {
   // Fetch servers
   const fetchServers = useCallback(async () => {
     if (!user) return;
+    setSpacesLoading(true);
+    setSpacesError('');
     try {
       const res = await serverAPI.getServers();
       setServers(res.data);
-      if (res.data.length > 0 && !currentServer) {
-        selectServer(res.data[0]);
-      }
     } catch (err) {
       console.error("Error fetching servers:", err);
+      setSpacesError('Your spaces couldn’t load. Check your connection and try again.');
+    } finally {
+      setSpacesLoading(false);
     }
   }, [user]);
 
@@ -205,6 +220,10 @@ export const ServerProvider = ({ children }) => {
   };
 
   const selectChannel = async (channel, userInitiated = true) => {
+    const request = ++messageRequestRef.current;
+    setMessagesError('');
+    setHasOlderMessages(false);
+    setOlderMessagesLoading(false);
     setViewMode('server');
     setCurrentDM(null);
     if (!channel) return;
@@ -238,10 +257,14 @@ export const ServerProvider = ({ children }) => {
     }
 
     try {
+      setMessagesLoading(true);
       const res = await channelAPI.getMessages(channel.id);
-      setMessages(res.data);
+      if (request === messageRequestRef.current) { setMessages(res.data); setHasOlderMessages(res.data.length === 50); }
     } catch (err) {
       console.error("Error fetching channel messages:", err);
+      if (request === messageRequestRef.current) setMessagesError('Messages couldn’t load. Please try again.');
+    } finally {
+      if (request === messageRequestRef.current) setMessagesLoading(false);
     }
   };
 
@@ -253,6 +276,10 @@ export const ServerProvider = ({ children }) => {
 
 
   const selectDM = async (conversation) => {
+    const request = ++messageRequestRef.current;
+    setMessagesError('');
+    setHasOlderMessages(false);
+    setMessagesLoading(false);
     setViewMode('dm');
     setShowVoiceGrid(false);
     const socket = getSocket();
@@ -283,10 +310,14 @@ export const ServerProvider = ({ children }) => {
       }
 
       try {
+        setMessagesLoading(true);
         const res = await dmAPI.getDMMessages(conversation.id);
-        setMessages(res.data);
+        if (request === messageRequestRef.current) setMessages(res.data);
       } catch (err) {
         console.error("Error fetching DM messages:", err);
+        if (request === messageRequestRef.current) setMessagesError('Messages couldn’t load. Please try again.');
+      } finally {
+        if (request === messageRequestRef.current) setMessagesLoading(false);
       }
     }
   };
@@ -338,7 +369,7 @@ export const ServerProvider = ({ children }) => {
 
       const handleNewMessage = (msg) => {
         if (viewModeRef.current === 'server' && currentChannelRef.current && msg.channel_id === currentChannelRef.current.id) {
-          setMessages(prev => [...prev, msg]);
+          if (!msg.parent_id) setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg]);
         } else {
           setUnreadChannels(prev => ({
             ...prev,
@@ -518,6 +549,23 @@ export const ServerProvider = ({ children }) => {
     return res.data;
   };
 
+  const loadOlderMessages = async () => {
+    if (olderMessagesLoading || !hasOlderMessages || !currentChannel || !messages.length) return;
+    const request = messageRequestRef.current;
+    setOlderMessagesLoading(true);
+    setMessagesError('');
+    try {
+      const res = await channelAPI.getMessages(currentChannel.id, messages[0].id);
+      if (request !== messageRequestRef.current) return;
+      setHasOlderMessages(res.data.length === 50);
+      setMessages(prev => [...res.data.filter(msg => !prev.some(existing => existing.id === msg.id)), ...prev]);
+    } catch {
+      if (request === messageRequestRef.current) setMessagesError('Earlier messages couldn’t load. Please try again.');
+    } finally {
+      if (request === messageRequestRef.current) setOlderMessagesLoading(false);
+    }
+  };
+
   const joinServer = async (invite_code) => {
     const res = await serverAPI.joinServer(invite_code);
     await fetchServers();
@@ -548,6 +596,13 @@ export const ServerProvider = ({ children }) => {
       dmHomeTab,
       friendships,
       messages,
+      messagesLoading,
+      messagesError,
+      hasOlderMessages,
+      olderMessagesLoading,
+      loadOlderMessages,
+      spacesLoading,
+      spacesError,
       typingUsers,
       unreadChannels,
       unreadDMs,
@@ -582,4 +637,5 @@ export const ServerProvider = ({ children }) => {
   );
 };
 
+// oxlint-disable-next-line react/only-export-components -- Context hooks intentionally share their provider module.
 export const useServer = () => useContext(ServerContext);

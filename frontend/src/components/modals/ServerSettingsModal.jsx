@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import useDialog from '../../hooks/useDialog';
+import React, { useState, useEffect, useCallback } from 'react';
 import { serverAPI, roleAPI, webhookAPI } from '../../services/api';
 import { X, Settings, Users, Trash2, Shield, UserX, AlertTriangle, Check, Plus, Bot, Copy } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function ServerSettingsModal({ server, onClose, onServerUpdated, onServerDeleted }) {
+  const dialogRef = useDialog(onClose);
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -28,23 +30,23 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
   const [newWebhookChannelId, setNewWebhookChannelId] = useState('');
   const [copiedToken, setCopiedToken] = useState(null);
 
-  const fetchRoles = async () => {
+  const fetchRoles = useCallback(async () => {
     try {
       const res = await roleAPI.getRoles(server.id);
       setRoles(res.data);
     } catch (err) {
       console.error("Failed to fetch roles:", err);
     }
-  };
+  }, [server.id]);
 
-  const fetchWebhooks = async () => {
+  const fetchWebhooks = useCallback(async () => {
     try {
       const res = await webhookAPI.getWebhooks(server.id);
       setWebhooks(res.data);
     } catch (err) {
       console.error("Failed to fetch webhooks:", err);
     }
-  };
+  }, [server.id]);
 
   useEffect(() => {
     if (activeTab === 'roles' || activeTab === 'members') {
@@ -53,7 +55,7 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
     if (activeTab === 'integrations') {
       fetchWebhooks();
     }
-  }, [activeTab, server.id]);
+  }, [activeTab, fetchRoles, fetchWebhooks]);
 
   // Esc key to close
   useEffect(() => {
@@ -189,7 +191,7 @@ export default function ServerSettingsModal({ server, onClose, onServerUpdated, 
   const canManageServer = isOwner || currentMember?.role === 'admin';
 
   return (
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Space settings" tabIndex={-1} className="fixed inset-0 z-[99999] flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-fadeIn"

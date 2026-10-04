@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -48,7 +49,7 @@ async def _emit_friend_event(user_ids: List[int], event: str = "friendships_upda
 
     for user_id in set(user_ids):
         for sid in user_to_sids.get(user_id, set()):
-            await sio.emit(event, payload or {}, to=sid)
+            await sio.emit(event, jsonable_encoder(payload or {}), to=sid)
 
 
 async def _find_user(db: AsyncSession, req: FriendRequest) -> User:

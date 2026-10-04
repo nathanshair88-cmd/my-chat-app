@@ -418,6 +418,16 @@ class P2PFileTransferEngine {
       this.notify();
     }
   }
+
+  resetSession() {
+    for (const transfer of this.transfers.values()) {
+      if (!['completed', 'cancelled', 'rejected'].includes(transfer.status)) this.cancelTransfer(transfer.transfer_id);
+      transfer.dataChannel?.close();
+      transfer.pc?.close();
+    }
+    this.transfers.clear();
+    this.notify();
+  }
 }
 
 export const p2pEngine = new P2PFileTransferEngine();

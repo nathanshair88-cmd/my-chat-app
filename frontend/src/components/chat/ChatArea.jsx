@@ -4,7 +4,7 @@ import MessageItem from './MessageItem';
 import MessageInput from './MessageInput';
 import ThreadPanel from './ThreadPanel';
 import ServerMemberList from '../sidebar/ServerMemberList';
-import { Hash, Volume2, Video, Share2, Search, X, UploadCloud, MessageSquare, Moon, Sun, Users } from 'lucide-react';
+import { Hash, Volume2, Video, Search, X, UploadCloud, MessageSquare, Moon, Sun, Users } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function ChatArea({ onOpenP2PModal, showMemberList = true, compact = false }) {
@@ -13,6 +13,13 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
     currentChannel,
     currentDM,
     messages,
+    messagesLoading,
+    messagesError,
+    hasOlderMessages,
+    olderMessagesLoading,
+    loadOlderMessages,
+    selectChannel,
+    selectDM,
     typingUsers,
     showVoiceGrid,
     toggleVoiceGrid,
@@ -24,15 +31,18 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
 
   const [isDragging, setIsDragging] = useState(false);
   const [droppedFiles, setDroppedFiles] = useState([]);
-  const messagesEndRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const nearBottomRef = useRef(true);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = messagesContainerRef.current;
+    container?.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (nearBottomRef.current) scrollToBottom();
   }, [messages, typingUsers]);
+  useEffect(() => { setSearchQuery(''); nearBottomRef.current = true; }, [currentChannel?.id, currentDM?.id]);
 
   // Drag and drop handlers
   const handleDragOver = (e) => {
@@ -125,7 +135,7 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header Bar */}
-        <div className={`${compact ? 'min-h-12 px-3' : 'min-h-12 pl-14 pr-2 md:px-4'} border-b border-surface-border flex items-center justify-between gap-2 shadow-sm bg-surface-panel/40 backdrop-blur-md z-10`}>
+        <div className={`chat-header ${compact ? 'min-h-12 px-3' : 'min-h-12 pl-14 pr-2 md:px-4'} border-b border-surface-border flex items-center justify-between gap-2 shadow-sm bg-surface-panel/40 backdrop-blur-md z-10`}>
           <div className="flex items-center min-w-0 pr-2">
             {isDM ? (
               <div className="flex items-center space-x-2 min-w-0">
@@ -162,8 +172,9 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
             <div className={`${compact ? 'hidden' : 'relative hidden sm:flex items-center'}`}>
 
               <input
+                aria-label="Search messages in this conversation"
                 type="text"
-                placeholder="Search messages..."
+                placeholder="Search loaded messages…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-surface-active text-text-primary text-xs px-3 py-1.5 pl-8 pr-7 rounded-md w-40 lg:w-48 focus:w-56 lg:focus:w-64 focus:outline-none focus:ring-1 focus:ring-accent-primary transition-all border border-surface-border"
@@ -179,13 +190,7 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
               )}
             </div>
 
-            <button
-              onClick={onOpenP2PModal}
-              className="flex items-center space-x-1.5 p-2 lg:px-3 lg:py-1.5 bg-surface-active hover:bg-surface-hover text-text-primary text-xs font-semibold rounded-md transition-colors border border-surface-border shadow-sm mobile-touch-target lg:min-w-0 lg:min-h-0"
-            >
-              <Share2 className="w-3.5 h-3.5 text-accent-primary" />
-              <span className={compact ? 'hidden' : 'hidden lg:inline'}>P2P Transfer</span>
-            </button>
+
             
             {/* Theme Toggle */}
             <button
@@ -211,9 +216,9 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
         </div>
 
         {/* Messages Scrollable Stream */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 no-scrollbar bg-transparent responsive-safe-scroll">
+        <div ref={messagesContainerRef} className="chat-stream flex-1 overflow-y-auto p-3 sm:p-4 space-y-2 bg-transparent responsive-safe-scroll" onScroll={e => { const el = e.currentTarget; nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140; }}>
           {/* Welcome Banner */}
-          <div className="mb-6 pt-4 border-b border-surface-border pb-6">
+          <div className="channel-welcome mb-6 pt-4 border-b border-surface-border pb-6">
             {isDM ? (
               <div>
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-accent-primary flex items-center justify-center text-text-primary text-xl sm:text-2xl font-bold mb-3 shadow-md">
@@ -227,13 +232,16 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
                 <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-surface-active flex items-center justify-center mb-3 border border-surface-border shadow-sm">
                   {getChannelIcon(currentChannel.type)}
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-text-primary break-words">Welcome to #{currentChannel.name}!</h2>
-                <p className="text-sm text-text-muted mt-1">This is the start of the #{currentChannel.name} channel.</p>
+                <h2 className="text-xl sm:text-2xl font-bold text-text-primary break-words">A little hello goes a long way.</h2>
+                <p className="text-sm text-text-muted mt-1">You're in #{currentChannel.name}. Share an idea, ask a question, or just say hey.</p>
               </div>
             )}
           </div>
 
           {/* Search Results Notice */}
+          {hasOlderMessages && <button className="history-button" disabled={olderMessagesLoading} onClick={() => { nearBottomRef.current = false; loadOlderMessages(); }}>{olderMessagesLoading ? 'Loading earlier messages…' : 'Load earlier messages'}</button>}
+          {messagesLoading && <div className="empty-note" role="status">Getting the conversation ready…</div>}
+          {messagesError && <div className="inline-error" role="alert">{messagesError}<button onClick={() => isDM ? selectDM(currentDM) : selectChannel(currentChannel, false)}>Try again</button></div>}
           {searchQuery && searchQuery.trim() !== '' && (
             <div className="bg-surface-panel p-2.5 rounded-sm border border-accent-primary text-xs text-text-primary flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 shadow-sm backdrop-blur-sm">
               <span>
@@ -248,7 +256,6 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
           {filteredMessages.map((msg) => (
             <MessageItem key={msg.id} message={msg} searchQuery={searchQuery} />
           ))}
-          <div ref={messagesEndRef} />
         </div>
 
         {/* Typing Indicator Bar */}
@@ -264,7 +271,7 @@ export default function ChatArea({ onOpenP2PModal, showMemberList = true, compac
         )}
 
         {/* Message Input */}
-        <MessageInput onOpenP2PModal={onOpenP2PModal} droppedFiles={droppedFiles} compact={compact} />
+        <MessageInput key={`${viewMode}:${currentDM?.id || currentChannel?.id}`} onOpenP2PModal={onOpenP2PModal} droppedFiles={droppedFiles} compact={compact} />
       </div>
 
       {/* Thread Panel (Split Pane) */}

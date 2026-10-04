@@ -23,7 +23,7 @@ def env_flag(name: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-DEBUG_EXCEPTIONS = env_flag("DEBUG_EXCEPTIONS", True)
+DEBUG_EXCEPTIONS = env_flag("DEBUG_EXCEPTIONS", False)
 
 
 @asynccontextmanager
@@ -33,7 +33,7 @@ async def lifespan(app: FastAPI):
     yield
 
 fastapi_app = FastAPI(
-    title="Disco Alto Clone API",
+    title="Alto API",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -49,7 +49,7 @@ fastapi_app.add_middleware(
 
 @fastapi_app.get("/")
 async def root():
-    return {"status": "online", "message": "Disco Alto Clone API Backend is running"}
+    return {"status": "online", "message": "Alto API is running"}
 
 
 @fastapi_app.exception_handler(Exception)

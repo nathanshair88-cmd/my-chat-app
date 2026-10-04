@@ -12,4 +12,4 @@ services:
       - key: CORS_ORIGINS
         sync: false
       - key: DEBUG_EXCEPTIONS
-        value: "true"
+        value: "false"

@@ -19,8 +19,7 @@ export const initSocket = (token) => {
     : (import.meta.env.VITE_SOCKET_URL || window.location.origin);
 
   socket = io(socketUrl, {
-    auth: { token },
-    query: { token }
+    auth: { token }
   });
 
   return socket;

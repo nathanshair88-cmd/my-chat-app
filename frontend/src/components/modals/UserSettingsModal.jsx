@@ -1,3 +1,4 @@
+import useDialog from '../../hooks/useDialog';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useServer } from '../../context/ServerContext';
@@ -12,11 +13,12 @@ import {
 } from 'lucide-react';
 
 export default function UserSettingsModal({ onClose }) {
+  const dialogRef = useDialog(onClose);
   const { user, updateProfile, logout } = useAuth();
   const { soundEnabled, toggleSoundEnabled } = useServer();
   const { theme, setAppTheme } = useTheme();
 
-  const [activeTab, setActiveTab] = useState('voice'); // 'account' | 'voice' | 'appearance'
+  const [activeTab, setActiveTab] = useState('account');
 
   // Device lists & permission status
   const [audioInputDevices, setAudioInputDevices] = useState([]);
@@ -32,8 +34,8 @@ export default function UserSettingsModal({ onClose }) {
   const [selectedVideoDevice, setSelectedVideoDevice] = useState(localStorage.getItem('discoalto_video_input') || 'default');
 
   // Volume sliders
-  const [inputVolume, setInputVolume] = useState(Number(localStorage.getItem('discoalto_input_volume')) || 100);
-  const [outputVolume, setOutputVolume] = useState(Number(localStorage.getItem('discoalto_output_volume')) || 100);
+  const [inputVolume, setInputVolume] = useState(Number(localStorage.getItem('discoalto_input_volume') ?? 100));
+  const [outputVolume, setOutputVolume] = useState(Number(localStorage.getItem('discoalto_output_volume') ?? 100));
 
   // Mic test state
   const [isTestingMic, setIsTestingMic] = useState(false);
@@ -159,7 +161,6 @@ export default function UserSettingsModal({ onClose }) {
   // On mount, attempt enumeration and setup devicechange listener
   useEffect(() => {
     enumerateAllDevices();
-    requestMediaPermissions();
 
     if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
       navigator.mediaDevices.addEventListener('devicechange', enumerateAllDevices);
@@ -434,7 +435,7 @@ export default function UserSettingsModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-surface-active flex flex-col md:flex-row select-none overflow-hidden animate-fadeIn">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Settings" tabIndex={-1} className="fixed inset-0 z-50 bg-surface-active flex flex-col md:flex-row select-none overflow-hidden animate-fadeIn">
       {/* Left Sidebar Navigation */}
       <div className="w-full md:w-60 bg-surface-panel flex flex-col justify-between gap-3 p-3 md:p-6 border-b md:border-b-0 md:border-r border-surface-border shrink-0">
         <div className="space-y-3 md:space-y-6 min-w-0">
@@ -1002,10 +1003,10 @@ export default function UserSettingsModal({ onClose }) {
                     }`}
                   >
                     <div className="text-xs font-bold text-text-primary flex items-center justify-center space-x-1">
-                      <span>Disco Alto Dark</span>
+                      <span>Alto After Dark</span>
                       {theme === 'dark' && <Check className="w-3 h-3 text-accent-primary" />}
                     </div>
-                    <div className="text-[10px] text-text-muted">Classic Slate</div>
+                    <div className="text-[10px] text-text-muted">Warm charcoal & citrus</div>
                   </button>
                   <button
                     onClick={() => setAppTheme('amoled')}
@@ -1021,15 +1022,15 @@ export default function UserSettingsModal({ onClose }) {
                   </button>
                   <button
                     onClick={() => setAppTheme('light')}
-                    className={`p-3 bg-blue-100 rounded-md text-center cursor-pointer transition-all border-2 hover:scale-[1.02] ${
-                      theme === 'light' ? 'border-indigo-600 shadow-lg shadow-indigo-400/20' : 'border-blue-200'
+                    className={`p-3 bg-stone-100 rounded-md text-center cursor-pointer transition-all border-2 hover:scale-[1.02] ${
+                      theme === 'light' ? 'border-lime-700 shadow-lg shadow-lime-600/10' : 'border-stone-300'
                     }`}
                   >
                     <div className="text-xs font-bold text-slate-900 flex items-center justify-center space-x-1">
-                      <span>Ashen Light</span>
+                      <span>Daylight</span>
                       {theme === 'light' && <Check className="w-3 h-3 text-indigo-600" />}
                     </div>
-                    <div className="text-[10px] text-slate-500">Subtle Contrast</div>
+                    <div className="text-[10px] text-slate-500">Fresh & easy on the eyes</div>
                   </button>
                 </div>
               </div>

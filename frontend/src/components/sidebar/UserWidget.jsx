@@ -1,110 +1,235 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { voiceManager } from '../../services/webrtcVoice';
-import { Mic, MicOff, Volume2, VolumeX, Settings, Check } from 'lucide-react';
+﻿import React, { useState, useEffect, useRef } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useServer } from "../../context/ServerContext";
+import { voiceManager } from "../../services/webrtcVoice";
+import { notify } from "../../services/localWorkspace";
+import {
+  Mic,
+  MicOff,
+  Headphones,
+  VolumeX,
+  Settings,
+  Check,
+  Radio,
+  PhoneOff,
+  Video,
+  VideoOff,
+  Monitor,
+  MonitorOff,
+  ArrowUpRight,
+  LogOut,
+} from "lucide-react";
 
 export default function UserWidget({ onOpenSettings }) {
-  const { user, updateStatus } = useAuth();
-  
-  const [isMuted, setIsMuted] = useState(false);
-  const [isDeafened, setIsDeafened] = useState(false);
+  const { user, updateStatus, logout } = useAuth();
+  const { servers, selectServer, selectChannel, setShowVoiceGrid } =
+    useServer();
+  const [voice, setVoice] = useState(() => voiceManager.getCurrentState());
   const [showStatusMenu, setShowStatusMenu] = useState(false);
-
+  const panel = useRef(null);
+  useEffect(() => voiceManager.subscribe(setVoice), []);
+  useEffect(() => {
+    if (!showStatusMenu) return;
+    const close = (e) => {
+      if (!panel.current?.contains(e.target)) setShowStatusMenu(false);
+    };
+    const key = (e) => {
+      if (e.key === "Escape") setShowStatusMenu(false);
+    };
+    document.addEventListener("pointerdown", close);
+    document.addEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("pointerdown", close);
+      document.removeEventListener("keydown", key);
+    };
+  }, [showStatusMenu]);
   if (!user) return null;
-
-  const handleToggleMute = () => {
-    voiceManager.toggleMute();
-    setIsMuted(!isMuted);
-  };
-
-  const handleToggleDeafen = () => {
-    voiceManager.toggleDeafen();
-    setIsDeafened(!isDeafened);
-  };
-
+  const server = servers.find((s) =>
+    s.channels?.some((c) => c.id === voice.channel_id),
+  );
+  const channel = server?.channels?.find((c) => c.id === voice.channel_id);
   const statuses = [
-    { id: 'online', label: 'Online', color: 'bg-success' },
-    { id: 'idle', label: 'Idle', color: 'bg-amber-500' },
-    { id: 'dnd', label: 'Do Not Disturb', color: 'bg-danger' },
-    { id: 'offline', label: 'Invisible', color: 'bg-slate-500' },
+    { id: "online", label: "Online", color: "var(--success)" },
+    { id: "idle", label: "Away", color: "#e9c27b" },
+    { id: "dnd", label: "Do not disturb", color: "var(--danger)" },
+    { id: "offline", label: "Invisible", color: "var(--text-muted)" },
   ];
-
+  const currentStatus =
+    statuses.find((s) => s.id === user.status) || statuses[0];
+  const openRoom = async () => {
+    if (!channel) {
+      notify("Open the space containing your active call to view this room.");
+      return;
+    }
+    selectServer(server);
+    await selectChannel(channel, false);
+    setShowVoiceGrid(true);
+  };
+  const mediaAction = async (action) => {
+    try {
+      await action();
+    } catch {
+      notify(
+        "That device couldn’t start. Check its permission in Voice & Video settings.",
+      );
+    }
+  };
   return (
-    <div className="relative bg-surface-active/50 backdrop-blur-lg px-2 py-2.5 flex items-center justify-between border-t border-surface-border">
-      {/* User Info & Status Dropdown */}
-      <div 
-        onClick={() => setShowStatusMenu(!showStatusMenu)}
-        className="flex items-center space-x-2 px-1.5 py-1 rounded-md hover:bg-surface-hover cursor-pointer flex-1 min-w-0 mr-1 transition-colors"
-      >
-        <div className="relative flex-shrink-0">
-          <img 
-            src={user.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${user.username}`} 
-            alt={user.username} 
-            className="w-8 h-8 rounded-full bg-surface-panel object-cover shadow-sm"
-          />
-          <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-surface-active ${
-            user.status === 'online' ? 'bg-success' :
-            user.status === 'idle' ? 'bg-amber-500' :
-            user.status === 'dnd' ? 'bg-danger' : 'bg-slate-500'
-          }`} />
-        </div>
-
-        <div className="min-w-0 flex-1">
-          <div className="text-xs font-semibold text-text-primary truncate leading-tight">{user.username}</div>
-          <div className="text-[11px] text-text-muted truncate leading-none mt-0.5">
-            {user.status_message || `#${user.public_id || user.id}`}
-          </div>
-        </div>
-      </div>
-
-      {/* Action Controls */}
-      <div className="flex items-center space-x-0.5 text-text-muted">
-        <button 
-          onClick={handleToggleMute} 
-          className={`p-1.5 rounded hover:bg-surface-hover hover:text-text-primary transition-colors ${isMuted ? 'text-danger hover:text-danger-hover' : ''}`}
-          title={isMuted ? "Unmute Mic" : "Mute Mic"}
-        >
-          {isMuted ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-        </button>
-
-        <button 
-          onClick={handleToggleDeafen} 
-          className={`p-1.5 rounded hover:bg-surface-hover hover:text-text-primary transition-colors ${isDeafened ? 'text-danger hover:text-danger-hover' : ''}`}
-          title={isDeafened ? "Undeafen Audio" : "Deafen Audio"}
-        >
-          {isDeafened ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-        </button>
-
-        <button
-          onClick={onOpenSettings}
-          className="p-1.5 rounded hover:bg-surface-hover hover:text-text-primary transition-colors"
-          title="Settings"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
-      </div>
-
-
-      {/* Status Picker Menu Overlay */}
-      {showStatusMenu && (
-        <div className="absolute bottom-14 left-2 w-52 bg-surface-active border border-surface-border rounded-sm shadow-2xl p-1.5 z-50">
-          <div className="text-[11px] font-bold text-text-muted px-2 py-1 uppercase tracking-wider">Set Status</div>
-          {statuses.map((s) => (
+    <div
+      className="account-dock"
+      ref={panel}
+      aria-label="Your account and voice controls"
+    >
+      {voice.channel_id && (
+        <section className="voice-dock" aria-label="Active voice connection">
+          <div className="voice-dock-heading">
+            <Radio size={18} />
+            <button onClick={openRoom} title="Open active voice room">
+              <strong>Voice connected</strong>
+              <small>
+                {channel?.name || "Active room"}
+                {server ? ` / ${server.name}` : ""}
+              </small>
+            </button>
             <button
-              key={s.id}
-              onClick={() => {
-                updateStatus(s.id, user.status_message);
-                setShowStatusMenu(false);
-              }}
-              className="w-full flex items-center justify-between px-2 py-1.5 rounded text-xs font-medium text-text-primary hover:bg-accent-primary hover:text-text-primary transition-colors"
+              className="icon-button disconnect-button"
+              title="Disconnect voice"
+              aria-label="Disconnect voice"
+              onClick={() => voiceManager.leaveVoiceChannel()}
             >
-              <div className="flex items-center space-x-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${s.color}`} />
-                <span>{s.label}</span>
-              </div>
-              {user.status === s.id && <Check className="w-3.5 h-3.5" />}
+              <PhoneOff size={17} />
+            </button>
+          </div>
+          <div className="voice-dock-actions">
+            <button
+              title={voice.isCameraOn ? "Turn off camera" : "Turn on camera"}
+              aria-label={
+                voice.isCameraOn ? "Turn off camera" : "Turn on camera"
+              }
+              onClick={() => mediaAction(() => voiceManager.toggleCamera())}
+            >
+              {voice.isCameraOn ? <Video size={17} /> : <VideoOff size={17} />}
+            </button>
+            <button
+              title={
+                voice.isScreenSharing ? "Stop sharing screen" : "Share screen"
+              }
+              aria-label={
+                voice.isScreenSharing ? "Stop sharing screen" : "Share screen"
+              }
+              onClick={() =>
+                mediaAction(() =>
+                  voice.isScreenSharing
+                    ? voiceManager.stopScreenShare()
+                    : voiceManager.startScreenShare(),
+                )
+              }
+            >
+              {voice.isScreenSharing ? (
+                <MonitorOff size={17} />
+              ) : (
+                <Monitor size={17} />
+              )}
+            </button>
+            <button
+              title="Open voice room"
+              aria-label="Open voice room"
+              onClick={openRoom}
+            >
+              <ArrowUpRight size={17} />
+            </button>
+          </div>
+        </section>
+      )}
+      <div className="account-row">
+        <button
+          className="account-identity"
+          aria-label="Your profile and status"
+          aria-expanded={showStatusMenu}
+          title="Your profile and status"
+          onClick={() => setShowStatusMenu((v) => !v)}
+        >
+          <span className="person-avatar">
+            <img src={user.avatar_url || "/avatars/willow.svg"} alt="" />
+            <i style={{ background: currentStatus.color }} />
+          </span>
+          <span>
+            <strong>{user.username}</strong>
+            <small>{user.status_message || currentStatus.label}</small>
+          </span>
+        </button>
+        <div className="account-controls">
+          <button
+            className={`icon-button ${voice.isMuted ? "control-muted" : ""}`}
+            aria-pressed={voice.isMuted}
+            title={voice.isMuted ? "Unmute mic" : "Mute mic"}
+            aria-label={voice.isMuted ? "Unmute mic" : "Mute mic"}
+            onClick={() => voiceManager.toggleMute()}
+          >
+            {voice.isMuted ? <MicOff size={16} /> : <Mic size={16} />}
+          </button>
+          <button
+            className={`icon-button ${voice.isDeafened ? "control-muted" : ""}`}
+            aria-pressed={voice.isDeafened}
+            title={voice.isDeafened ? "Undeafen audio" : "Deafen audio"}
+            aria-label={voice.isDeafened ? "Undeafen audio" : "Deafen audio"}
+            onClick={() => voiceManager.toggleDeafen()}
+          >
+            {voice.isDeafened ? (
+              <VolumeX size={16} />
+            ) : (
+              <Headphones size={16} />
+            )}
+          </button>
+          <button
+            className="icon-button"
+            title="Settings"
+            aria-label="Settings"
+            onClick={onOpenSettings}
+          >
+            <Settings size={16} />
+          </button>
+        </div>
+      </div>
+      {showStatusMenu && (
+        <div className="status-popover">
+          <header>
+            <strong>{user.username}</strong>
+            <small>#{user.public_id || user.id}</small>
+          </header>
+          <div className="eyebrow">SET YOUR STATUS</div>
+          {statuses.map((status) => (
+            <button
+              key={status.id}
+              onClick={async () => {
+                try {
+                  await updateStatus(status.id, user.status_message);
+                  setShowStatusMenu(false);
+                } catch {
+                  notify("Could not update your status. Please try again.");
+                }
+              }}
+            >
+              <span
+                className="status-indicator"
+                style={{ background: status.color }}
+              />
+              {status.label}
+              {user.status === status.id && <Check size={14} />}
             </button>
           ))}
+          <div className="status-menu-divider" />
+          <button
+            onClick={() => {
+              onOpenSettings();
+              setShowStatusMenu(false);
+            }}
+          >
+            <Settings size={15} /> Account & preferences
+          </button>
+          <button onClick={logout}>
+            <LogOut size={15} /> Log out
+          </button>
         </div>
       )}
     </div>

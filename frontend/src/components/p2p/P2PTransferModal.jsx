@@ -3,24 +3,32 @@ import { p2pEngine } from '../../services/webrtcP2PFile';
 import { useServer } from '../../context/ServerContext';
 import { useAuth } from '../../context/AuthContext';
 import { X, Upload, Download, Play, Pause, Zap } from 'lucide-react';
+import useDialog from '../../hooks/useDialog';
 
 export default function P2PTransferModal({ onClose }) {
-  const { currentServer } = useServer();
+  const dialogRef = useDialog(onClose);
+  const { currentServer, conversations, friendships } = useServer();
   const { user } = useAuth();
   const [transfers, setTransfers] = useState([]);
   const [selectedPeer, setSelectedPeer] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     return p2pEngine.subscribe(setTransfers);
   }, []);
 
-  const members = (currentServer?.members || []).filter(m => m.user.id !== user?.id);
+  const peers = new Map();
+  (currentServer?.members || []).forEach(m => peers.set(m.user.id, m));
+  conversations.forEach(c => { if (c.other_user) peers.set(c.other_user.id, { user: c.other_user }); });
+  friendships.filter(f => f.status === 'accepted').forEach(f => { if (f.friend_user) peers.set(f.friend_user.id, { user: f.friend_user }); });
+  const members = [...peers.values()].filter(m => m.user.id !== user?.id);
 
   const handleStartSend = async () => {
     if (!selectedFile || !selectedPeer) return;
-    await p2pEngine.sendFile(selectedFile, selectedPeer.user);
-    setSelectedFile(null);
+    setError('');
+    try { await p2pEngine.sendFile(selectedFile, selectedPeer.user); setSelectedFile(null); }
+    catch { setError('Could not start the transfer. Make sure you are both online and try again.'); }
   };
 
   const formatBytes = (bytes) => {
@@ -32,7 +40,7 @@ export default function P2PTransferModal({ onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-200 select-none">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Direct file transfers" tabIndex={-1} className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 animate-in fade-in duration-200 select-none">
       <div className="bg-surface-base border border-surface-border rounded-md modal-width-2xl max-w-2xl shadow-2xl overflow-hidden flex flex-col responsive-modal-panel">
         {/* Modal Header */}
         <div className="bg-surface-panel px-4 sm:px-6 py-4 flex items-start sm:items-center justify-between gap-3 border-b border-surface-border">
@@ -41,34 +49,37 @@ export default function P2PTransferModal({ onClose }) {
               <Zap className="w-5 h-5 text-text-primary" />
             </div>
             <div>
-              <h2 className="text-base sm:text-lg font-bold text-text-primary leading-tight">Unrestricted P2P File Share</h2>
-              <p className="text-xs text-text-muted mt-0.5">Direct browser-to-browser WebRTC DataChannel (No file size caps)</p>
+              <h2 className="text-base sm:text-lg font-bold text-text-primary leading-tight">Direct file transfers</h2>
+              <p className="text-xs text-text-muted mt-0.5">A direct connection for the things you want to share.</p>
             </div>
           </div>
 
-          <button onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary rounded-sm hover:bg-surface-hover transition-colors">
+          <button aria-label="Close transfers" onClick={onClose} className="p-1.5 text-text-muted hover:text-text-primary rounded-sm hover:bg-surface-hover transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Content Body */}
         <div className="p-4 sm:p-6 space-y-6 overflow-y-auto no-scrollbar flex-1 responsive-safe-scroll">
+          <p className="text-xs text-text-muted">Keep Alto open on both devices. Files travel directly between you; transfer size depends on your connection and available device memory.</p>
+          {error && <div className="inline-error" role="alert">{error}</div>}
           {/* Send File Section */}
           <div className="bg-surface-panel p-4 rounded-md border border-surface-border space-y-4">
-            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Initiate New Transfer</h3>
+            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider">Send something good</h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Select Recipient Peer */}
               <div>
-                <label className="block text-xs font-semibold text-text-primary mb-1">Select Peer</label>
+                <label htmlFor="transfer-recipient" className="block text-xs font-semibold text-text-primary mb-1">Send to</label>
                 <select
+                  id="transfer-recipient"
                   onChange={(e) => {
                     const m = members.find(mem => mem.user.id === Number(e.target.value));
                     setSelectedPeer(m);
                   }}
                   className="w-full bg-surface-active text-text-primary text-xs rounded-sm p-2.5 border border-surface-border focus:outline-none focus:border-accent-primary"
                 >
-                  <option value="">-- Choose Server Member --</option>
+                  <option value="">Choose a friend or space member</option>
                   {members.map(m => (
                     <option key={m.user.id} value={m.user.id}>
                       {m.user.username} ({m.user.status})
@@ -79,8 +90,9 @@ export default function P2PTransferModal({ onClose }) {
 
               {/* Choose File */}
               <div>
-                <label className="block text-xs font-semibold text-text-primary mb-1">Select File (Any GBs+)</label>
+                <label htmlFor="transfer-file" className="block text-xs font-semibold text-text-primary mb-1">Choose a file</label>
                 <input
+                  id="transfer-file"
                   key={selectedFile ? selectedFile.name : 'empty'}
                   type="file"
                   onChange={(e) => setSelectedFile(e.target.files[0])}
@@ -95,14 +107,14 @@ export default function P2PTransferModal({ onClose }) {
                 className="w-full py-2.5 bg-success hover:bg-success/80 text-text-primary font-bold rounded-sm transition-colors flex items-center justify-center space-x-2 text-sm"
               >
                 <Upload className="w-4 h-4" />
-                <span>Start Direct P2P Transfer ({formatBytes(selectedFile.size)})</span>
+                <span>Send file directly ({formatBytes(selectedFile.size)})</span>
               </button>
             )}
           </div>
 
           {/* Active Transfers Progress Stream */}
           <div>
-            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">Live Active P2P Transfers</h3>
+            <h3 className="text-xs font-bold text-text-muted uppercase tracking-wider mb-3">Your transfers</h3>
 
             {transfers.length === 0 ? (
               <div className="text-center py-8 text-text-muted text-xs bg-surface-panel/50 rounded-md border border-dashed border-surface-border">

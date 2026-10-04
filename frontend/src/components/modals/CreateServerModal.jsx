@@ -1,8 +1,10 @@
+import useDialog from '../../hooks/useDialog';
 import React, { useState } from 'react';
 import { useServer } from '../../context/ServerContext';
 import { X, Plus, Compass } from 'lucide-react';
 
 export default function CreateServerModal({ mode = 'create', onClose }) {
+  const dialogRef = useDialog(onClose);
   const { addServer, joinServer } = useServer();
   const [serverName, setServerName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
@@ -32,10 +34,10 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 select-none animate-in fade-in duration-200">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Your space" tabIndex={-1} className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 select-none animate-in fade-in duration-200">
       <div className="bg-surface-base border border-surface-border rounded-md modal-width-md max-w-md shadow-2xl overflow-hidden responsive-modal-panel overflow-y-auto responsive-safe-scroll">
         <div className="p-4 sm:p-6 text-center space-y-2 relative">
-          <button onClick={onClose} className="absolute right-4 top-4 text-text-muted hover:text-text-primary">
+          <button aria-label="Close dialog" onClick={onClose} className="absolute right-4 top-4 text-text-muted hover:text-text-primary">
             <X className="w-5 h-5" />
           </button>
           
@@ -44,12 +46,12 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
           </div>
 
           <h2 className="text-xl sm:text-2xl font-bold text-text-primary">
-            {mode === 'create' ? 'Customize Your Server' : 'Join a Server'}
+            {mode === 'create' ? 'Make a space of your own' : 'Find your people'}
           </h2>
           <p className="text-xs text-text-muted">
             {mode === 'create'
-              ? 'Give your new server a personality with a name and icon.'
-              : 'Enter an invite code below to join an existing server.'}
+              ? 'A home for your friends, your ideas, and everything in between.'
+              : 'An invite is all you need. Paste your code to get started.'}
           </p>
         </div>
 
@@ -62,10 +64,12 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
             <>
               <div>
                 <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
-                  Server Name
+                  Space name
                 </label>
                 <input
                   type="text"
+                  aria-label="Space name"
+                  maxLength={100}
                   required
                   value={serverName}
                   onChange={(e) => setServerName(e.target.value)}
@@ -76,10 +80,11 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
 
               <div>
                 <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-1">
-                  Server Icon URL (Optional)
+                  Space icon URL (optional)
                 </label>
                 <input
                   type="url"
+                  aria-label="Space icon URL"
                   value={iconUrl}
                   onChange={(e) => setIconUrl(e.target.value)}
                   placeholder="https://example.com/icon.png"
@@ -94,6 +99,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
               </label>
               <input
                 type="text"
+                aria-label="Invite code"
                 required
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
@@ -116,7 +122,7 @@ export default function CreateServerModal({ mode = 'create', onClose }) {
               disabled={loading}
               className="px-4 sm:px-6 py-2 bg-accent-primary hover:bg-accent-hover text-text-primary font-bold text-sm rounded-sm transition-colors"
             >
-              {loading ? 'Working...' : mode === 'create' ? 'Create Server' : 'Join Server'}
+              {loading ? 'Working...' : mode === 'create' ? 'Create space' : 'Join space'}
             </button>
           </div>
         </form>

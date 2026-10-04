@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useServer } from '../../context/ServerContext';
-import UserWidget from './UserWidget';
 import UserContextMenu from '../modals/UserContextMenu';
-import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio, PhoneOff, Settings } from 'lucide-react';
+import { Hash, Volume2, Video, Plus, ChevronDown, Copy, Check, Radio, Settings } from 'lucide-react';
 import { voiceManager } from '../../services/webrtcVoice';
 import ServerSettingsModal from '../modals/ServerSettingsModal';
 
-export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings, onNavigate }) {
-  const { currentServer, currentChannel, selectChannel, unreadChannels, showVoiceGrid, setShowVoiceGrid, toggleVoiceGrid } = useServer();
+export default function ChannelSidebar({ onOpenCreateChannel, onNavigate }) {
+  const { currentServer, currentChannel, selectChannel, unreadChannels, setShowVoiceGrid } = useServer();
 
 
   const [copiedInvite, setCopiedInvite] = useState(false);
@@ -27,7 +26,6 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings, on
     return (
       <div className="w-[min(82vw,18rem)] md:w-60 bg-surface-panel/30 backdrop-blur-md flex flex-col justify-between border-r border-surface-border h-full">
         <div className="p-4 text-text-muted text-sm font-medium">Select or create a workspace to start collaborating.</div>
-        <UserWidget />
       </div>
     );
   }
@@ -58,7 +56,6 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings, on
   const currentMember = currentServer.members?.find(m => Number(m.user_id) === currentUserId);
   const isOwner = String(currentServer.owner_id) === String(currentUserId);
   const canManageServer = isOwner || currentMember?.role === 'admin';
-  const activeVoiceChannel = (currentServer.channels || []).find(c => c.id === voiceState.channel_id);
   const isTouchNavigation = (event) => {
     const pointerType = event?.nativeEvent?.pointerType;
     if (pointerType) return pointerType !== 'mouse';
@@ -284,42 +281,9 @@ export default function ChannelSidebar({ onOpenCreateChannel, onOpenSettings, on
           ))}
         </div>
 
-        {/* Active Voice Connection Status Banner */}
-        {voiceState.channel_id && (
-          <div className="bg-surface-active/80 px-3 py-2 border-t border-surface-border flex items-center justify-between text-xs backdrop-blur-md">
-            <div className="min-w-0 pr-2">
-              <div className="flex items-center text-success font-semibold truncate">
-                <Radio className="w-3.5 h-3.5 mr-1 flex-shrink-0 animate-pulse" />
-                <span className="truncate">Voice Connected</span>
-              </div>
-              <div className="text-[11px] text-text-muted truncate">
-                {activeVoiceChannel ? activeVoiceChannel.name : `Channel #${voiceState.channel_id}`}
-              </div>
-            </div>
-            <div className="flex items-center space-x-1">
-              <button
-                onClick={toggleVoiceGrid}
-                className={`p-2 md:p-1.5 rounded transition-colors shadow-sm mobile-touch-target md:min-w-0 md:min-h-0 ${
-                  showVoiceGrid ? 'bg-accent-primary text-text-primary' : 'bg-surface-hover text-text-muted hover:text-text-primary'
-                }`}
-                title={showVoiceGrid ? "Switch to Text Chat" : "Open Full Voice & Video Grid"}
-              >
-                <Video className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => voiceManager.leaveVoiceChannel()}
-                className="p-2 md:p-1.5 bg-danger/10 hover:bg-danger text-danger hover:text-text-primary rounded transition-colors shadow-sm mobile-touch-target md:min-w-0 md:min-h-0"
-                title="Disconnect Voice"
-              >
-                <PhoneOff className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
 
       </div>
 
-      <UserWidget onOpenSettings={onOpenSettings} />
 
       {contextMenu && (
         <UserContextMenu 

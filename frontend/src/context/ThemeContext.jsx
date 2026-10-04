@@ -29,6 +29,7 @@ export function ThemeProvider({ children }) {
   );
 }
 
+// oxlint-disable-next-line react/only-export-components -- Context hooks intentionally share their provider module.
 export function useTheme() {
   return useContext(ThemeContext);
 }

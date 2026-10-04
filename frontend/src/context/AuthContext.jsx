@@ -10,6 +10,9 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [sessionError, setSessionError] = useState(false);
+  const [sessionAttempt, setSessionAttempt] = useState(0);
+  const retrySession = () => { setLoading(true); setSessionError(false); setSessionAttempt(n => n + 1); };
 
   useEffect(() => {
     const fetchMe = async () => {
@@ -28,6 +31,11 @@ export const AuthProvider = ({ children }) => {
           loadSettings();
         } catch (err) {
           console.error("Token verification failed:", err);
+          if (!err.response || err.response.status >= 500) {
+            setSessionError(true);
+            setLoading(false);
+            return;
+          }
           localStorage.removeItem('discoalto_token');
           localStorage.removeItem('discoalto_user_id');
           localStorage.removeItem('discoalto_public_id');
@@ -38,7 +46,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     };
     fetchMe();
-  }, []);
+  }, [sessionAttempt]);
 
   const login = async (email, password) => {
     const res = await authAPI.login({ email, password });
@@ -50,6 +58,7 @@ export const AuthProvider = ({ children }) => {
     if (userData.avatar_url) localStorage.setItem('discoalto_avatar_url', userData.avatar_url);
     setUser(userData);
     initSocket(access_token);
+    voiceManager.setupGlobalRoomListener();
     p2pEngine.initSocketListeners();
     loadSettings();
     return userData;
@@ -72,6 +81,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    voiceManager.leaveVoiceChannel();
+    p2pEngine.resetSession();
     localStorage.removeItem('discoalto_token');
     localStorage.removeItem('discoalto_user_id');
     localStorage.removeItem('discoalto_public_id');
@@ -97,10 +108,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateStatus, updateProfile }}>
+    <AuthContext.Provider value={{ user, loading, sessionError, retrySession, login, register, logout, updateStatus, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
+// oxlint-disable-next-line react/only-export-components -- Context hooks intentionally share their provider module.
 export const useAuth = () => useContext(AuthContext);

@@ -1,125 +1,158 @@
-import React from 'react';
-import { useServer } from '../../context/ServerContext';
-import { Plus, Compass, LogOut } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import React from "react";
+import {
+  Home,
+  MessageCircle,
+  Users,
+  Bookmark,
+  Plus,
+  Compass,
+  Search,
+  ArrowUpRight,
+} from "lucide-react";
+import { useServer } from "../../context/ServerContext";
+import Brand from "../Brand";
+import UserWidget from "./UserWidget";
 
-export default function ServerSidebar({ onOpenCreateServer, onOpenJoinServer, onNavigate }) {
-  const { servers, currentServer, selectServer, viewMode, openDirectMessages, unreadDMs, unreadFriendRequests } = useServer();
-  const { logout } = useAuth();
-
-  const totalUnreadDMs = Object.values(unreadDMs || {}).reduce((sum, count) => sum + count, 0) + (unreadFriendRequests || 0);
-
+export default function ServerSidebar({
+  onOpenCreateServer,
+  onOpenJoinServer,
+  onOpenSettings,
+  onSearch,
+  onNavigate,
+}) {
+  const {
+    servers,
+    currentServer,
+    selectServer,
+    viewMode,
+    setViewMode,
+    openDirectMessages,
+    openDMHome,
+    unreadDMs,
+    unreadFriendRequests,
+    currentDM,
+  } = useServer();
+  const unread = Object.values(unreadDMs || {}).reduce((a, b) => a + b, 0);
+  const go = (action) => {
+    action();
+    onNavigate?.();
+  };
+  const links = [
+    {
+      label: "Home",
+      icon: Home,
+      active: viewMode === "home",
+      action: () => setViewMode("home"),
+    },
+    {
+      label: "Messages",
+      icon: MessageCircle,
+      active: viewMode === "dm" && !!currentDM,
+      action: openDirectMessages,
+      count: unread,
+    },
+    {
+      label: "Friends",
+      icon: Users,
+      active: viewMode === "dm" && !currentDM,
+      action: () => openDMHome("friends"),
+      count: unreadFriendRequests,
+    },
+    {
+      label: "Saved",
+      icon: Bookmark,
+      active: viewMode === "saved",
+      action: () => setViewMode("saved"),
+    },
+  ];
   return (
-    <div className="w-14 md:w-[72px] bg-surface-panel/40 backdrop-blur-md flex flex-col items-center py-2 md:py-3 space-y-2 select-none z-20 border-r border-surface-border/50 shrink-0">
-      {/* App Logo / Direct Messages Home Icon */}
-      <button 
-        onClick={() => {
-          openDirectMessages();
-          onNavigate?.();
-        }}
-        className="relative group flex items-center justify-center mobile-touch-target"
+    <aside className="primary-nav" aria-label="Main navigation">
+      <button
+        className="brand-button"
+        aria-label="Alto home"
+        onClick={() => go(() => setViewMode("home"))}
       >
-        <div className={`absolute left-0 w-1 bg-accent-primary rounded-r-full transition-all duration-200 ${viewMode === 'dm' ? 'h-10' : 'h-0 group-hover:h-5'}`} />
-        <div className={`w-11 h-11 md:w-12 md:h-12 rounded-[22px] md:rounded-[24px] group-hover:rounded-[16px] flex items-center justify-center transition-all duration-200 shadow-md overflow-hidden ${
-          viewMode === 'dm' ? 'rounded-[16px] bg-accent-primary text-text-primary' : 'bg-surface-hover text-text-primary hover:bg-accent-primary hover:text-text-primary'
-        }`}>
-          <img src="/disco_alto_logo.jpg" alt="Disco Alto" className="w-full h-full object-cover" />
-        </div>
-
-        {totalUnreadDMs > 0 && (
-          <div className="absolute -bottom-1 -right-1 bg-danger text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-[3px] border-surface-base shadow-sm z-10">
-            {totalUnreadDMs > 99 ? '99+' : totalUnreadDMs}
-          </div>
-        )}
-
-        <div className="absolute left-16 md:left-[78px] bg-surface-active text-text-primary border border-surface-border text-xs font-semibold px-2.5 py-1.5 rounded-md shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-          Direct Messages
-        </div>
+        <Brand />
       </button>
-
-      <div className="w-8 h-[2px] bg-surface-border rounded my-1" />
-
-      {/* Servers List */}
-      <div className="flex-1 w-full overflow-y-auto space-y-2 no-scrollbar px-1.5 md:px-3 responsive-safe-scroll">
-        {servers.map((server) => {
-          const isActive = currentServer && currentServer.id === server.id;
-          const initials = server.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-
-          return (
-            <button
-              key={server.id}
-              onClick={() => {
-                selectServer(server);
-                onNavigate?.();
-              }}
-              className="relative group flex items-center justify-center w-full mobile-touch-target"
-            >
-              {/* Active / Hover Pill Indicator */}
-              <div className={`absolute left-[-12px] w-1 bg-accent-primary rounded-r-full transition-all duration-200 ${isActive ? 'h-10' : 'h-0 group-hover:h-5'}`} />
-              
-              <div className={`w-11 h-11 md:w-12 md:h-12 rounded-[22px] md:rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 flex items-center justify-center font-semibold text-text-primary shadow-sm overflow-hidden ${
-                isActive ? 'rounded-[16px] bg-accent-primary' : 'bg-surface-hover text-text-primary hover:bg-accent-primary hover:text-text-primary'
-              }`}>
-                {server.icon_url ? (
-                  <img src={server.icon_url} alt={server.name} className="w-full h-full object-cover" />
-                ) : (
-                  <span>{initials}</span>
-                )}
-              </div>
-
-              {/* Tooltip */}
-              <div className="absolute left-16 md:left-[78px] bg-surface-active text-text-primary border border-surface-border text-xs font-semibold px-2.5 py-1.5 rounded-md shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-                {server.name}
-              </div>
-            </button>
-          );
-        })}
-
-        {/* Add Server Button */}
+      <button
+        className="nav-search"
+        onClick={onSearch}
+        title="Search or jump to (Ctrl+K)"
+      >
+        <Search size={17} />
+        <span>Jump to…</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+      <nav className="main-links">
+        {links.map(({ label, icon: Icon, action, active, count }) => (
+          <button
+            key={label}
+            title={label}
+            aria-label={label}
+            aria-current={active ? "page" : undefined}
+            className={`nav-link ${active ? "active" : ""}`}
+            onClick={() => go(action)}
+          >
+            <Icon size={19} />
+            <span>{label}</span>
+            {count > 0 && <b className="nav-count">{count}</b>}
+          </button>
+        ))}
+      </nav>
+      <div className="nav-section-title">
+        <span>YOUR SPACES</span>
         <button
-          onClick={() => {
-            onOpenCreateServer?.();
-            onNavigate?.();
-          }}
-          className="group flex items-center justify-center w-full relative mobile-touch-target"
+          aria-label="Create a space"
+          title="Create a space"
+          onClick={onOpenCreateServer}
         >
-          <div className="w-11 h-11 md:w-12 md:h-12 rounded-[22px] md:rounded-[24px] group-hover:rounded-[16px] bg-surface-hover hover:bg-success flex items-center justify-center transition-all duration-200 text-success hover:text-text-primary">
-            <Plus className="w-6 h-6" />
-          </div>
-          <div className="absolute left-16 md:left-[78px] bg-surface-active text-text-primary border border-surface-border text-xs font-semibold px-2.5 py-1.5 rounded-md shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-            Add a Server
-          </div>
-        </button>
-
-        {/* Join Server via Invite Button */}
-        <button
-          onClick={() => {
-            onOpenJoinServer?.();
-            onNavigate?.();
-          }}
-          className="group flex items-center justify-center w-full relative mobile-touch-target"
-        >
-          <div className="w-11 h-11 md:w-12 md:h-12 rounded-[22px] md:rounded-[24px] group-hover:rounded-[16px] bg-surface-hover hover:bg-accent-primary flex items-center justify-center transition-all duration-200 text-text-muted hover:text-text-primary">
-            <Compass className="w-6 h-6" />
-          </div>
-          <div className="absolute left-16 md:left-[78px] bg-surface-active text-text-primary border border-surface-border text-xs font-semibold px-2.5 py-1.5 rounded-md shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-            Explore / Join Server
-          </div>
+          <Plus size={16} />
         </button>
       </div>
-
-      {/* Logout Button */}
-      <button
-        onClick={logout}
-        className="group flex items-center justify-center w-full relative mt-auto pt-2 mobile-touch-target"
-      >
-        <div className="w-11 h-11 md:w-12 md:h-12 rounded-[22px] md:rounded-[24px] group-hover:rounded-[16px] bg-surface-hover hover:bg-danger flex items-center justify-center transition-all duration-200 text-text-muted hover:text-text-primary">
-          <LogOut className="w-5 h-5" />
+      <nav className="space-nav">
+        {servers.map((server, i) => (
+          <button
+            key={server.id}
+            title={server.name}
+            aria-label={server.name}
+            aria-current={
+              viewMode === "server" && currentServer?.id === server.id
+                ? "page"
+                : undefined
+            }
+            className={`nav-link ${viewMode === "server" && currentServer?.id === server.id ? "active space-active" : ""}`}
+            onClick={() => go(() => selectServer(server))}
+          >
+            <span className={`nav-space-icon tint-${i % 4}`}>
+              {server.icon_url ? (
+                <img src={server.icon_url} alt="" />
+              ) : (
+                server.name.slice(0, 2).toUpperCase()
+              )}
+            </span>
+            <span>{server.name}</span>
+          </button>
+        ))}
+        <button
+          className="nav-link join-link"
+          title="Join a space"
+          onClick={onOpenJoinServer}
+        >
+          <Compass size={19} />
+          <span>Join a space</span>
+        </button>
+      </nav>
+      <div className="nav-bottom">
+        <div className="nav-invite-card">
+          <span className="invite-spark">✳</span>
+          <strong>Your people. Your space.</strong>
+          <p>Build a corner of the internet that feels like you.</p>
+          <button onClick={onOpenCreateServer}>
+            Make it yours <ArrowUpRight size={15} />
+          </button>
         </div>
-        <div className="absolute left-16 md:left-[78px] bg-surface-active text-text-primary border border-surface-border text-xs font-semibold px-2.5 py-1.5 rounded-md shadow-xl whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-150 z-50">
-          Log Out
-        </div>
-      </button>
-    </div>
+        <UserWidget onOpenSettings={onOpenSettings} />
+      </div>
+    </aside>
   );
 }

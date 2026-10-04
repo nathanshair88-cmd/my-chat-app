@@ -5,9 +5,9 @@ import { useAuth } from '../../context/AuthContext';
 import { watchTogetherService } from '../../services/watchTogetherService';
 import WatchTogetherPlayer from './WatchTogetherPlayer';
 import UserContextMenu from '../modals/UserContextMenu';
-import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, Maximize, X, Tv2, Users } from 'lucide-react';
+import { Mic, MicOff, Volume2, VolumeX, Monitor, MonitorOff, Video, VideoOff, PhoneOff, Radio, Maximize, X, Tv2, Users, MessageSquare } from 'lucide-react';
 
-export default function VoiceRoom() {
+export default function VoiceRoom({ onOpenTextChat }) {
   const { currentChannel, membersListOpen, toggleMembersList } = useServer();
   const { user } = useAuth();
   const [fullscreenItem, setFullscreenItem] = useState(null);
@@ -66,7 +66,7 @@ export default function VoiceRoom() {
         </div>
         <h3 className="text-lg sm:text-xl font-bold text-text-primary mb-2 break-words">Voice & Video Room: #{currentChannel.name}</h3>
         <p className="text-sm text-text-muted max-w-md mb-6">
-          Connect to start crystal-clear audio chat, active speaker detection, and full 60FPS screen sharing.
+          Drop in for a conversation, turn on your camera, or share what’s on your screen.
         </p>
         <button
           onClick={() => voiceManager.joinVoiceChannel(currentChannel.id, user)}
@@ -75,6 +75,7 @@ export default function VoiceRoom() {
           <Radio className="w-5 h-5 animate-pulse" />
           <span>Join Voice</span>
         </button>
+        {onOpenTextChat && <button aria-label="Open voice text chat" onClick={onOpenTextChat} className="alto-button secondary mt-3"><MessageSquare size={16} /> Open text chat</button>}
       </div>
     );
   }
@@ -94,10 +95,11 @@ export default function VoiceRoom() {
         <div className="flex items-center gap-2 self-end sm:self-auto">
           {voiceState.isScreenSharing && (
             <div className="flex items-center space-x-1.5 bg-accent-primary/20 border border-accent-primary/40 px-2.5 py-1 rounded-md text-xs font-mono text-accent-primary font-semibold">
-              <span>LIVE 60FPS</span>
+              <span>SHARING SCREEN</span>
             </div>
           )}
 
+          {onOpenTextChat && <button aria-label="Open voice text chat" onClick={onOpenTextChat} className="alto-button secondary"><MessageSquare size={16} /><span className="hidden sm:inline">Text chat</span></button>}
           <button
             type="button"
             onClick={toggleMembersList}

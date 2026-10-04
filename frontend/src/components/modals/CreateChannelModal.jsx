@@ -1,23 +1,28 @@
+import useDialog from '../../hooks/useDialog';
 import React, { useState } from 'react';
 import { useServer } from '../../context/ServerContext';
 import { X, Hash, Volume2, Video } from 'lucide-react';
 
 export default function CreateChannelModal({ onClose }) {
+  const dialogRef = useDialog(onClose);
   const { addChannel } = useServer();
   const [channelName, setChannelName] = useState('');
   const [channelType, setChannelType] = useState('text');
   const [category, setCategory] = useState('General');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!channelName.trim()) return;
     setLoading(true);
+    setError('');
     try {
       await addChannel(channelName.trim(), channelType, category.trim());
       onClose();
     } catch (err) {
       console.error(err);
+      setError(typeof err.response?.data?.detail === 'string' ? err.response.data.detail : 'Could not create this channel. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -30,7 +35,7 @@ export default function CreateChannelModal({ onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 select-none animate-in fade-in duration-200">
+    <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Create a channel" tabIndex={-1} className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50 select-none animate-in fade-in duration-200">
       <div className="bg-surface-base border border-surface-border rounded-md modal-width-md max-w-md shadow-2xl overflow-hidden responsive-modal-panel overflow-y-auto responsive-safe-scroll">
         <div className="p-4 sm:p-6 flex items-center justify-between border-b border-surface-border">
           <h2 className="text-xl font-bold text-text-primary">Create Channel</h2>
@@ -40,6 +45,7 @@ export default function CreateChannelModal({ onClose }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
+          {error && <div className="inline-error" role="alert">{error}</div>}
           <div>
             <label className="block text-xs font-bold text-text-muted uppercase tracking-wider mb-2">
               Channel Type

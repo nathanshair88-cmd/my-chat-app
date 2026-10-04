@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
+import React, { useState, lazy, Suspense } from 'react';
+const MarkdownContent = lazy(() => import('./MarkdownContent'));
 import EmojiPicker from './EmojiPicker';
 import MediaLightboxModal from '../modals/MediaLightboxModal';
 import UserContextMenu from '../modals/UserContextMenu';
 import MessageContextMenu from '../modals/MessageContextMenu';
-import { Smile, FileText, Download, CheckCheck } from 'lucide-react';
+import { Smile, FileText, Download, CheckCheck, Bookmark, Reply, MoreHorizontal } from 'lucide-react';
+import { useLocalCollection, savedKey, messageKey, notify } from '../../services/localWorkspace';
 import { getSocket } from '../../services/socket';
 import { useAuth } from '../../context/AuthContext';
 import { useServer } from '../../context/ServerContext';
 
 export default function MessageItem({ message, searchQuery }) {
   const { user } = useAuth();
+  const [bookmarks, setBookmarks] = useLocalCollection(savedKey(user?.id));
+  const isSaved = bookmarks.some(b => b.key === messageKey(message));
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeMediaPreview, setActiveMediaPreview] = useState(null);
   const [contextMenu, setContextMenu] = useState(null);
@@ -22,7 +24,12 @@ export default function MessageItem({ message, searchQuery }) {
   const author = message.author || message.sender;
   const isOwnMessage = author?.id === user?.id;
 
-  const { viewMode, currentServer, setActiveThreadMessage } = useServer();
+  const { viewMode, currentServer, currentChannel, currentDM, setActiveThreadMessage } = useServer();
+  const toggleSaved = () => {
+    const next = isSaved ? bookmarks.filter(b => b.key !== messageKey(message)) : [{ key: messageKey(message), content: message.content, author: author?.username || 'Someone', created_at: message.created_at, location: message.conversation_id ? `@${currentDM?.other_user?.username || 'Direct message'}` : `#${currentChannel?.name || 'channel'} · ${currentServer?.name || 'Space'}` }, ...bookmarks];
+    if (setBookmarks(next)) notify(isSaved ? 'Removed from your saved messages.' : 'Saved. A little something to come back to.');
+    else notify('Your browser storage is full. This message could not be saved.');
+  };
   let roleColor = null;
   if (currentServer && author) {
     const member = currentServer.members?.find(m => m.user_id === author.id);
@@ -100,7 +107,7 @@ export default function MessageItem({ message, searchQuery }) {
     : (author?.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${displayName}`);
 
   return (
-    <div className={`group relative flex space-x-3 sm:space-x-4 px-2 sm:px-4 py-2 hover:bg-surface-hover transition-colors rounded-sm my-0.5 ${isBot ? 'bg-surface-active/30' : ''}`}>
+    <div className={`message-row group relative flex space-x-3 sm:space-x-4 px-2 sm:px-4 py-2 hover:bg-surface-hover transition-colors rounded-sm my-0.5 ${isBot ? 'bg-surface-active/30' : ''}`}>
       {/* Author Avatar — right-click for context menu */}
       <img
         src={displayAvatar}
@@ -138,37 +145,13 @@ export default function MessageItem({ message, searchQuery }) {
 
         {/* Markdown Content Body */}
         <div 
-          className="text-sm text-text-primary mt-1 leading-relaxed break-words space-y-1"
+          className="message-body text-sm text-text-primary mt-1 leading-relaxed break-words space-y-1"
           onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setMsgContextMenu({ x: e.clientX, y: e.clientY }); }}
         >
           {searchQuery ? (
             <div className="whitespace-pre-wrap">{renderContent(message.content)}</div>
           ) : (
-            <ReactMarkdown 
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code({ inline, children, ...props }) {
-                  return inline ? (
-                    <code className="bg-surface-active text-danger px-1.5 py-0.5 rounded font-mono text-xs border border-surface-border" {...props}>
-                      {children}
-                    </code>
-                  ) : (
-                    <pre className="bg-surface-active p-3 rounded-sm border border-surface-border font-mono text-xs text-accent-primary overflow-x-auto my-2 shadow-inner">
-                      <code {...props}>{children}</code>
-                    </pre>
-                  );
-                },
-                a({ href, children }) {
-                  return (
-                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:underline">
-                      {children}
-                    </a>
-                  );
-                }
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
+            <Suspense fallback={<p>{message.content}</p>}><MarkdownContent content={message.content} /></Suspense>
           )}
         </div>
 
@@ -272,7 +255,10 @@ export default function MessageItem({ message, searchQuery }) {
 
       {/* Floating Hover Toolbar */}
       {(message.channel_id || message.conversation_id) && (
-        <div className="absolute right-4 -top-3 hidden group-hover:flex items-center bg-surface-active/90 backdrop-blur-sm border border-surface-border rounded-md shadow-lg p-0.5 z-10 space-x-1">
+        <div className="message-actions absolute right-4 -top-3 items-center bg-surface-active/90 backdrop-blur-sm border border-surface-border rounded-md shadow-lg p-0.5 z-10 space-x-1">
+          <button className="icon-button" onClick={toggleSaved} title={isSaved ? 'Unsave message' : 'Save message'} aria-label={isSaved ? 'Unsave message' : 'Save message'} aria-pressed={isSaved}><Bookmark size={16} fill={isSaved ? 'currentColor' : 'none'} /></button>
+          <button className="icon-button" title="Reply to message" aria-label="Reply to message" onClick={() => window.dispatchEvent(new CustomEvent('reply-message', { detail: { message } }))}><Reply size={16}/></button>
+          <button className="icon-button" title="More message actions" aria-label="More message actions" onClick={e => { const box = e.currentTarget.getBoundingClientRect(); setMsgContextMenu({ x: box.right - 192, y: box.bottom + 5 }); }}><MoreHorizontal size={16}/></button>
           <button
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             className="p-1.5 text-text-muted hover:text-text-primary hover:bg-surface-hover rounded transition-colors"
@@ -319,6 +305,8 @@ export default function MessageItem({ message, searchQuery }) {
           isOwnMessage={isOwnMessage}
           onClose={() => setMsgContextMenu(null)}
           onAddReaction={() => setShowEmojiPicker(true)}
+          onSave={toggleSaved}
+          isSaved={isSaved}
           onReply={() => window.dispatchEvent(new CustomEvent('reply-message', { detail: { message } }))}
           onReplyThread={() => {
             setActiveThreadMessage(message);

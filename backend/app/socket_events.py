@@ -38,7 +38,7 @@ def _socket_error(message: str, exc: Optional[Exception] = None) -> dict:
     response = {"ok": False, "error": message}
     if exc is not None:
         logger.exception(message)
-        if _env_flag("DEBUG_EXCEPTIONS", True):
+        if _env_flag("DEBUG_EXCEPTIONS", False):
             response.update({
                 "debug": True,
                 "exception_type": type(exc).__name__,
@@ -1080,7 +1080,7 @@ async def watch_close(sid, data):
 async def edit_message(sid, data):
     user_data = sid_to_user.get(sid)
     if not user_data:
-        return
+        return {"ok": False, "error": "Message could not be edited"}
 
     message_id = to_int(data.get("message_id"))
     new_content = _clean_content(data.get("content"))
@@ -1088,12 +1088,12 @@ async def edit_message(sid, data):
     conversation_id = to_int(data.get("conversation_id"))
 
     if not message_id or not new_content:
-        return
+        return {"ok": False, "error": "Message could not be edited"}
 
     async with AsyncSessionLocal() as db:
         if channel_id:
             if not await user_channel(db, user_data["id"], channel_id):
-                return
+                return {"ok": False, "error": "Message could not be edited"}
             res = await db.execute(
                 select(Message).where(
                     Message.id == message_id,
@@ -1107,9 +1107,10 @@ async def edit_message(sid, data):
                 msg.updated_at = datetime.datetime.utcnow()
                 await db.commit()
                 await sio.emit("message_edited", {"message_id": message_id, "content": new_content}, room=f"channel_{channel_id}")
+                return {"ok": True}
         elif conversation_id:
             if not await user_dm_conversation(db, user_data["id"], conversation_id):
-                return
+                return {"ok": False, "error": "Message could not be edited"}
             res = await db.execute(
                 select(DirectMessage).where(
                     DirectMessage.id == message_id,
@@ -1122,6 +1123,9 @@ async def edit_message(sid, data):
                 msg.content = new_content
                 await db.commit()
                 await sio.emit("message_edited", {"message_id": message_id, "content": new_content}, room=f"dm_{conversation_id}")
+                return {"ok": True}
+
+    return {"ok": False, "error": "Message not found or you cannot edit it"}
 
 @sio.event
 async def delete_message(sid, data):

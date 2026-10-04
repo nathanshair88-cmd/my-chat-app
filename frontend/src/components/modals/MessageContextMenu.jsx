@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getSocket } from '../../services/socket';
-import { Copy, CornerUpLeft, Edit2, Trash2, Smile, AlertTriangle, Check, MessageSquare } from 'lucide-react';
+import { Copy, CornerUpLeft, Edit2, Trash2, Smile, Check, MessageSquare, Bookmark } from 'lucide-react';
+import { notify } from '../../services/localWorkspace';
 
 export default function MessageContextMenu({
   x, y,
@@ -10,7 +11,9 @@ export default function MessageContextMenu({
   onReply,
   onReplyThread,
   onEdit,
-  onAddReaction
+  onAddReaction,
+  onSave,
+  isSaved
 }) {
   const menuRef = useRef(null);
   const [pos, setPos] = useState({ top: y, left: x });
@@ -39,8 +42,9 @@ export default function MessageContextMenu({
     };
   }, [onClose]);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(message.content).catch(() => {});
+  const handleCopy = async () => {
+    try { await navigator.clipboard.writeText(message.content); }
+    catch { notify('Could not copy. Select the message text to copy it manually.'); return; }
     setCopied(true);
     setTimeout(() => {
       setCopied(false);
@@ -71,10 +75,6 @@ export default function MessageContextMenu({
     onClose();
   };
 
-  const handleReport = () => {
-    // Placeholder for reporting logic
-    onClose();
-  };
 
   return (
     <div
@@ -90,7 +90,8 @@ export default function MessageContextMenu({
         onClick={handleCopy} 
       />
       <MenuItem icon={<CornerUpLeft className="w-3.5 h-3.5" />} label="Reply" onClick={handleReply} />
-      <MenuItem icon={<MessageSquare className="w-3.5 h-3.5" />} label="Reply in Thread" onClick={() => { if (onReplyThread) onReplyThread(); onClose(); }} />
+      {message.channel_id && <MenuItem icon={<MessageSquare className="w-3.5 h-3.5" />} label="Reply in Thread" onClick={() => { if (onReplyThread) onReplyThread(); onClose(); }} />}
+      <MenuItem icon={<Bookmark className="w-3.5 h-3.5" />} label={isSaved ? 'Unsave message' : 'Save message'} onClick={() => { onSave?.(); onClose(); }} />
       <MenuItem icon={<Smile className="w-3.5 h-3.5" />} label="Add Reaction" onClick={handleReaction} />
       
       {isOwnMessage && (
@@ -101,12 +102,6 @@ export default function MessageContextMenu({
         </>
       )}
 
-      {!isOwnMessage && (
-        <>
-          <Divider />
-          <MenuItem icon={<AlertTriangle className="w-3.5 h-3.5" />} label="Report Message" onClick={handleReport} danger />
-        </>
-      )}
     </div>
   );
 }
