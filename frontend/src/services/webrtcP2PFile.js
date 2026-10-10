@@ -1,6 +1,13 @@
 import { getSocket } from './socket';
 
-const CHUNK_SIZE = 64 * 1024; // 64KB per chunk
+// Read ahead in bounded blocks, then send messages within the negotiated SCTP limit.
+// Separate watermarks keep the transport fed without buffering the entire file.
+const CHUNK_SIZE = 256 * 1024;
+const READ_SIZE = 4 * 1024 * 1024;
+const BUFFER_HIGH = 4 * 1024 * 1024;
+const BUFFER_LOW = 1024 * 1024;
+const PROGRESS_INTERVAL = 250;
+const TERMINAL_STATUSES = new Set(['completed', 'cancelled', 'rejected', 'failed']);
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
@@ -44,6 +51,8 @@ class P2PFileTransferEngine {
       bytesTransferred: t.bytesTransferred,
       speedMBps: t.speedMBps,
       etaSeconds: t.etaSeconds,
+      connectionType: t.connectionType,
+      error: t.error,
     }));
     listener(stateList);
 
@@ -63,6 +72,8 @@ class P2PFileTransferEngine {
       bytesTransferred: t.bytesTransferred,
       speedMBps: t.speedMBps,
       etaSeconds: t.etaSeconds,
+      connectionType: t.connectionType,
+      error: t.error,
     }));
     this.listeners.forEach(fn => fn(stateList));
   }
@@ -146,10 +157,9 @@ class P2PFileTransferEngine {
     socket.on('p2p_file_cancel', (data) => {
       const { transfer_id } = data;
       const transfer = this.transfers.get(transfer_id);
-      if (transfer && transfer.status !== 'cancelled') {
+      if (transfer && !TERMINAL_STATUSES.has(transfer.status)) {
         transfer.status = 'cancelled';
-        if (transfer.dataChannel) transfer.dataChannel.close();
-        if (transfer.pc) transfer.pc.close();
+        this._releaseTransfer(transfer);
         this.notify();
       }
     });
@@ -186,6 +196,7 @@ class P2PFileTransferEngine {
     };
 
     this.transfers.set(transfer_id, transfer);
+    this._watchConnection(transfer);
     this.notify();
 
     pc.onicecandidate = (event) => {
@@ -200,16 +211,31 @@ class P2PFileTransferEngine {
 
     dataChannel.onopen = () => {
       transfer.status = 'transferring';
+      this._resetMetrics(transfer);
+      dataChannel.bufferedAmountLowThreshold = BUFFER_LOW;
+      dataChannel.onbufferedamountlow = () => this._startSendingFileChunks(transfer_id);
       this.notify();
       this._startSendingFileChunks(transfer_id);
     };
 
-    dataChannel.onclose = () => {
-      if (transfer.status !== 'completed') {
-        transfer.status = 'cancelled';
-        this.notify();
-      }
+    // New receivers acknowledge receipt; older clients remain compatible and
+    // complete when their outgoing transport queue has drained.
+    dataChannel.onmessage = ({ data }) => {
+      if (typeof data !== 'string' || TERMINAL_STATUSES.has(transfer.status)) return;
+      try {
+        const message = JSON.parse(data);
+        if (message.type === 'ready' && message.version === 2) transfer.expectsReceipt = true;
+        if (message.type === 'complete' && message.bytes === transfer.file_size) {
+          transfer.receiptReceived = true;
+          this._finishSending(transfer);
+        }
+      } catch { /* Ignore unknown control messages. */ }
     };
+
+    dataChannel.onclose = () => {
+      if (!TERMINAL_STATUSES.has(transfer.status)) this._failTransfer(transfer, 'The file connection closed before the transfer finished.');
+    };
+    dataChannel.onerror = () => this._failTransfer(transfer, 'The file connection failed. Please try again.');
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -224,80 +250,157 @@ class P2PFileTransferEngine {
     });
   }
 
-  _startSendingFileChunks(transfer_id) {
+  async _startSendingFileChunks(transfer_id) {
     const transfer = this.transfers.get(transfer_id);
-    if (!transfer || !transfer.dataChannel) return;
+    if (!transfer || transfer.sending || transfer.status !== 'transferring') return;
 
     const { file, dataChannel } = transfer;
-    const fileReader = new FileReader();
-    let lastTime = Date.now();
-    let bytesSinceLast = 0;
-
-    dataChannel.bufferedAmountLowThreshold = CHUNK_SIZE * 4;
-
-    const readSlice = (o) => {
-      if (transfer.isPaused || transfer.status === 'paused' || transfer.status === 'cancelled') return;
-      const slice = file.slice(o, o + CHUNK_SIZE);
-      fileReader.readAsArrayBuffer(slice);
-    };
-
-    fileReader.onload = (e) => {
-      if (transfer.status === 'cancelled' || transfer.isPaused) return;
-
-      try {
-        dataChannel.send(e.target.result);
-      } catch (err) {
-        console.error("DataChannel send error:", err);
-        return;
-      }
-
-      transfer.offset += e.target.result.byteLength;
-      transfer.bytesTransferred = transfer.offset;
-      transfer.progress = Math.min(100, Math.round((transfer.offset / transfer.file_size) * 100));
-
-      // Calculate speed
-      bytesSinceLast += e.target.result.byteLength;
-      const now = Date.now();
-      const delta = (now - lastTime) / 1000;
-      if (delta >= 0.5) {
-        transfer.speedMBps = ((bytesSinceLast / delta) / (1024 * 1024)).toFixed(2);
-        const remainingBytes = transfer.file_size - transfer.offset;
-        transfer.etaSeconds = Math.round(remainingBytes / (bytesSinceLast / delta));
-        bytesSinceLast = 0;
-        lastTime = now;
-      }
-
-      this.notify();
-
-      if (transfer.offset < transfer.file_size) {
-        if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
-          dataChannel.onbufferedamountlow = () => {
-            dataChannel.onbufferedamountlow = null;
-            readSlice(transfer.offset);
-          };
-        } else {
-          readSlice(transfer.offset);
+    if (dataChannel?.readyState !== 'open') return;
+    const maxMessageSize = transfer.pc?.sctp?.maxMessageSize;
+    const chunkSize = Math.min(CHUNK_SIZE, maxMessageSize === 0 ? CHUNK_SIZE : (maxMessageSize || 64 * 1024));
+    transfer.sending = true;
+    try {
+      // A single pump survives pause/resume, including a pause during an async
+      // disk read. Starting another FileReader here used to duplicate chunks.
+      while (transfer.status === 'transferring' && dataChannel.readyState === 'open') {
+        if (transfer.offset === file.size) {
+          if (file.size === 0 && !transfer.emptySent) {
+            dataChannel.send(new ArrayBuffer(0));
+            transfer.emptySent = true;
+          }
+          transfer.readBuffer = null;
+          dataChannel.bufferedAmountLowThreshold = 0;
+          this._finishSending(transfer);
+          return;
         }
+        const remaining = file.size - transfer.offset;
+        if (dataChannel.bufferedAmount + Math.min(chunkSize, remaining) > BUFFER_HIGH) return;
+
+        if (!transfer.readBuffer || transfer.readPosition === transfer.readBuffer.byteLength) {
+          const block = await file.slice(transfer.offset, transfer.offset + READ_SIZE).arrayBuffer();
+          if (TERMINAL_STATUSES.has(transfer.status)) return;
+          if (!block.byteLength) throw new Error('The file could not be read.');
+          transfer.readBuffer = new Uint8Array(block);
+          transfer.readPosition = 0;
+          // Pause may have arrived while reading. Keep the block for resume.
+          if (transfer.status !== 'transferring') return;
+        }
+
+        const end = Math.min(transfer.readPosition + chunkSize, transfer.readBuffer.byteLength);
+        const chunk = transfer.readBuffer.subarray(transfer.readPosition, end);
+        dataChannel.send(chunk);
+        transfer.readPosition = end;
+        transfer.offset += chunk.byteLength;
+        transfer.bytesTransferred = Math.max(0, transfer.offset - dataChannel.bufferedAmount);
+        this._reportProgress(transfer);
+      }
+    } catch (error) {
+      if (error.name === 'OperationError' && transfer.status === 'transferring') {
+        // A full browser transport queue is transient. Keep this exact chunk
+        // and retry, including when no low-water crossing remains to wake us.
+        clearTimeout(transfer.retryTimer);
+        transfer.retryTimer = setTimeout(() => this._startSendingFileChunks(transfer_id), 50);
       } else {
-        // Sending completed
-        transfer.status = 'completed';
-        transfer.speedMBps = 0;
-        this.notify();
+        this._failTransfer(transfer, 'The file could not be sent. Please try again.');
+      }
+    } finally {
+      transfer.sending = false;
+    }
+  }
+
+  _finishSending(transfer) {
+    if (TERMINAL_STATUSES.has(transfer.status) || transfer.offset !== transfer.file_size ||
+        transfer.dataChannel.bufferedAmount !== 0 || (transfer.expectsReceipt && !transfer.receiptReceived)) return;
+    this._completeTransfer(transfer);
+  }
+
+  _resetMetrics(transfer) {
+    if (transfer.role === 'sender') {
+      transfer.bytesTransferred = Math.max(0, transfer.offset - transfer.dataChannel.bufferedAmount);
+    }
+    transfer.metricTime = performance.now();
+    transfer.metricBytes = transfer.bytesTransferred;
+    transfer.lastProgressTime = 0;
+    transfer.etaSeconds = 0;
+  }
+
+  _reportProgress(transfer) {
+    const now = performance.now();
+    if (now - transfer.lastProgressTime < PROGRESS_INTERVAL) return;
+    const seconds = (now - transfer.metricTime) / 1000;
+    if (seconds >= 0.5) {
+      const bytesPerSecond = (transfer.bytesTransferred - transfer.metricBytes) / seconds;
+      transfer.speedMBps = (bytesPerSecond / (1024 * 1024)).toFixed(2);
+      transfer.etaSeconds = bytesPerSecond > 0 ? Math.ceil((transfer.file_size - transfer.bytesTransferred) / bytesPerSecond) : 0;
+      transfer.metricBytes = transfer.bytesTransferred;
+      transfer.metricTime = now;
+    }
+    transfer.progress = transfer.file_size ? Math.min(99, Math.floor(100 * transfer.bytesTransferred / transfer.file_size)) : 0;
+    transfer.lastProgressTime = now;
+    this.notify();
+  }
+
+  _completeTransfer(transfer) {
+    transfer.status = 'completed';
+    transfer.bytesTransferred = transfer.file_size;
+    transfer.progress = 100;
+    transfer.speedMBps = 0;
+    transfer.etaSeconds = 0;
+    transfer.readBuffer = null;
+    transfer.file = null;
+    clearTimeout(transfer.retryTimer);
+    this.notify();
+  }
+
+  _releaseTransfer(transfer) {
+    clearTimeout(transfer.retryTimer);
+    transfer.readBuffer = null;
+    transfer.receivedChunks = [];
+    transfer.file = null;
+    transfer.speedMBps = 0;
+    transfer.etaSeconds = 0;
+    transfer.dataChannel?.close();
+    transfer.pc?.close();
+  }
+
+  _failTransfer(transfer, message) {
+    if (TERMINAL_STATUSES.has(transfer.status)) return;
+    transfer.status = 'failed';
+    transfer.error = message;
+    this._releaseTransfer(transfer);
+    this.notify();
+  }
+
+  _watchConnection(transfer) {
+    transfer.pc.onconnectionstatechange = async () => {
+      if (transfer.pc.connectionState === 'failed') {
+        this._failTransfer(transfer, 'The file connection failed. Please try again.');
+      } else if (transfer.pc.connectionState === 'connected') {
+        try {
+          const stats = await transfer.pc.getStats();
+          const transport = [...stats.values()].find(s => s.type === 'transport' && s.selectedCandidatePairId);
+          const pair = stats.get(transport?.selectedCandidatePairId);
+          if (pair) {
+            const local = stats.get(pair.localCandidateId);
+            const remote = stats.get(pair.remoteCandidateId);
+            transfer.connectionType = local?.candidateType === 'relay' || remote?.candidateType === 'relay' ? 'relay' : 'direct';
+            this.notify();
+          }
+        } catch { /* Route diagnostics must never interrupt a transfer. */ }
       }
     };
-
-    readSlice(transfer.offset);
   }
 
   // --- Receiver Methods ---
 
   async acceptTransfer(transfer_id) {
     const transfer = this.transfers.get(transfer_id);
-    if (!transfer) return;
+    if (!transfer || transfer.status !== 'pending') return;
 
     const socket = getSocket();
     const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
     transfer.pc = pc;
+    this._watchConnection(transfer);
     transfer.status = 'connecting';
     this.notify();
 
@@ -311,38 +414,45 @@ class P2PFileTransferEngine {
       }
     };
 
-    let lastTime = Date.now();
-    let bytesSinceLast = 0;
-
     pc.ondatachannel = (event) => {
       const channel = event.channel;
       transfer.dataChannel = channel;
       channel.binaryType = 'arraybuffer';
 
+      const opened = () => {
+        if (transfer.status !== 'connecting') return;
+        transfer.status = 'transferring';
+        this._resetMetrics(transfer);
+        channel.send(JSON.stringify({ type: 'ready', version: 2 }));
+        this.notify();
+      };
+      channel.onopen = opened;
+      if (channel.readyState === 'open') opened();
+      channel.onclose = () => {
+        if (!TERMINAL_STATUSES.has(transfer.status)) this._failTransfer(transfer, 'The file connection closed before the transfer finished.');
+      };
+      channel.onerror = () => this._failTransfer(transfer, 'The file connection failed. Please try again.');
+
       channel.onmessage = (e) => {
+        if (TERMINAL_STATUSES.has(transfer.status)) return;
+        if (!(e.data instanceof ArrayBuffer) || transfer.bytesTransferred + e.data.byteLength > transfer.file_size) {
+          this._failTransfer(transfer, 'The received file did not match the expected size.');
+          return;
+        }
         transfer.receivedChunks.push(e.data);
         transfer.bytesTransferred += e.data.byteLength;
-        transfer.progress = Math.min(100, Math.round((transfer.bytesTransferred / transfer.file_size) * 100));
 
-        bytesSinceLast += e.data.byteLength;
-        const now = Date.now();
-        const delta = (now - lastTime) / 1000;
-        if (delta >= 0.5) {
-          transfer.speedMBps = ((bytesSinceLast / delta) / (1024 * 1024)).toFixed(2);
-          const remainingBytes = transfer.file_size - transfer.bytesTransferred;
-          transfer.etaSeconds = Math.round(remainingBytes / (bytesSinceLast / delta));
-          bytesSinceLast = 0;
-          lastTime = now;
-        }
-
-        this.notify();
-
-        if (transfer.bytesTransferred >= transfer.file_size) {
-          // File completed! Auto download
-          transfer.status = 'completed';
-          transfer.speedMBps = 0;
-          this._triggerFileDownload(transfer);
-          this.notify();
+        if (transfer.bytesTransferred === transfer.file_size) {
+          try {
+            this._triggerFileDownload(transfer);
+            channel.send(JSON.stringify({ type: 'complete', bytes: transfer.bytesTransferred }));
+            transfer.receivedChunks = [];
+            this._completeTransfer(transfer);
+          } catch {
+            this._failTransfer(transfer, 'The received file could not be saved. Please try again.');
+          }
+        } else {
+          this._reportProgress(transfer);
         }
       };
     };
@@ -377,24 +487,27 @@ class P2PFileTransferEngine {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Let the browser consume the download URL before releasing it.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
   pauseTransfer(transfer_id) {
     const transfer = this.transfers.get(transfer_id);
-    if (transfer && transfer.role === 'sender') {
+    if (transfer && transfer.role === 'sender' && transfer.status === 'transferring' && transfer.offset < transfer.file_size) {
       transfer.isPaused = true;
       transfer.status = 'paused';
       transfer.speedMBps = 0;
+      transfer.etaSeconds = 0;
       this.notify();
     }
   }
 
   resumeTransfer(transfer_id) {
     const transfer = this.transfers.get(transfer_id);
-    if (transfer && transfer.role === 'sender') {
+    if (transfer && transfer.role === 'sender' && transfer.status === 'paused') {
       transfer.isPaused = false;
       transfer.status = 'transferring';
+      this._resetMetrics(transfer);
       this.notify();
       this._startSendingFileChunks(transfer_id);
     }
@@ -402,10 +515,9 @@ class P2PFileTransferEngine {
 
   cancelTransfer(transfer_id) {
     const transfer = this.transfers.get(transfer_id);
-    if (transfer) {
+    if (transfer && !TERMINAL_STATUSES.has(transfer.status)) {
       transfer.status = 'cancelled';
-      if (transfer.dataChannel) transfer.dataChannel.close();
-      if (transfer.pc) transfer.pc.close();
+      this._releaseTransfer(transfer);
       
       const socket = getSocket();
       if (socket) {
@@ -421,9 +533,8 @@ class P2PFileTransferEngine {
 
   resetSession() {
     for (const transfer of this.transfers.values()) {
-      if (!['completed', 'cancelled', 'rejected'].includes(transfer.status)) this.cancelTransfer(transfer.transfer_id);
-      transfer.dataChannel?.close();
-      transfer.pc?.close();
+      if (!TERMINAL_STATUSES.has(transfer.status)) this.cancelTransfer(transfer.transfer_id);
+      this._releaseTransfer(transfer);
     }
     this.transfers.clear();
     this.notify();

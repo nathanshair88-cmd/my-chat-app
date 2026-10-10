@@ -61,7 +61,7 @@ export default function P2PTransferModal({ onClose }) {
 
         {/* Modal Content Body */}
         <div className="p-4 sm:p-6 space-y-6 overflow-y-auto no-scrollbar flex-1 responsive-safe-scroll">
-          <p className="text-xs text-text-muted">Keep Alto open on both devices. Files travel directly between you; transfer size depends on your connection and available device memory.</p>
+          <p className="text-xs text-text-muted">Keep Alto open on both devices. Files use a direct connection when possible, with a relay if needed. Speed depends on both connections; transfer size also depends on available device memory.</p>
           {error && <div className="inline-error" role="alert">{error}</div>}
           {/* Send File Section */}
           <div className="bg-surface-panel p-4 rounded-md border border-surface-border space-y-4">
@@ -139,6 +139,8 @@ export default function P2PTransferModal({ onClose }) {
                       </span>
                     </div>
 
+                    {t.error && <p className="text-xs text-danger" role="alert">{t.error}</p>}
+
                     {/* Progress Bar */}
                     <div className="w-full bg-surface-panel h-2 rounded-full overflow-hidden">
                       <div
@@ -151,6 +153,7 @@ export default function P2PTransferModal({ onClose }) {
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-[11px] text-text-muted">
                       <div>
                         <span>{t.progress}%</span>
+                        {t.connectionType && <span className="ml-2">{t.connectionType === 'relay' ? 'Relayed connection' : 'Direct connection'}</span>}
                         {t.speedMBps > 0 && <span className="ml-2 font-mono text-text-primary font-semibold">{t.speedMBps} MB/s</span>}
                         {t.etaSeconds > 0 && <span className="ml-2">({t.etaSeconds}s remaining)</span>}
                       </div>
@@ -185,13 +188,13 @@ export default function P2PTransferModal({ onClose }) {
                           </button>
                         )}
 
-                        <button
+                        {!['completed', 'cancelled', 'rejected', 'failed'].includes(t.status) && <button
                           onClick={() => p2pEngine.cancelTransfer(t.transfer_id)}
                           className="p-1 hover:text-danger transition-colors"
                           title="Cancel"
                         >
                           <X className="w-3.5 h-3.5" />
-                        </button>
+                        </button>}
                       </div>
                     </div>
                   </div>
